@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14101c">
+<title>Necromancer Idle</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="field" width="960" height="540"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="pill"><span class="ico">&#9760;</span> <b id="hud-souls">0</b></div>
+    <div class="pill" id="hud-wave">Wave 1/8</div>
+    <div class="pill" id="hud-horde">Horde 3</div>
+    <button id="btn-speed" class="pill btn">1x</button>
+  </div>
+
+  <div id="screen-home" class="screen">
+    <h1>Necromancer Idle</h1>
+    <div class="bank">Souls: <b id="home-souls">0</b></div>
+    <div id="upgrades"></div>
+    <button id="btn-start" class="big">Enter: Graveyard Fields</button>
+  </div>
+
+  <div id="screen-result" class="screen hidden">
+    <h2 id="result-title"></h2>
+    <p id="result-text"></p>
+    <button id="btn-home" class="big">Return Home</button>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
