@@ -142,4 +142,4 @@ Put these in one `data` file so they are easy to change.
 - **Offline souls:** 2 per minute x (highest zone cleared)^1.3, capped at 8 hours, shown as a "Welcome back" note on the home screen. The 20 per minute in the original numbers was far too rich against upgrade costs. Only saved while the page is visible, so the away time is real.
 - **Tuning changes from the starting numbers:** zombie 40 HP and 5 damage, zombie cost growth 1.12, peasant drops 4 souls, waves have 2+n peasants, wave scaling 1.08.
 - **Tools:** `node tools/simtest.mjs` runs a headless balance check, `node tools/serve.mjs` serves the game locally. Live at https://realzombie.github.io/NecromancerIdle/.
-- **Not needed for offline saves:** the PWA. Saves use browser local storage, so a PWA only adds home-screen install and play without a network.
+- **PWA:** manifest (landscape, fullscreen), generated icons (`node tools/makeicons.mjs`) and a network-first service worker `sw.js`. Bump `CACHE` in `sw.js` and add new files to `SHELL` when files are added. Offline saves never depended on it (they use local storage).

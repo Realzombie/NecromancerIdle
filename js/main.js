@@ -119,5 +119,9 @@ document.addEventListener('visibilitychange', () => {
 });
 requestAnimationFrame(frame);
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* offline install is optional */ });
+}
+
 // Test hook (used by automated checks).
 window.__game = { save, get battle() { return battle; } };
