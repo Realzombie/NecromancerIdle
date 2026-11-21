@@ -7,7 +7,9 @@ export class Battle {
   constructor(save, zone = 1, rng = Math.random) {
     this.save = save;
     this.rng = rng;
+    this.zoneId = zone;
     this.zone = ZONES[zone];
+    this.bossSpawned = false;
     this.units = [];
     this.projectiles = [];
     this.floaters = [];
@@ -36,7 +38,7 @@ export class Battle {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
     if (def.team === 'player') { const m = this.mods(); hpMul = m.hp; dmgMul = m.dmg; }
-    else { const s = Math.pow(TUNING.waveScale, Math.max(0, this.wave - 1)); hpMul = s; dmgMul = s; }
+    else if (type !== 'champion') { const s = Math.pow(TUNING.waveScale, Math.max(0, this.wave - 1)); hpMul = s; dmgMul = s; }
     const u = {
       id: nextId++, type, def, team: def.team,
       x, y: LANE_TOP + this.rng() * (LANE_BOTTOM - LANE_TOP),
@@ -58,6 +60,12 @@ export class Battle {
     return Math.ceil(d.cost * Math.pow(d.growth, this.alive('player', type)));
   }
 
+  // Which unit the gate raises next: archers once unlocked, kept at about half the zombie count.
+  nextRaise() {
+    if (this.save.bestZone >= 1 && this.alive('player', 'archer') * 2 < this.alive('player', 'zombie') && this.runSouls >= this.cost('archer')) return 'archer';
+    return 'zombie';
+  }
+
   raiseInterval() {
     return TUNING.raiseInterval / (1 + TUNING.raiseSpeedPerLevel * this.save.upgrades.raise);
   }
@@ -69,10 +77,11 @@ export class Battle {
     // Gate raises zombies automatically when affordable.
     this.raiseTimer = Math.min(this.raiseTimer + dt, this.raiseInterval());
     if (this.raiseTimer >= this.raiseInterval()) {
-      const c = this.cost('zombie');
+      const type = this.nextRaise();
+      const c = this.cost(type);
       if (this.runSouls >= c) {
         this.runSouls -= c;
-        this.spawn('zombie', GATE_X + 20);
+        this.spawn(type, GATE_X + 20);
         this.raiseTimer = 0;
       }
     }
@@ -87,7 +96,13 @@ export class Battle {
     } else if (this.alive('enemy') === 0) {
       this.pause -= dt;
       if (this.pause <= 0) {
-        if (this.wave >= this.totalWaves) { this.finish('clear'); return; }
+        if (this.wave >= this.totalWaves) {
+          if (this.bossSpawned) { this.finish('clear'); return; }
+          this.bossSpawned = true;
+          this.spawn('champion', FIELD_W - 30);
+          this.pause = TUNING.wavePause;
+          return;
+        }
         this.wave++;
         const n = this.zone.waveCount(this.wave);
         this.spawnQueue = Array(n).fill('peasant');
@@ -164,6 +179,7 @@ export class Battle {
 
   finish(result) {
     this.result = result;
+    if (result === 'clear') this.save.bestZone = Math.max(this.save.bestZone, this.zoneId);
     this.payout = Math.floor(this.earned * (result === 'clear' ? 1 : TUNING.failPayout));
     this.save.souls += this.payout;
   }

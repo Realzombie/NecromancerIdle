@@ -134,3 +134,12 @@ Put these in one `data` file so they are easy to change.
 - **Unit upgrades:** HP and damage, base 30 souls, x1.4 per level.
 - **Unlock:** skeleton archers unlock after clearing zone 1.
 - **Offline souls:** 20 per minute x (highest zone cleared)^1.3, capped at 8 hours.
+
+## Build log
+
+- **Souls model:** kills fund raising units during an attempt (run souls). When the attempt ends, the banked payout (all on a win, half on a loss) funds upgrades. Starting run souls 30.
+- **Boss:** after wave 8 the Peasant Champion (400 HP, 12 damage, unscaled) spawns alone. Killing it clears the zone. The first clear unlocks skeleton archers, which the gate raises at about half the zombie count.
+- **Offline souls:** 2 per minute x (highest zone cleared)^1.3, capped at 8 hours, shown as a "Welcome back" note on the home screen. The 20 per minute in the original numbers was far too rich against upgrade costs. Only saved while the page is visible, so the away time is real.
+- **Tuning changes from the starting numbers:** zombie 40 HP and 5 damage, zombie cost growth 1.12, peasant drops 4 souls, waves have 2+n peasants, wave scaling 1.08.
+- **Tools:** `node tools/simtest.mjs` runs a headless balance check, `node tools/serve.mjs` serves the game locally. Live at https://realzombie.github.io/NecromancerIdle/.
+- **Not needed for offline saves:** the PWA. Saves use browser local storage, so a PWA only adds home-screen install and play without a network.

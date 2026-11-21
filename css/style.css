@@ -27,3 +27,4 @@ p { margin: 0; opacity: 0.85; }
 
 button.big { background: var(--accent); color: #12200c; border: 0; border-radius: 0.6em; padding: 0.6em 1.4em; font: inherit; font-weight: 700; font-size: 1.15em; cursor: pointer; margin-top: 0.4em; }
 button.big:active { filter: brightness(0.9); }
+.note { color: var(--accent); font-size: 0.9em; min-height: 1.2em; }

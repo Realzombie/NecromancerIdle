@@ -22,6 +22,10 @@ export const TUNING = {
   waveScale: 1.08,         // enemy hp/dmg multiplier per wave
   wavePause: 3,
   spawnGap: 0.35,
+  offlineSoulsPerMin: 2,   // x (highest zone cleared)^offlineExp
+  offlineExp: 1.3,
+  offlineCapHours: 8,
+  offlineMinSeconds: 60,
 };
 
 export const UPGRADES = {

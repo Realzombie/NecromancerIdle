@@ -20,6 +20,22 @@ const SPRITES = {
       '.DD..DD.',
     ],
   },
+  archer: {
+    scale: 4,
+    palette: { B: '#e8e0c8', b: '#b8b09a', E: '#2a2030', W: '#8a5a2a', S: '#d8d0b0' },
+    grid: [
+      '..BBBB...',
+      '.BBBBBB..',
+      '.BEBBEB..',
+      '..BBBB...',
+      '..bBBb.WS',
+      '.BBBBBBW.',
+      '.b.BB.bWS',
+      '..BBBB.W.',
+      '..B..B.WS',
+      '..B..B...',
+    ],
+  },
   peasant: {
     scale: 4,
     palette: { S: '#e0b890', H: '#a07840', T: '#8a6a4a', P: '#5a4a3a', E: '#202020' },
@@ -148,7 +164,7 @@ export function draw(g, battle) {
   // Wave banner
   if (battle.spawnQueue.length === 0 && battle.alive('enemy') === 0 && !battle.result) {
     g.font = 'bold 28px system-ui, sans-serif'; g.fillStyle = '#e8e0f0';
-    g.fillText(battle.wave >= battle.totalWaves ? 'Zone cleared!' : 'Next wave incoming...', FIELD_W / 2, 200);
+    g.fillText(battle.wave >= battle.totalWaves && !battle.bossSpawned ? 'The Peasant Champion approaches!' : 'Next wave incoming...', FIELD_W / 2, 200);
   }
 }
 

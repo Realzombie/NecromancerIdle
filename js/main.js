@@ -1,4 +1,4 @@
-import { UPGRADES, upgradeCost, ZONES } from './data.js';
+import { UPGRADES, upgradeCost, ZONES, TUNING } from './data.js';
 import { Battle, buyUpgrade } from './sim.js';
 import { draw, drawIdle } from './render.js';
 import { loadSave, writeSave } from './save.js';
@@ -23,6 +23,20 @@ function show(id) {
   $('hud').classList.toggle('hidden', id !== null);
 }
 
+let homeNote = '';
+
+// Souls earned while away: based on the highest zone cleared, capped. Never advances zones.
+function claimOffline() {
+  if (battle || save.bestZone < 1) { return; }
+  const secs = Math.min((Date.now() - save.lastSeen) / 1000, TUNING.offlineCapHours * 3600);
+  if (secs < TUNING.offlineMinSeconds) return;
+  const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp));
+  save.souls += gained;
+  writeSave(save);
+  const h = Math.floor(secs / 3600), mnt = Math.floor((secs % 3600) / 60);
+  homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + "h " : ""}${mnt}m away.`;
+}
+
 function renderHome() {
   $('home-souls').textContent = Math.floor(save.souls);
   const box = $('upgrades');
@@ -37,7 +51,8 @@ function renderHome() {
     b.onclick = () => { if (buyUpgrade(save, key)) { writeSave(save); renderHome(); } };
     box.appendChild(b);
   }
-  $('btn-start').textContent = `Enter: ${ZONES[1].name}`;
+  $('btn-start').textContent = (save.bestZone >= 1 ? 'Replay: ' : 'Enter: ') + ZONES[1].name;
+  $('home-note').textContent = homeNote;
 }
 
 function goHome() {
@@ -46,7 +61,9 @@ function goHome() {
   show('screen-home');
 }
 
+let firstClearBefore = false;
 function startBattle() {
+  firstClearBefore = save.bestZone >= 1;
   battle = new Battle(save, 1);
   speed = 1;
   $('btn-speed').textContent = '1x';
@@ -56,9 +73,10 @@ function startBattle() {
 function endBattle() {
   writeSave(save);
   const won = battle.result === 'clear';
+  const first = won && !firstClearBefore;
   $('result-title').textContent = won ? 'Zone Cleared!' : 'Your horde has fallen';
   $('result-text').textContent = won
-    ? `The graveyard is yours. +${battle.payout} souls banked.`
+    ? `The Peasant Champion is dead and the graveyard is yours. +${battle.payout} souls banked.${first ? " Skeleton archers now answer your call!" : ""}`
     : `The living breached the gate. +${battle.payout} souls banked from ${battle.kills} kills.`;
   show('screen-result');
 }
@@ -82,7 +100,7 @@ function frame(now) {
     }
     draw(g, battle);
     $('hud-souls').textContent = Math.floor(battle.runSouls);
-    $('hud-wave').textContent = `Wave ${battle.wave}/${battle.totalWaves}`;
+    $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
   } else {
     idleTime += dt;
@@ -91,8 +109,14 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-setInterval(() => writeSave(save), 5000);
+// Only save while visible so lastSeen marks when the player actually left.
+setInterval(() => { if (document.visibilityState === "visible") writeSave(save); }, 5000);
+claimOffline();
 goHome();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { writeSave(save); return; }
+  if (!battle) { claimOffline(); renderHome(); }
+});
 requestAnimationFrame(frame);
 
 // Test hook (used by automated checks).
