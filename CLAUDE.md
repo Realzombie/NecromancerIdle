@@ -105,3 +105,32 @@ First prototype scope:
 - Offline progress with a simple cap.
 
 Later passes add the world map, gear, defences and prestige.
+
+## Decisions (Nov 21, 2026)
+
+- **Working style:** Will is the manager and does not code. Claude owns all implementation and tech choices, checks in after each working increment, and commits and pushes as it goes.
+- **Stack:** HTML5 canvas with plain ES modules (no build step), split into small files (`sim`, `render`, `ui`, `save`, `data`) so it can grow. Installable as a PWA and hosted on GitHub Pages so Will can open it on his phone. Chosen over Godot because Claude can run and check it directly in a browser. Godot sideloading stays a fallback.
+- **Orientation:** landscape.
+- **Combat:** real-time simulation with HP, damage and attack speed, visible on the battlefield. The on-screen sprite cap is on hold until numbers show it is needed. If it is, add group sprites (one sprite stands for 10, another for 100) rather than capping.
+- **Failure:** a failure screen with a button back to the home page. The horde does not raise units mid-fight at first. Mid-fight resurrection is a later upgrade.
+- **Prototype boss:** a tanky peasant champion.
+- **Offline:** never advances zones. Souls accrue at a rate based on the highest zone cleared, capped at 8 hours.
+- **Unlocks:** deliberately slower than the original doc. New unit types unlock after winning a round or two.
+
+## Starting numbers (prototype, all tunable)
+
+Put these in one `data` file so they are easy to change.
+
+| Thing | HP | Damage | Attack interval | Speed | Range | Base cost | Cost growth |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Zombie | 30 | 4 | 1.0s | 40 | melee | 10 souls | x1.15 per owned |
+| Skeleton archer | 15 | 6 | 1.2s | 35 | 150 | 50 souls | x1.18 per owned |
+| Peasant | 20 | 3 | 1.2s | 35 | melee | drops 2 souls | n/a |
+| Peasant champion (boss) | 400 | 12 | 1.0s | 30 | melee | drops 100 souls | n/a |
+
+- **Start:** 3 zombies, 0 souls.
+- **Gate:** raises one purchased unit at a time, every 4s by default. Upgrade the raise speed (base 25 souls, x1.5 per level).
+- **Zone 1:** 8 waves then the boss. Wave n has 3 + 2n peasants, with HP and damage scaled by 1.12^n.
+- **Unit upgrades:** HP and damage, base 30 souls, x1.4 per level.
+- **Unlock:** skeleton archers unlock after clearing zone 1.
+- **Offline souls:** 20 per minute x (highest zone cleared)^1.3, capped at 8 hours.
