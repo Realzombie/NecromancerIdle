@@ -1,6 +1,6 @@
-import { UPGRADES, upgradeCost, ZONES, TUNING } from './data.js';
+import { UPGRADES, upgradeCost, ZONES, TUNING, NECRO_TIERS, necroTier } from './data.js';
 import { Battle, buyUpgrade } from './sim.js';
-import { draw, drawIdle } from './render.js';
+import { draw, drawIdle, iconCanvas } from './render.js';
 import { loadSave, writeSave } from './save.js';
 
 const $ = (id) => document.getElementById(id);
@@ -37,21 +37,30 @@ function claimOffline() {
   homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + "h " : ""}${mnt}m away.`;
 }
 
-function renderHome() {
+function renderHome(bought) {
   $('home-souls').textContent = Math.floor(save.souls);
+  $('home-rank').textContent = NECRO_TIERS[necroTier(save)].name;
   const box = $('upgrades');
   box.innerHTML = '';
   for (const key of Object.keys(UPGRADES)) {
     const u = UPGRADES[key];
-    const cost = upgradeCost(key, save.upgrades[key]);
+    const lvl = save.upgrades[key];
+    const cost = upgradeCost(key, lvl);
+    const can = save.souls >= cost;
     const b = document.createElement('button');
-    b.className = 'upg';
-    b.innerHTML = `<b>${u.name} (Lv ${save.upgrades[key]})</b><small>${u.desc}</small>${cost} souls`;
-    b.disabled = save.souls < cost;
-    b.onclick = () => { if (buyUpgrade(save, key)) { writeSave(save); renderHome(); } };
+    b.className = 'card' + (can ? ' can' : '') + (bought === key ? ' bought' : '');
+    b.disabled = !can;
+    b.appendChild(iconCanvas(u.icon));
+    b.insertAdjacentHTML('beforeend',
+      `<div class="name">${u.name}</div><div class="lvl">LEVEL ${lvl}</div>` +
+      `<div class="eff">${u.effect(lvl)}<br><i>Next: ${u.effect(lvl + 1)}</i></div>` +
+      `<div class="buy"><span class="ico">&#9760;</span> ${cost}</div>`);
+    b.onclick = () => { if (buyUpgrade(save, key)) { writeSave(save); renderHome(key); } };
     box.appendChild(b);
   }
-  $('btn-start').textContent = (save.bestZone >= 1 ? 'Replay: ' : 'Enter: ') + ZONES[1].name;
+  const z = ZONES[1];
+  $('btn-start').textContent = (save.bestZone >= 1 ? 'Replay: ' : 'Enter: ') + z.name;
+  $('zone-info').textContent = `${z.waves} waves of peasants, then a champion` + (save.bestZone >= 1 ? ' · cleared' : '');
   $('home-note').textContent = homeNote;
 }
 
@@ -92,19 +101,20 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  const tier = necroTier(save);
   if (battle) {
     if (!battle.result) {
       const steps = speed * 2;
       for (let i = 0; i < steps; i++) battle.update(dt / 2);
       if (battle.result) endBattle();
     }
-    draw(g, battle);
-    $('hud-souls').textContent = Math.floor(battle.runSouls);
+    draw(g, battle, tier);
+    $('hud-souls').textContent = Math.floor(battle.earned);
     $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
   } else {
     idleTime += dt;
-    drawIdle(g, idleTime);
+    drawIdle(g, idleTime, tier);
   }
   requestAnimationFrame(frame);
 }

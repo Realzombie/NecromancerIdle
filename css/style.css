@@ -1,4 +1,4 @@
-:root { --u: 1px; --bg: #14101c; --panel: #241b33; --edge: #4a3a66; --text: #e8e0f0; --accent: #8fd16a; --warn: #d6596b; }
+:root { --u: 1px; --bg: #14101c; --panel: #241b33; --edge: #4a3a66; --text: #e8e0f0; --accent: #8fd16a; --warn: #d6596b; --gold: #c8a040; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 html, body { margin: 0; height: 100%; background: #000; color: var(--text); font-family: system-ui, sans-serif; overflow: hidden; touch-action: manipulation; }
 body { display: flex; align-items: center; justify-content: center; }
@@ -10,21 +10,41 @@ body { display: flex; align-items: center; justify-content: center; }
 
 #hud { position: absolute; top: calc(var(--u) * 10); left: calc(var(--u) * 10); right: calc(var(--u) * 10); display: flex; gap: calc(var(--u) * 8); }
 .pill { background: rgba(20, 16, 28, 0.78); border: 1px solid var(--edge); border-radius: 999px; padding: 0.25em 0.8em; font-size: 0.9em; color: var(--text); }
-.pill .ico { color: var(--accent); }
+.ico { color: var(--accent); }
 #hud .btn { margin-left: auto; font: inherit; font-size: 0.9em; cursor: pointer; }
 
 .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6em; background: rgba(12, 9, 18, 0.9); padding: 1em; text-align: center; }
-h1 { margin: 0; font-size: 2.2em; letter-spacing: 0.05em; color: var(--accent); }
+h1 { margin: 0; font-size: 1.9em; letter-spacing: 0.05em; color: var(--accent); text-shadow: 0 2px 0 #0a0710; }
 h2 { margin: 0; font-size: 2em; }
 p { margin: 0; opacity: 0.85; }
-.bank { font-size: 1.1em; }
 
-#upgrades { display: flex; gap: 0.6em; flex-wrap: wrap; justify-content: center; }
-.upg { background: var(--panel); border: 1px solid var(--edge); border-radius: 0.5em; padding: 0.5em 0.8em; min-width: 11em; color: var(--text); font: inherit; font-size: 0.85em; cursor: pointer; }
-.upg b { display: block; font-size: 1.05em; }
-.upg small { display: block; opacity: 0.7; margin: 0.2em 0; }
-.upg:disabled { opacity: 0.45; cursor: default; }
-
-button.big { background: var(--accent); color: #12200c; border: 0; border-radius: 0.6em; padding: 0.6em 1.4em; font: inherit; font-weight: 700; font-size: 1.15em; cursor: pointer; margin-top: 0.4em; }
-button.big:active { filter: brightness(0.9); }
+/* Home: the battlefield and necromancer stay visible on the left; the crypt panel sits on the right. */
+.screen.home { background: linear-gradient(90deg, rgba(12, 9, 18, 0) 0%, rgba(12, 9, 18, 0.2) 22%, rgba(12, 9, 18, 0.88) 42%); align-items: flex-end; justify-content: center; padding: 0 calc(var(--u) * 16); }
+.home-panel { width: 66%; display: flex; flex-direction: column; gap: 0.7em; align-items: stretch; text-align: left; }
+.home-top { display: flex; justify-content: space-between; align-items: flex-end; }
+.rank { opacity: 0.85; font-size: 0.9em; margin-top: 0.15em; }
+.rank b { color: var(--gold); }
+.bank { font-size: 1.5em; background: rgba(0, 0, 0, 0.45); border: 1px solid var(--edge); border-radius: 0.5em; padding: 0.15em 0.6em; }
 .note { color: var(--accent); font-size: 0.9em; min-height: 1.2em; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; }
+.card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3em; padding: 0.7em 0.6em 0.6em; color: var(--text); font: inherit; font-size: 0.85em; text-align: center; cursor: pointer;
+  background: linear-gradient(180deg, #2f2442 0%, #1c1428 100%); border: 2px solid var(--edge); border-radius: 0.7em; box-shadow: inset 0 0 0 2px #120d1c, 0 4px 0 #0a0710; }
+.card canvas { width: calc(var(--u) * 48); height: calc(var(--u) * 48); image-rendering: pixelated; background: radial-gradient(circle, #3a2c52 0%, #1c1428 70%); border: 2px solid #120d1c; border-radius: 0.5em; padding: 4px; }
+.card .name { font-weight: 700; font-size: 1.05em; color: #f0e8ff; }
+.card .lvl { color: var(--gold); font-size: 0.85em; letter-spacing: 0.08em; }
+.card .eff { font-size: 0.85em; opacity: 0.9; min-height: 2.4em; }
+.card .eff i { color: var(--accent); font-style: normal; }
+.card .buy { margin-top: 0.1em; padding: 0.3em 0.9em; border-radius: 999px; background: #120d1c; border: 1px solid var(--edge); font-weight: 700; }
+.card.can { border-color: var(--accent); animation: glow 1.8s ease-in-out infinite; }
+.card.can .buy { background: var(--accent); color: #12200c; border-color: var(--accent); }
+.card:disabled:not(.can) { opacity: 0.6; cursor: default; }
+.card.bought { animation: pop 0.35s ease-out; }
+@keyframes glow { 50% { box-shadow: inset 0 0 0 2px #120d1c, 0 4px 0 #0a0710, 0 0 14px rgba(143, 209, 106, 0.55); } }
+@keyframes pop { 40% { transform: scale(1.06); } }
+
+button.big { background: var(--accent); color: #12200c; border: 0; border-radius: 0.6em; padding: 0.6em 1.4em; font: inherit; font-weight: 700; font-size: 1.15em; cursor: pointer; box-shadow: 0 4px 0 #4f7a38; }
+button.big:active { filter: brightness(0.9); transform: translateY(2px); box-shadow: 0 2px 0 #4f7a38; }
+.zone-info { font-size: 0.8em; opacity: 0.7; text-align: center; }
+.note { color: var(--accent); font-size: 0.9em; min-height: 1.2em; }
+.card.can .buy .ico { color: #12200c; }

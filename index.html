@@ -17,18 +17,26 @@
   <canvas id="field" width="960" height="540"></canvas>
 
   <div id="hud" class="hidden">
-    <div class="pill"><span class="ico">&#9760;</span> <b id="hud-souls">0</b></div>
+    <div class="pill"><span class="ico">&#9760;</span> <b id="hud-souls">0</b> earned</div>
     <div class="pill" id="hud-wave">Wave 1/8</div>
     <div class="pill" id="hud-horde">Horde 3</div>
     <button id="btn-speed" class="pill btn">1x</button>
   </div>
 
-  <div id="screen-home" class="screen">
-    <h1>Necromancer Idle</h1>
-    <div class="bank">Souls: <b id="home-souls">0</b></div>
-    <div id="home-note" class="note"></div>
-    <div id="upgrades"></div>
-    <button id="btn-start" class="big">Enter: Graveyard Fields</button>
+  <div id="screen-home" class="screen home">
+    <div class="home-panel">
+      <div class="home-top">
+        <div>
+          <h1>Necromancer Idle</h1>
+          <div class="rank">Rank: <b id="home-rank">Grave Robber</b></div>
+        </div>
+        <div class="bank"><span class="ico">&#9760;</span> <b id="home-souls">0</b></div>
+      </div>
+      <div id="home-note" class="note"></div>
+      <div id="upgrades" class="cards"></div>
+      <button id="btn-start" class="big">Enter: Graveyard Fields</button>
+      <div id="zone-info" class="zone-info"></div>
+    </div>
   </div>
 
   <div id="screen-result" class="screen hidden">
