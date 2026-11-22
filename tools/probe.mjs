@@ -1,4 +1,7 @@
-import { PERKS, perkCost } from '../js/data.js';
-let tot = 0;
-for (const [k, P] of Object.entries(PERKS)) { let c = 0; for (let l = 0; l < P.max; l++) c += perkCost(k, l); tot += c; console.log(k, c); }
-console.log('total', tot);
+import { Battle } from '../js/sim.js';
+import { defaultSave } from '../js/save.js';
+const save = defaultSave(); save.nodes = { hp_zombie: 6, dmg_zombie: 6, rise_zombie: 5 };
+const b = new Battle(save, 1);
+let t = 0, lastWave = 0;
+while (!b.result && t < 1200) { b.update(0.05); t += 0.05; if (b.wave !== lastWave) { console.log('wave', b.wave, 'at', t.toFixed(0), 'horde', b.alive('player')); lastWave = b.wave; } }
+console.log(b.result, t.toFixed(0), 'boss', b.bossSpawned);
