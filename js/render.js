@@ -1,6 +1,7 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X } from './data.js';
 import { ATTACK_TIME } from './sim.js';
+import { LOOKS } from './looks.js';
 
 // Palette letters: . = transparent
 const NECRO_GRID = [
@@ -184,6 +185,31 @@ const SPRITES = {
       '....r....',
     ],
   },
+  icon_poison: {
+    scale: 5,
+    palette: { G: '#8fd16a', g: '#c8ff9a' },
+    grid: ['....G....', '...GG....', '...GGG...', '..GGGGG..', '.GGgGGGG.', '.GGGGGGG.', '.GGGGGgG.', '..GGGGG..', '...GGG...'],
+  },
+  icon_burst: {
+    scale: 5,
+    palette: { P: '#a050c0', p: '#d090f0', S: '#d8d0b0' },
+    grid: ['..PPPPP..', '.PPpPPPP.', 'PPPPPpPPP', 'PPPPPPPPP', '.........', '...SSS...', '...SSS...', '...SSS...', '..SSSSS..'],
+  },
+  icon_fire: {
+    scale: 5,
+    palette: { O: '#e06020', Y: '#ffd060' },
+    grid: ['....O....', '...OO....', '...OOO...', '..OOYOO..', '.OOOYYOO.', '.OOYYYOO.', '.OOYYYOO.', '..OOYOO..', '...OOO...'],
+  },
+  icon_shield: {
+    scale: 5,
+    palette: { S: '#c8c8d8', G: '#6a6a88' },
+    grid: ['.SSSSSSS.', 'SGGGGGGGS', 'SGSSSSSGS', 'SGSSSSSGS', 'SGSSSSSGS', '.SGSSSGS.', '.SGSSSGS.', '..SGSGS..', '...SSS...'],
+  },
+  icon_pack: {
+    scale: 5,
+    palette: { P: '#e0a050' },
+    grid: ['..P...P..', '.PPP.PPP.', '..P...P..', '....P....', '..PPPPP..', '.PPPPPPP.', '.PPPPPPP.', '..PP.PP..', '.........'],
+  },
   icon_dmg: {
     scale: 5,
     palette: { S: '#d8d8e8', s: '#9a9ab0', G: '#c8a040', B: '#6a4a2a' },
@@ -225,7 +251,58 @@ function sprite(name) {
     g.fillStyle = s.palette[ch];
     g.fillRect(x * s.scale, y * s.scale, s.scale, s.scale);
   }));
-  return (cache[name] = { img: c, flash: silhouette(c, '#ffffff'), dark: silhouette(c, '#0a0710'), w: c.width, h: c.height });
+  return (cache[name] = makeSprite(c, c.width / 2));
+}
+
+function makeSprite(c, ax) {
+  return {
+    img: c, w: c.width, h: c.height, ax,
+    flash: silhouette(c, '#ffffff'), dark: silhouette(c, '#0a0710'),
+    poison: silhouette(c, '#9dff7a'), burn: silhouette(c, '#ff9030'),
+  };
+}
+
+// Player units are composed from layers: a base body plus rects added by each finished HP/damage tier and ability.
+// look = { hs, ds, flags } from data.lookOf().
+function lookSprite(unit, look) {
+  const key = `${unit}:${look.hs}:${look.ds}:${look.flags.join(',')}`;
+  if (cache[key]) return cache[key];
+  const L = LOOKS[unit];
+  const grid = L.gridFor ? L.gridFor(look.hs) : L.grid;
+  const pal = { ...L.palette, ...(look.hs === 0 && L.rottenPalette ? L.rottenPalette : {}) };
+  const rects = [];
+  const poison = look.flags.includes('poison');
+  for (let i = 0; i < look.hs; i++) { Object.assign(pal, L.hp[i].palette || {}); rects.push(...(L.hp[i].rects || [])); }
+  for (let i = 0; i < look.ds; i++) {
+    const st = L.dmg[i];
+    Object.assign(pal, st.palette || {});
+    for (const r of st.rects || []) rects.push(poison && st.tintable ? [r[0], r[1], '#9dff7a', r[3], r[4]] : r);
+  }
+  for (const f of look.flags) rects.push(...((L.flags && L.flags[f]) || []));
+  const gw = Math.max(...grid.map((r) => r.length));
+  const c = document.createElement('canvas');
+  c.width = (gw + L.pad) * L.scale; c.height = grid.length * L.scale;
+  const g = c.getContext('2d');
+  grid.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    g.fillStyle = pal[ch];
+    g.fillRect(x * L.scale, y * L.scale, L.scale, L.scale);
+  }));
+  for (const [x, y, color, w = 1, h = 1] of rects) { g.fillStyle = color; g.fillRect(x * L.scale, y * L.scale, w * L.scale, h * L.scale); }
+  return (cache[key] = makeSprite(c, (gw * L.scale) / 2));
+}
+
+function unitSprite(u) {
+  return u.look && LOOKS[u.type] ? lookSprite(u.type, u.look) : sprite(u.def.sprite);
+}
+
+// A fresh canvas of a unit as it looks with the given look, for the skill web.
+export function lookCanvas(unit, look) {
+  const s = lookSprite(unit, look);
+  const c = document.createElement('canvas');
+  c.width = s.w; c.height = s.h;
+  c.getContext('2d').drawImage(s.img, 0, 0);
+  return c;
 }
 
 // A fresh canvas holding an icon sprite, for use in the HTML UI.
@@ -380,7 +457,7 @@ function drawNecro(g, t, tier, battle) {
 }
 
 function drawUnit(g, u, t) {
-  const s = sprite(u.def.sprite);
+  const s = unitSprite(u);
   const bob = u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
   // Attack animation: wind up (lean back), strike (lunge and lean forward), then recover.
   let lunge = 0, lean = 0, squash = 1;
@@ -400,10 +477,13 @@ function drawUnit(g, u, t) {
   if (u.team === 'enemy') g.scale(-1, 1);
   g.rotate(lean);
   g.scale(1 / squash, squash);
-  const x0 = -s.w / 2, y0 = -s.h;
+  const x0 = -s.ax, y0 = -s.h;
   // Thin dark outline so overlapping units stay readable.
   for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) g.drawImage(s.dark, x0 + dx, y0 + dy);
   g.drawImage(u.flash > 0 ? s.flash : s.img, x0, y0);
+  // Status tints: poisoned units glow green, burning units orange.
+  const sick = u.status && (u.status.poison ? s.poison : u.status.burn ? s.burn : null);
+  if (sick) { g.globalAlpha = 0.35 + 0.15 * Math.sin(t * 10 + u.id); g.drawImage(sick, x0, y0); g.globalAlpha = 1; }
   g.restore();
   if (u.hp < u.maxHp) {
     const w = Math.max(18, s.w * 0.8);
@@ -432,7 +512,10 @@ export function draw(g, battle, tier = 0) {
   // Slashes and sparks
   for (const f of battle.fx) {
     const k = f.t / f.life;
-    if (f.k === 'slash') {
+    if (f.k === 'ring') {
+      g.strokeStyle = f.color; g.lineWidth = 4 - 3 * k; g.globalAlpha = 1 - k;
+      g.beginPath(); g.ellipse(f.x, f.y, 10 + k * 70, (10 + k * 70) * 0.6, 0, 0, Math.PI * 2); g.stroke();
+    } else if (f.k === 'slash') {
       g.save();
       g.translate(f.x, f.y); g.scale(f.dir, 1);
       g.strokeStyle = f.color; g.lineWidth = 5 - 3 * k; g.globalAlpha = 1 - k; g.lineCap = 'round';

@@ -1,7 +1,9 @@
 import {
-  UNITS, STATS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost, playerRating, zoneById,
+  UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
+  playerRating, zoneById, hasSpecial, specialReady,
 } from './data.js';
-import { Battle, buyUnit, buyStat, zoneUnlocked } from './sim.js';
+import { Battle, zoneUnlocked } from './sim.js';
+import { createWeb } from './web.js';
 import { draw, drawIdle, iconCanvas } from './render.js';
 import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted } from './audio.js';
@@ -58,6 +60,7 @@ function treeAvailable() {
       if (l < STATS[s].max && save.souls >= statCost(s, u, l)) n++;
     }
   }
+  for (const k of SPECIAL_KEYS) if (!hasSpecial(save, k) && specialReady(save, k) && save.souls >= SPECIALS[k].cost) n++;
   return n;
 }
 
@@ -106,55 +109,6 @@ function renderMap() {
     b.onclick = () => startBattle(z.id);
     el.appendChild(b);
     box.appendChild(el);
-  }
-}
-
-// ---- Skill tree ----
-function renderTree(flash) {
-  setBanks();
-  const box = $('tree');
-  box.innerHTML = '';
-  for (const unit of PLAYER_UNITS) {
-    const def = UNITS[unit];
-    const have = owned(save, unit);
-    const col = document.createElement('div');
-    col.className = 'col' + (have ? '' : ' locked');
-
-    const head = document.createElement('div');
-    head.className = 'node unit' + (have ? ' owned' : '');
-    head.appendChild(iconCanvas(def.sprite));
-    head.insertAdjacentHTML('beforeend', `<div class="nname">${def.name}</div><div class="nblurb">${def.blurb}</div>`);
-    if (have) {
-      head.insertAdjacentHTML('beforeend', '<div class="nstate">Unlocked</div>');
-    } else {
-      const can = save.champSouls >= def.unlockCost;
-      const b = document.createElement('button');
-      b.className = 'buy' + (can ? ' can' : '');
-      b.disabled = !can;
-      b.innerHTML = `Unlock <span class="ico2">&#9819;</span> ${def.unlockCost}`;
-      b.onclick = () => { if (buyUnit(save, unit)) { play('buy'); writeSave(save); renderTree(unit); } };
-      head.appendChild(b);
-    }
-    col.appendChild(head);
-
-    for (const stat of Object.keys(STATS)) {
-      const S = STATS[stat];
-      const l = level(save, stat, unit);
-      const maxed = l >= S.max;
-      const cost = statCost(stat, unit, l);
-      const can = have && !maxed && save.souls >= cost;
-      const n = document.createElement('button');
-      n.className = 'node stat' + (can ? ' can' : '') + (maxed ? ' maxed' : '') + (flash === unit + stat ? ' bought' : '');
-      n.disabled = !can;
-      n.appendChild(iconCanvas('icon_' + S.icon));
-      n.insertAdjacentHTML('beforeend',
-        `<div class="ntext"><div class="nname">${S.name} <span class="lvl">${l}/${S.max}</span></div>` +
-        `<div class="neff">${S.effect(l, unit)}</div></div>` +
-        `<div class="cost">${maxed ? 'MAX' : `<span class="ico">&#9760;</span> ${cost}`}</div>`);
-      n.onclick = () => { if (buyStat(save, stat, unit)) { play('buy'); writeSave(save); renderTree(unit + stat); } };
-      col.appendChild(n);
-    }
-    box.appendChild(col);
   }
 }
 
@@ -220,9 +174,11 @@ resetBtn.onclick = () => {
   goHome();
 };
 
+const web = createWeb({ save, play, onChange: () => { writeSave(save); setBanks(); } });
+
 // ---- Wiring ----
 $('btn-map').onclick = () => { renderMap(); show('screen-map'); };
-$('btn-tree').onclick = () => { renderTree(); show('screen-tree'); };
+$('btn-tree').onclick = () => { setBanks(); show('screen-tree'); web.render(); };
 for (const b of document.querySelectorAll('[data-back]')) b.onclick = goHome;
 $('btn-home').onclick = goHome;
 $('btn-speed').onclick = () => {

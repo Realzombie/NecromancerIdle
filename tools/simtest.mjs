@@ -1,14 +1,15 @@
 // Headless balance check: node tools/simtest.mjs [zonesToPlay]
 // A simple player: buys units when it can, then the cheapest stat upgrade, and retries each zone until it clears it.
-import { Battle, buyUnit, buyStat } from '../js/sim.js';
+import { Battle, buyUnit, buyStat, buySpecial } from '../js/sim.js';
 import { defaultSave } from '../js/save.js';
-import { ZONES, UNITS, STATS, PLAYER_UNITS, owned, level, statCost, playerRating, totalLevels } from '../js/data.js';
+import { ZONES, UNITS, STATS, SPECIALS, SPECIAL_KEYS, PLAYER_UNITS, owned, level, statCost, playerRating, totalLevels, specialReady, hasSpecial } from '../js/data.js';
 
 const save = defaultSave();
 const maxZone = Number(process.argv[2]) || ZONES.length;
 
 function spend() {
   for (const u of PLAYER_UNITS) buyUnit(save, u);
+  for (const k of SPECIAL_KEYS) if (specialReady(save, k)) buySpecial(save, k);
   for (;;) {
     let best = null;
     for (const u of PLAYER_UNITS) {

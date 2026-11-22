@@ -1,7 +1,7 @@
 // Pure battle simulation: no DOM, so it can be tested in node.
 import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
-  PLAYER_UNITS, STATS, owned, level, statCost, statMods, zoneById,
+  PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
 } from './data.js';
 
 let nextId = 1;
@@ -59,6 +59,12 @@ export class Battle {
       wt: 0, wx: 0, wy: 0,               // wandering drift
       ht: this.rand(1, 4),
     };
+    u.status = {};
+    if (def.team === 'player') {
+      u.look = lookOf(this.save, type);
+      u.sp = {};
+      for (const k of SPECIAL_KEYS) if (SPECIALS[k].unit === type && hasSpecial(this.save, k)) u.sp[k] = true;
+    }
     if (def.rally) this.pickHome(u, true);
     this.units.push(u);
     return u;
@@ -145,16 +151,30 @@ export class Battle {
       const dx = p.target.x - p.x, dy = (p.target.y - 14) - p.y;
       const d = Math.hypot(dx, dy);
       const step = p.speed * dt;
-      if (d <= step) { this.hit(p.target, p.dmg); p.dead = true; }
+      if (d <= step) { this.hit(p.target, p.dmg, p.src); p.dead = true; }
       else { p.x += dx / d * step; p.y += dy / d * step; p.angle = Math.atan2(dy, dx); }
     }
     this.projectiles = this.projectiles.filter((p) => !p.dead);
+
+    // Poison and burning tick over time.
+    for (const u of this.units) {
+      for (const k of ['poison', 'burn']) {
+        const st = u.status[k];
+        if (!st) continue;
+        st.t -= dt;
+        u.hp -= st.dps * dt;
+        st.fx = (st.fx || 0) - dt;
+        if (st.fx <= 0) { st.fx = 0.25; this.spark(u.x + this.rand(-6, 6), u.y - 14, k === 'poison' ? '#9dff7a' : '#ff9030'); }
+        if (st.t <= 0) delete u.status[k];
+      }
+    }
 
     // Deaths
     for (const u of this.units) {
       if (u.hp > 0) continue;
       for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
       this.emit('die', u.team);
+      if (u.sp && u.sp.burst) this.sporeBurst(u);
       if (u.team === 'enemy') {
         this.earned += u.def.drop;
         this.kills++;
@@ -195,10 +215,10 @@ export class Battle {
         u.swing = null;
         if (t.hp > 0) {
           if (u.def.range > 40) {
-            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16, target: t, dmg: u.dmg, speed: 340 });
+            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16, target: t, dmg: u.dmg, speed: 340, src: u });
           } else if (Math.hypot(t.x - u.x, (t.y - u.y) * 1.5) <= (u.def.range + t.def.radius) * 1.4) {
             this.fx.push({ k: 'slash', x: u.x + u.facing * 16, y: u.y - 18, dir: u.facing, t: 0, life: 0.2, color: u.team === 'player' ? '#d8f0c0' : '#f0d0c0' });
-            this.hit(t, u.dmg);
+            this.hit(t, u.dmg, u);
           }
         }
       }
@@ -293,7 +313,23 @@ export class Battle {
     s.souls += this.payout;
   }
 
-  hit(target, dmg) {
+  // Dying zombies with Spore Burst hurt nearby enemies.
+  sporeBurst(u) {
+    this.fx.push({ k: 'ring', x: u.x, y: u.y - 8, t: 0, life: 0.4, color: '#b070d0' });
+    for (let i = 0; i < 10; i++) this.spark(u.x, u.y - 10, '#c080e0');
+    for (const o of this.units) {
+      if (o.team === u.team || o.hp <= 0) continue;
+      if (Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) <= 75) { o.hp -= u.dmg * 2.5; o.flash = 0.12; }
+    }
+  }
+
+  hit(target, dmg, src) {
+    if (src && src.sp) {
+      if (src.sp.pack) dmg *= 1 + 0.1 * Math.min(5, this.alive('player', 'hound') - 1);
+      if (src.sp.poison) target.status.poison = { t: 4, dps: 0.35 * src.dmg };
+      if (src.sp.fire) target.status.burn = { t: 3, dps: 0.4 * src.dmg };
+    }
+    if (target.sp && target.sp.shield) dmg *= 0.75;
     target.hp -= dmg;
     this.emit('hit', target.team);
     target.flash = 0.12;
@@ -309,6 +345,14 @@ export function buyUnit(save, unit) {
   if (owned(save, unit) || save.champSouls < def.unlockCost) return false;
   save.champSouls -= def.unlockCost;
   save.nodes['unit_' + unit] = 1;
+  return true;
+}
+
+export function buySpecial(save, key) {
+  const sp = SPECIALS[key];
+  if (hasSpecial(save, key) || !specialReady(save, key) || save.souls < sp.cost) return false;
+  save.souls -= sp.cost;
+  save.nodes['sp_' + key] = 1;
   return true;
 }
 
