@@ -1,7 +1,7 @@
 // Service worker: network-first so updates arrive on the next load, cache fallback so it works offline.
-const CACHE = 'necro-v3';
+const CACHE = 'necro-v4';
 const SHELL = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
-  'js/main.js', 'js/data.js', 'js/sim.js', 'js/render.js', 'js/save.js'];
+  'js/main.js', 'js/data.js', 'js/sim.js', 'js/render.js', 'js/save.js', 'js/audio.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

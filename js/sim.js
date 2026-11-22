@@ -20,6 +20,7 @@ export class Battle {
     this.projectiles = [];
     this.floaters = [];
     this.fx = [];              // slashes and sparks (visual only)
+    this.events = [];          // sound cues, drained by the UI
     this.time = 0;
     this.wave = 0;
     this.spawnQueue = [];
@@ -37,6 +38,8 @@ export class Battle {
   }
 
   get totalWaves() { return this.zone.waves; }
+
+  emit(n, team) { if (this.events.length < 120) this.events.push({ n, team }); }
 
   rand(a, b) { return a + this.rng() * (b - a); }
 
@@ -99,6 +102,7 @@ export class Battle {
         this.raiseTimers[type] = 0;
         this.spawn(type, NECRO_X + 55);
         this.cast = 0.5;
+        this.emit('raise');
       } else {
         this.raiseTimers[type] = t;
       }
@@ -117,11 +121,13 @@ export class Battle {
         if (this.wave >= this.totalWaves) {
           if (this.bossSpawned) { this.finish('clear'); return; }
           this.bossSpawned = true;
+          this.emit('boss');
           this.spawn(this.zone.boss, FIELD_W - 30);
           this.pause = TUNING.wavePause;
           return;
         }
         this.wave++;
+        this.emit('wave');
         // Shuffle so mixed waves arrive in a random order.
         this.spawnQueue = this.zone.compose(this.wave).sort(() => this.rng() - 0.5);
         this.spawnTimer = 0;
@@ -148,6 +154,7 @@ export class Battle {
     for (const u of this.units) {
       if (u.hp > 0) continue;
       for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
+      this.emit('die', u.team);
       if (u.team === 'enemy') {
         this.earned += u.def.drop;
         this.kills++;
@@ -212,6 +219,7 @@ export class Battle {
         u.cd = u.def.atk;
         u.attackAnim = ATTACK_TIME;
         u.swing = { delay: SWING_DELAY, target };
+        this.emit(u.def.range > 40 ? 'shoot' : 'swing', u.team);
       }
       return;
     }
@@ -272,6 +280,7 @@ export class Battle {
 
   finish(result) {
     this.result = result;
+    this.emit(result === 'clear' ? 'win' : 'lose');
     const s = this.save;
     if (result === 'clear') {
       const first = !s.cleared[this.zoneId];
@@ -286,6 +295,7 @@ export class Battle {
 
   hit(target, dmg) {
     target.hp -= dmg;
+    this.emit('hit', target.team);
     target.flash = 0.12;
     for (let i = 0; i < 3; i++) this.spark(target.x, target.y - 16, '#ffffff');
   }

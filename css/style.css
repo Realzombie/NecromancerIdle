@@ -115,3 +115,6 @@ button.big:disabled { opacity: 0.4; cursor: default; }
 .col.locked .node.stat { opacity: 0.4; }
 .node.stat.bought { animation: pop 0.35s ease-out; }
 .tree { align-items: start; }
+
+/* ---- Mute button: always visible, bottom right ---- */
+.mute { position: absolute; right: calc(var(--u) * 10); bottom: calc(var(--u) * 10); z-index: 20; width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: 50%; border: 1px solid var(--edge); background: rgba(20, 16, 28, 0.85); color: var(--text); font-size: 1em; cursor: pointer; padding: 0; }

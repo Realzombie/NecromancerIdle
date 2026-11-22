@@ -4,6 +4,7 @@ import {
 import { Battle, buyUnit, buyStat, zoneUnlocked } from './sim.js';
 import { draw, drawIdle, iconCanvas } from './render.js';
 import { loadSave, writeSave } from './save.js';
+import { unlock, play, isMuted, setMuted } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
@@ -131,7 +132,7 @@ function renderTree(flash) {
       b.className = 'buy' + (can ? ' can' : '');
       b.disabled = !can;
       b.innerHTML = `Unlock <span class="ico2">&#9819;</span> ${def.unlockCost}`;
-      b.onclick = () => { if (buyUnit(save, unit)) { writeSave(save); renderTree(unit); } };
+      b.onclick = () => { if (buyUnit(save, unit)) { play('buy'); writeSave(save); renderTree(unit); } };
       head.appendChild(b);
     }
     col.appendChild(head);
@@ -150,7 +151,7 @@ function renderTree(flash) {
         `<div class="ntext"><div class="nname">${S.name} <span class="lvl">${l}/${S.max}</span></div>` +
         `<div class="neff">${S.effect(l, unit)}</div></div>` +
         `<div class="cost">${maxed ? 'MAX' : `<span class="ico">&#9760;</span> ${cost}`}</div>`);
-      n.onclick = () => { if (buyStat(save, stat, unit)) { writeSave(save); renderTree(unit + stat); } };
+      n.onclick = () => { if (buyStat(save, stat, unit)) { play('buy'); writeSave(save); renderTree(unit + stat); } };
       col.appendChild(n);
     }
     box.appendChild(col);
@@ -182,6 +183,25 @@ function endBattle() {
   show('screen-result');
 }
 
+// ---- Sound ----
+// Browsers only allow audio after a tap, so the first touch unlocks it.
+window.addEventListener('pointerdown', unlock);
+window.addEventListener('keydown', unlock);
+// A click blip for ordinary buttons (tree nodes play their own buy sound).
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b && !b.closest('.node') && b.id !== 'btn-mute') play('click');
+});
+const muteBtn = $('btn-mute');
+function paintMute() { muteBtn.textContent = isMuted() ? '\u{1F507}' : '\u{1F50A}'; }
+muteBtn.onclick = () => { unlock(); setMuted(!isMuted()); paintMute(); play('click'); };
+paintMute();
+
+function drainSounds(b) {
+  for (const e of b.events) play(e.n, e);
+  b.events.length = 0;
+}
+
 // ---- Wiring ----
 $('btn-map').onclick = () => { renderMap(); show('screen-map'); };
 $('btn-tree').onclick = () => { renderTree(); show('screen-tree'); };
@@ -201,6 +221,7 @@ function frame(now) {
     if (!battle.result) {
       const steps = speed * 2;
       for (let i = 0; i < steps; i++) battle.update(dt / 2);
+      drainSounds(battle);
       if (battle.result) endBattle();
     }
     draw(g, battle, tier);
