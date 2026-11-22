@@ -1,0 +1,33 @@
+# Necromancer Idle
+
+A phone-first, pixel-art necromancer incremental. Raise a scrappy horde, send it into battle, and conquer the land one zone at a time.
+
+Play it: https://realzombie.github.io/NecromancerIdle/ (installable as a PWA, landscape).
+
+## What is in it
+
+- Real-time auto-battles with a growing horde of summons: zombies, skeleton archers and warriors, zombie hounds, bone mages, ghosts and abominations.
+- Twelve zones across three regions, each ending in a boss that drops a champion soul.
+- A skill web: unlock new summons with champion souls, then evolve each one through tiers of HP and damage that change how it looks, and learn unique abilities.
+- Rebirth: wipe the run for essence and permanent perks that change how every run starts.
+- Offline progress, a Raise Dead spell, synthesised sound effects and an installable PWA.
+
+## Developing
+
+No build step. Serve the folder and open it:
+
+```
+node tools/serve.mjs
+```
+
+Balance checks (headless):
+
+```
+node tools/simtest.mjs        # a bot plays zone by zone
+node tools/rebirthsim.mjs 4   # a bot plays several rebirth cycles
+node tools/rebirthtest.mjs    # checks the rebirth rules
+```
+
+`CLAUDE.md` holds the design doc and the build log.
+
+All rights reserved, see `LICENSE`.
