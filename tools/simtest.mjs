@@ -1,11 +1,12 @@
 // Headless balance check: node tools/simtest.mjs [zonesToPlay]
 // A simple player: buys units when it can, then the cheapest stat upgrade, and retries each zone until it clears it.
-import { Battle, buyUnit, buyStat, buySpecial } from '../js/sim.js';
+import { Battle, buyUnit, buyStat, buySpecial, buyDefence } from '../js/sim.js';
 import { defaultSave } from '../js/save.js';
+import { DEFENCE_KEYS, defLevel, defCost, defUnlocked, DEFENCES } from '../js/data.js';
 import { ZONES, UNITS, STATS, SPECIALS, SPECIAL_KEYS, PLAYER_UNITS, owned, level, statCost, playerRating, totalLevels, specialReady, hasSpecial } from '../js/data.js';
 
 const save = defaultSave();
-const maxZone = Number(process.argv[2]) || ZONES.length;
+const maxZone = Number(process.argv[2]) || ZONES.filter((z) => !z.endless).length;
 
 function spend() {
   for (const u of PLAYER_UNITS) buyUnit(save, u);
@@ -21,8 +22,15 @@ function spend() {
         if (save.souls >= c && (!best || c < best.c)) best = { u, s, c };
       }
     }
+    // Defences compete with stats on cost (set NODEF=1 to leave them out).
+    if (!process.env.NODEF) for (const k of DEFENCE_KEYS) {
+      const l = defLevel(save, k);
+      if (!defUnlocked(save, k) || l >= DEFENCES[k].max) continue;
+      const c = defCost(k, l);
+      if (save.souls >= c && (!best || c < best.c)) best = { def: k, c };
+    }
     if (!best) return;
-    buyStat(save, best.s, best.u);
+    if (best.def) buyDefence(save, best.def); else buyStat(save, best.s, best.u);
   }
 }
 
@@ -35,7 +43,7 @@ for (const zone of ZONES.slice(0, maxZone)) {
     let t = 0;
     while (!b.result && t < 1200) { b.update(0.05); t += 0.05; }
     if (b.result === 'clear') {
-      console.log(`zone ${zone.id} ${zone.name}: cleared on attempt ${attempts} (${t.toFixed(0)}s) rating ${playerRating(save)} (zone ${zone.rating}) levels ${totalLevels(save)} souls ${save.souls} cs ${save.champSouls}`);
+      console.log(`zone ${zone.id} ${zone.name}: cleared on attempt ${attempts} (${t.toFixed(0)}s) rating ${playerRating(save)} (zone ${zone.rating}) levels ${totalLevels(save)} souls ${save.souls} cs ${save.champSouls} gear ${save.gear.length}`);
       done = true;
       break;
     }
@@ -43,3 +51,7 @@ for (const zone of ZONES.slice(0, maxZone)) {
   }
   if (!done) { console.log(`zone ${zone.id}: not cleared in 40 attempts`); break; }
 }
+
+import { gearMods, itemPower } from '../js/gear.js';
+console.log('gear mods', JSON.stringify(gearMods(save), (k, v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v)));
+console.log(save.gear.filter((g) => Object.values(save.equipped).includes(g.id)).map((g) => `${g.rarity} ${g.slot} z${g.zone} p${itemPower(g)}`).join(' | '));

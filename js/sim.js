@@ -3,7 +3,9 @@ import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
   PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
+  DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
 } from './data.js';
+import { gearMods, rollDrops, equipIfBetter } from './gear.js';
 
 let nextId = 1;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -35,6 +37,9 @@ export class Battle {
     this.payout = 0;
     this.champDrop = 0;        // champion souls gained from the boss
     this.spellCd = 10;         // Raise Dead spell cooldown (seconds left)
+    this.gm = gearMods(save);
+    this.traps = [];
+    this.setupDefences();
     const startZombies = TUNING.startZombies + perk(save, 'horde');
     for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
     for (const t of this.raiseTypes()) this.raiseTimers[t] = this.raiseInterval(t) * 0.5;
@@ -42,14 +47,32 @@ export class Battle {
 
   get totalWaves() { return this.zone.waves; }
 
+  // Walls, towers and traps stand ready before the first wave.
+  setupDefences() {
+    const lane = (i, n) => LANE_TOP + 8 + (n === 1 ? 0.5 : i / (n - 1)) * (LANE_BOTTOM - LANE_TOP - 16);
+    const wl = defLevel(this.save, 'wall');
+    for (let i = 0, n = wallCount(wl); i < n; i++) {
+      const u = this.spawn('wall', 350, lane(i, n));
+      u.hp = u.maxHp = wallHp(wl) * (this.gm.fx.bulwark ? 2 : 1);
+    }
+    const tl = defLevel(this.save, 'tower');
+    for (let i = 0, n = towerCount(tl); i < n; i++) {
+      const u = this.spawn('tower', 190, lane(i, n));
+      u.hp = u.maxHp = towerHp(tl);
+      u.dmg = towerDmg(tl);
+    }
+    const pl = defLevel(this.save, 'trap');
+    for (let i = 0, n = trapCount(pl); i < n; i++) this.traps.push({ x: 500 + i * 90, cd: 0, pop: 0, flat: trapFlat(pl), pct: trapPct(pl) });
+  }
+
   emit(n, team) { if (this.events.length < 120) this.events.push({ n, team }); }
 
   rand(a, b) { return a + this.rng() * (b - a); }
 
-  spawn(type, x) {
+  spawn(type, x, y) {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
-    if (def.team === 'player') { const m = statMods(this.save, type); hpMul = m.hp; dmgMul = m.dmg; }
+    if (def.team === 'player' && !def.static) { const m = statMods(this.save, type); hpMul = m.hp * (1 + this.gm.hp); dmgMul = m.dmg * (1 + this.gm.dmg); }
     else {
       const w = worldMul(this.save);
       const s = def.boss ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
@@ -57,7 +80,7 @@ export class Battle {
     }
     const u = {
       id: nextId++, type, def, team: def.team,
-      x, y: this.rand(LANE_TOP, LANE_BOTTOM),
+      x, y: y !== undefined ? y : this.rand(LANE_TOP, LANE_BOTTOM),
       hp: def.hp * hpMul, maxHp: def.hp * hpMul, dmg: def.dmg * dmgMul,
       cd: this.rng() * def.atk, flash: 0, attackAnim: 0, moving: false, engaged: false, swing: null,
       facing: def.team === 'player' ? 1 : -1,
@@ -67,7 +90,7 @@ export class Battle {
       ht: this.rand(1, 4),
     };
     u.status = {};
-    if (def.team === 'player') {
+    if (def.team === 'player' && !def.static) {
       u.look = lookOf(this.save, type);
       u.sp = {};
       for (const k of SPECIAL_KEYS) if (SPECIALS[k].unit === type && hasSpecial(this.save, k)) u.sp[k] = true;
@@ -91,7 +114,7 @@ export class Battle {
 
   alive(team, type) {
     let n = 0;
-    for (const u of this.units) if (u.team === team && (!type || u.type === type)) n++;
+    for (const u of this.units) if (u.team === team && !u.def.static && (!type || u.type === type)) n++;
     return n;
   }
 
@@ -199,17 +222,39 @@ export class Battle {
       }
     }
 
+    // Spike traps spring when an enemy walks over them.
+    for (const tr of this.traps) {
+      tr.cd -= dt; tr.pop = Math.max(0, tr.pop - dt);
+      if (tr.cd > 0) continue;
+      let hot = false;
+      for (const o of this.units) if (o.team === 'enemy' && o.hp > 0 && Math.abs(o.x - tr.x) < 34 + o.def.radius * 0.5) { hot = true; break; }
+      if (!hot) continue;
+      tr.cd = 1.4; tr.pop = 0.35;
+      this.emit('trap');
+      for (const o of this.units) {
+        if (o.team !== 'enemy' || o.hp <= 0 || Math.abs(o.x - tr.x) > 44 + o.def.radius * 0.5) continue;
+        o.hp -= tr.flat + tr.pct * o.maxHp * (o.def.boss ? 0.25 : 1);
+        o.flash = 0.12;
+        for (let i = 0; i < 4; i++) this.spark(o.x, o.y - 6, '#d8d0c0');
+      }
+    }
+
     // Deaths
     for (const u of this.units) {
       if (u.hp > 0) continue;
       for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
       this.emit('die', u.team);
       if (u.sp && u.sp.burst) this.sporeBurst(u);
+      else if (u.team === 'player' && !u.def.static && this.gm.fx.martyr) this.sporeBurst(u, 1.5);
       if (u.team === 'enemy') {
         const drop = u.def.drop * soulMul(this.save);
         this.earned += drop;
         this.kills++;
         this.floaters.push({ x: u.x, y: u.y - 30, text: '+' + Math.round(drop), t: 0 });
+        if (this.gm.fx.reaper && !u.def.boss && this.rng() < 0.12 && this.alive('player') < 90) {
+          const z = this.spawn('zombie', clamp(u.x, 120, FIELD_W - 80), u.y);
+          this.fx.push({ k: 'ring', x: z.x, y: z.y - 6, t: 0, life: 0.4, color: '#8fd16a' });
+        }
       }
     }
     this.units = this.units.filter((u) => u.hp > 0);
@@ -235,8 +280,10 @@ export class Battle {
   updateUnit(u, dt) {
     u.flash = Math.max(0, u.flash - dt);
     u.attackAnim = Math.max(0, u.attackAnim - dt);
+    if (u.def.wall) return;   // walls only stand there and soak damage
     const slowed = !!u.status.slow;
-    u.cd -= dt * (slowed ? 0.6 : 1);
+    const frenzy = this.gm.fx.frenzy && u.team === 'player' && u.hp < u.maxHp * 0.5 ? 1.3 : 1;
+    u.cd -= dt * (slowed ? 0.6 : 1) * frenzy;
     u.moving = false;
 
     // Regeneration and healing abilities.
@@ -287,6 +334,8 @@ export class Battle {
       return;
     }
 
+    if (u.def.static) return;
+
     // Work out where to go.
     let tx, ty, wander = true;
     if (target) {
@@ -321,7 +370,7 @@ export class Battle {
   separate(dt) {
     const us = this.units;
     const k = Math.min(1, dt * 12);
-    const mobility = (u) => (u.engaged ? 0.1 : 1) * (u.def.boss ? 0.04 : u.def.heavy ? 0.25 : 1);
+    const mobility = (u) => (u.def.static ? 0 : (u.engaged ? 0.1 : 1) * (u.def.boss ? 0.04 : u.def.heavy ? 0.25 : 1));
     for (let i = 0; i < us.length; i++) {
       for (let j = i + 1; j < us.length; j++) {
         const a = us[i], b = us[j];
@@ -334,6 +383,7 @@ export class Battle {
         const push = (min - d) * k;
         const nx = dx / d, ny = dy / d;
         const wa = mobility(a), wb = mobility(b), sum = wa + wb;
+        if (sum <= 0) continue;
         a.x -= nx * push * wa / sum; b.x += nx * push * wb / sum;
         a.y -= ny * push * wa / sum / 1.8; b.y += ny * push * wb / sum / 1.8;
       }
@@ -354,15 +404,37 @@ export class Battle {
     }
     this.payout = Math.floor(this.earned * (result === 'clear' ? 1 : TUNING.failPayout));
     s.souls += this.payout;
+    const st = (s.stats = s.stats || {});
+    const bump = (k, n = 1) => { st[k] = (st[k] || 0) + n; };
+    bump('attempts'); bump('kills', this.kills); bump('soulsEarned', this.payout);
+    bump(result === 'clear' ? 'clears' : 'fails');
+    if (result === 'clear') st.fastestClear = Math.min(st.fastestClear || 1e9, this.time);
+    if (this.zone.endless) {
+      // Endless: the score is the number of waves fully survived. New records pay essence, champion souls and gear.
+      const waves = Math.max(0, this.wave - 1);
+      const prev = s.bestEndless || 0;
+      this.endless = { waves, record: waves > prev, prev, essence: 0, champ: 0 };
+      if (waves > prev) {
+        s.bestEndless = waves;
+        this.endless.essence = Math.floor((waves - prev) / 2);
+        for (let w = prev + 1; w <= waves; w++) if (w % 10 === 0) this.endless.champ++;
+        s.essence = (s.essence || 0) + this.endless.essence;
+        s.champSouls += this.endless.champ;
+      }
+      this.drops = rollDrops(s, this.rng, 12 + Math.floor(waves / 5), { cleared: false, count: Math.floor(waves / 4), first: false });
+    } else {
+      this.drops = rollDrops(s, this.rng, this.zoneId, { cleared: result === 'clear', first: !!this.firstClear });
+    }
+    for (const it of this.drops) equipIfBetter(s, it);
   }
 
   // Dying zombies with Spore Burst hurt nearby enemies.
-  sporeBurst(u) {
+  sporeBurst(u, mul = 2.5) {
     this.fx.push({ k: 'ring', x: u.x, y: u.y - 8, t: 0, life: 0.4, color: '#b070d0' });
     for (let i = 0; i < 10; i++) this.spark(u.x, u.y - 10, '#c080e0');
     for (const o of this.units) {
       if (o.team === u.team || o.hp <= 0) continue;
-      if (Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) <= 75) { o.hp -= u.dmg * 2.5; o.flash = 0.12; }
+      if (Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) <= 75) { o.hp -= u.dmg * mul; o.flash = 0.12; }
     }
   }
 
@@ -396,6 +468,12 @@ export class Battle {
       if (src.sp.frost) target.status.slow = { t: 3 };
     }
     if (target.sp && target.sp.shield) dmg *= 0.75;
+    const gm = this.gm;
+    if (src && src.team === 'player' && !src.def.static) {
+      if (gm.crit && this.rng() < gm.crit) { dmg *= 2; this.floaters.push({ x: target.x, y: target.y - 38, text: 'crit!', t: 0 }); }
+      if (gm.lifesteal && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * gm.lifesteal);
+    }
+    if (gm.thorns && target.team === 'player' && src && src.team === 'enemy' && src.def.range <= 40 && src.hp > 0) src.hp -= dmg * gm.thorns;
     target.hp -= dmg;
     if (src && src.sp && src.sp.drain && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.5);
     if (!quiet) this.emit('hit', target.team);
@@ -420,6 +498,17 @@ export function buySpecial(save, key) {
   if (hasSpecial(save, key) || !specialReady(save, key) || save.souls < sp.cost) return false;
   save.souls -= sp.cost;
   save.nodes['sp_' + key] = 1;
+  return true;
+}
+
+export function buyDefence(save, key) {
+  const D = DEFENCES[key];
+  const cur = defLevel(save, key);
+  if (!defUnlocked(save, key) || cur >= D.max) return false;
+  const cost = defCost(key, cur);
+  if (save.souls < cost) return false;
+  save.souls -= cost;
+  save.nodes['def_' + key] = cur + 1;
   return true;
 }
 

@@ -1,7 +1,8 @@
 const KEY = 'necro_save_v1';
 
 export function defaultSave() {
-  return { souls: 0, champSouls: 0, nodes: {}, cleared: {}, bestZone: 0, essence: 0, rebirths: 0, perks: {}, bestEver: 0, lastSeen: Date.now() };
+  return { souls: 0, champSouls: 0, nodes: {}, cleared: {}, bestZone: 0, essence: 0, rebirths: 0, perks: {}, bestEver: 0, lastSeen: Date.now(),
+    gear: [], equipped: {}, dust: 0, pity: 0, gearSeq: 0, stats: {}, ach: {}, seenGear: 0, seenAch: 0 };
 }
 
 // Older saves had flat upgrades and archers unlocked by clearing zone 1.

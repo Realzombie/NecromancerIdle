@@ -36,7 +36,7 @@ function spendEssence() {
 for (let run = 1; run <= runs; run++) {
   let totalAttempts = 0, secs = 0;
   const line = [];
-  for (const zone of ZONES) {
+  for (const zone of ZONES.filter((z) => !z.endless)) {
     if (save.cleared[zone.id]) { line.push('z' + zone.id + ':skip'); continue; }
     let attempts = 0;
     while (attempts < 60) {
@@ -46,6 +46,7 @@ for (let run = 1; run <= runs; run++) {
       let t = 0;
       while (!b.result && t < 1200) { b.update(0.05); t += 0.05; }
       secs += t;
+      if (process.env.NOGEAR) { save.gear = []; save.equipped = {}; }
       if (b.result === 'clear') break;
     }
     totalAttempts += attempts;

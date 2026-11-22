@@ -10,7 +10,8 @@ Play it: https://realzombie.github.io/NecromancerIdle/ (installable as a PWA, la
 - Twelve zones across three regions, each ending in a boss that drops a champion soul.
 - A skill web: unlock new summons with champion souls, then evolve each one through tiers of HP and damage that change how it looks, and learn unique abilities.
 - Rebirth: wipe the run for essence and permanent perks that change how every run starts.
-- Offline progress, a Raise Dead spell, synthesised sound effects and an installable PWA.
+- An Armoury: random gear drops with rarities and special effects, salvage and upgrades, plus bone walls, spike traps and towers.
+- Achievements, an Endless Crypt after the last zone, auto-battle, a Raise Dead spell, synthesised sound and music, offline progress and an installable PWA.
 
 ## Developing
 
@@ -26,6 +27,7 @@ Balance checks (headless):
 node tools/simtest.mjs        # a bot plays zone by zone
 node tools/rebirthsim.mjs 4   # a bot plays several rebirth cycles
 node tools/rebirthtest.mjs    # checks the rebirth rules
+node tools/endlesstest.mjs   # how far a maxed horde gets in the Endless Crypt
 ```
 
 `CLAUDE.md` holds the design doc and the build log.

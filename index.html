@@ -21,6 +21,7 @@
     <div class="pill"><span class="ico">&#9760;</span> <b id="hud-souls">0</b> earned</div>
     <div class="pill" id="hud-wave">Wave 1/8</div>
     <div class="pill" id="hud-horde">Horde 3</div>
+    <button id="btn-auto" class="pill btn auto">Auto: off</button>
     <button id="btn-speed" class="pill btn">1x</button>
   </div>
 
@@ -40,6 +41,7 @@
       <div class="home-buttons">
         <button id="btn-map" class="big">Conquer Zones</button>
         <button id="btn-tree" class="big alt">Skill Tree <span id="tree-badge" class="badge hidden"></span></button>
+        <button id="btn-arm" class="big alt2">Armoury <span id="arm-badge" class="badge hidden"></span></button>
       </div>
       <button id="btn-rebirth" class="big rebirth">Rebirth <span id="rebirth-badge" class="badge hidden"></span></button>
       <div id="home-hint" class="zone-info"></div>
@@ -75,6 +77,23 @@
 
   <button id="btn-spell" class="spell hidden"><span>Raise Dead</span><i id="spell-cd"></i></button>
 
+  <div id="screen-armoury" class="screen page hidden">
+    <div class="page-top">
+      <button class="back" data-back>&larr; Back</button>
+      <h2>Armoury</h2>
+      <div class="banks">
+        <div class="bank"><span class="ico">&#9760;</span> <b class="b-souls">0</b></div>
+        <div class="bank dustbank"><span class="ico4">&#10022;</span> <b id="arm-dust">0</b></div>
+      </div>
+    </div>
+    <div id="arm-tabs" class="tabs">
+      <button class="tab on" data-tab="gear">Gear</button>
+      <button class="tab" data-tab="defences">Defences</button>
+      <button class="tab" data-tab="records">Records</button>
+    </div>
+    <div id="arm-body" class="arm-body"></div>
+  </div>
+
   <div id="screen-rebirth" class="screen page hidden">
     <div class="page-top">
       <button class="back" data-back>&larr; Back</button>
@@ -90,12 +109,15 @@
     </div>
   </div>
 
+  <button id="btn-music" class="mute music" aria-label="Toggle music"></button>
   <button id="btn-mute" class="mute" aria-label="Toggle sound"></button>
+  <div id="toast" class="toast hidden"></div>
 
   <div id="screen-result" class="screen hidden">
     <h2 id="result-title"></h2>
     <p id="result-text"></p>
-    <button id="btn-home" class="big">Return Home</button>
+    <div id="result-extra" class="result-extra"></div>
+    <div class="result-btns"><button id="btn-retry" class="big alt">Fight Again</button><button id="btn-home" class="big">Return Home</button></div>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

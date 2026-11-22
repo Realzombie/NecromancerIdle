@@ -7,7 +7,10 @@ import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
 import { draw, drawIdle, drawVictory, iconCanvas } from './render.js';
 import { loadSave, writeSave, resetSave } from './save.js';
-import { unlock, play, isMuted, setMuted } from './audio.js';
+import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
+import { createArmoury } from './armoury.js';
+import { checkAchievements, rewardText } from './records.js';
+import { RARITIES, rarityIndex } from './gear.js';
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
@@ -22,12 +25,15 @@ let speed = 1;
 let idleTime = 0;
 let homeNote = '';
 let lastFirstClear = false;
+let lastZone = 1;
+let autoOn = false;
+let autoTimer = null;
 
 function fitUi() { app.style.setProperty('--u', app.clientHeight / 540 + 'px'); }
 window.addEventListener('resize', fitUi);
 fitUi();
 
-const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-rebirth', 'screen-result'];
+const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-armoury', 'screen-rebirth', 'screen-result'];
 function show(id) {
   for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
   $('hud').classList.toggle('hidden', id !== null);
@@ -80,11 +86,16 @@ function renderHome() {
   const n = treeAvailable();
   $('tree-badge').textContent = n;
   $('tree-badge').classList.toggle('hidden', n === 0);
-  const next = ZONES.find((z) => !save.cleared[z.id]);
-  $('home-hint').textContent = next ? `Next target: ${next.name}` : 'Every zone is yours. Rebirth to grow stronger.';
+  const fresh = (save.gear || []).filter((g) => g.isNew).length;
+  $('arm-badge').textContent = fresh;
+  $('arm-badge').classList.toggle('hidden', fresh === 0);
+  const next = ZONES.find((z) => !save.cleared[z.id] && !z.endless);
+  $('home-hint').textContent = next ? `Next target: ${next.name}` : `Every zone is yours. Push your record in the Endless Crypt (best wave ${save.bestEndless || 0}) or rebirth to grow stronger.`;
 }
 
 function goHome() {
+  clearTimeout(autoTimer);
+  setAuto(false);
   battle = null;
   renderHome();
   show('screen-home');
@@ -116,7 +127,7 @@ function renderMap() {
     const z = zoneById(zid);
     const unlocked = zoneUnlocked(save, z.id);
     const cleared = !!save.cleared[z.id];
-    const boss = UNITS[z.boss];
+    const boss = z.boss && UNITS[z.boss];
     const need = Math.round(z.rating * wm.rating);
     const diff = mine >= need ? 'ok' : mine >= need * 0.7 ? 'hard' : 'wall';
     const el = document.createElement('div');
@@ -125,11 +136,13 @@ function renderMap() {
       `<div class="znum">${cleared ? '&#10003;' : z.id}</div>` +
       `<div class="zname">${z.name}</div>` +
       `<div class="zblurb">${unlocked ? z.blurb : 'Locked: clear the previous zone'}</div>` +
-      `<div class="zrate ${unlocked ? diff : ''}">Rating ${need} <small>(you ${mine})</small></div>` +
-      `<div class="zboss">Boss: ${boss.name}<br><span class="ico2">&#9819;</span> ${cleared ? 'Champion soul (25% chance)' : 'Champion soul'}</div>`;
+      (z.endless
+        ? `<div class="zrate ok">Best: wave ${save.bestEndless || 0}</div><div class="zboss">No boss, no end. New record waves pay essence, gear and a champion soul every 10 waves.</div>`
+        : `<div class="zrate ${unlocked ? diff : ''}">Rating ${need} <small>(you ${mine})</small></div>` +
+          `<div class="zboss">Boss: ${boss.name}<br><span class="ico2">&#9819;</span> ${cleared ? 'Champion soul (25% chance)' : 'Champion soul'}</div>`);
     const b = document.createElement('button');
     b.className = 'big';
-    b.textContent = cleared ? 'Replay' : 'Fight';
+    b.textContent = z.endless ? 'Enter' : cleared ? 'Replay' : 'Fight';
     b.disabled = !unlocked;
     b.onclick = () => startBattle(z.id);
     el.appendChild(b);
@@ -187,6 +200,8 @@ $('btn-rebirth').onclick = () => { rebirthArmed = null; renderRebirth(); show('s
 
 // ---- Battle ----
 function startBattle(zoneId) {
+  clearTimeout(autoTimer);
+  lastZone = zoneId;
   victory = null;
   battle = new Battle(save, zoneId);
   lastFirstClear = false;
@@ -197,9 +212,11 @@ function startBattle(zoneId) {
 }
 
 function endBattle() {
+  const fresh = checkAchievements(save);
   writeSave(save);
   const won = battle.result === 'clear';
-  $('result-title').textContent = won ? 'Zone Cleared!' : 'Your horde has fallen';
+  const E = battle.endless;
+  $('result-title').textContent = E ? 'The Crypt claims you' : won ? 'Zone Cleared!' : 'Your horde has fallen';
   let text;
   if (won) {
     text = `${UNITS[battle.zone.boss].name} is dead and ${battle.zone.name} is yours. +${battle.payout} souls banked.`;
@@ -207,8 +224,61 @@ function endBattle() {
   } else {
     text = `The living chased you off. +${battle.payout} souls banked from ${battle.kills} kills.`;
   }
+  if (E) {
+    text = `You survived ${E.waves} wave${E.waves === 1 ? '' : 's'}` + (E.record ? ` (a new record, was ${E.prev})` : ` (best ${E.prev})`) + `. +${battle.payout} souls banked.`;
+    if (E.essence) text += ` +${E.essence} essence.`;
+    if (E.champ) text += ` +${E.champ} champion soul${E.champ > 1 ? 's' : ''}.`;
+  }
   $('result-text').textContent = text;
+  const extra = $('result-extra');
+  extra.innerHTML = '';
+  let best = -1;
+  for (const it of battle.drops || []) {
+    best = Math.max(best, rarityIndex(it.rarity));
+    const chip = document.createElement('div');
+    chip.className = 'rchip';
+    chip.style.setProperty('--rc', RARITIES[rarityIndex(it.rarity)].color);
+    chip.appendChild(iconCanvas('gear_' + it.slot));
+    chip.insertAdjacentHTML('beforeend', '<span>' + it.name + '</span>');
+    extra.appendChild(chip);
+  }
+  for (const a of fresh) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9733; ' + a.name + ' &middot; ' + rewardText(a.reward) + '</div>');
+  if (best >= 2) play('drop');
+  if (fresh.length) setTimeout(() => play('ach'), 400);
   show('screen-result');
+  if (autoOn) {
+    $('result-text').textContent += ' Fighting again in 3 seconds... (Return Home to stop)';
+    autoTimer = setTimeout(() => { if (autoOn && battle) startBattle(lastZone); }, 3000);
+  }
+}
+
+// ---- Toasts and achievements ----
+const toastQueue = [];
+let toastBusy = false;
+function toast(msg) { toastQueue.push(msg); if (!toastBusy) nextToast(); }
+function nextToast() {
+  const m = toastQueue.shift();
+  const el = $('toast');
+  if (!m) { toastBusy = false; el.classList.add('hidden'); return; }
+  toastBusy = true;
+  el.textContent = m;
+  el.classList.remove('hidden');
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  setTimeout(nextToast, 3400);
+}
+// Called after anything the player buys or changes: awards milestones and saves.
+function afterChange() {
+  const fresh = checkAchievements(save);
+  for (const a of fresh) toast('Achievement: ' + a.name + ' (' + rewardText(a.reward) + ')');
+  if (fresh.length) play('ach');
+  writeSave(save);
+  setBanks();
+}
+
+function setAuto(on) {
+  autoOn = on;
+  $('btn-auto').textContent = 'Auto: ' + (on ? 'on' : 'off');
+  $('btn-auto').classList.toggle('on', on);
 }
 
 // ---- Sound ----
@@ -248,11 +318,19 @@ resetBtn.onclick = () => {
   goHome();
 };
 
-const web = createWeb({ save, play, onChange: () => { writeSave(save); setBanks(); } });
+const web = createWeb({ save, play, onChange: afterChange });
+const armoury = createArmoury({ save, play, onChange: afterChange });
 
 // ---- Wiring ----
 $('btn-map').onclick = () => { renderMap(); show('screen-map'); };
 $('btn-tree').onclick = () => { setBanks(); show('screen-tree'); web.render(); };
+$('btn-arm').onclick = () => { setBanks(); armoury.render(); show('screen-armoury'); };
+$('btn-retry').onclick = () => { clearTimeout(autoTimer); startBattle(lastZone); };
+$('btn-auto').onclick = () => setAuto(!autoOn);
+const musicBtn = $('btn-music');
+function paintMusic() { musicBtn.textContent = isMusicOn() ? '\u266B' : '\u2715'; musicBtn.style.opacity = isMusicOn() ? 1 : 0.55; }
+musicBtn.onclick = () => { unlock(); setMusic(!isMusicOn()); paintMusic(); play('click'); };
+paintMusic();
 for (const b of document.querySelectorAll('[data-back]')) b.onclick = goHome;
 $('btn-home').onclick = goHome;
 // Tap to skip the clear celebration (after a short beat so it is seen).
@@ -294,7 +372,7 @@ function frame(now) {
       if (victory.t > 4.2) { victory = null; endBattle(); }
     }
     $('hud-souls').textContent = Math.floor(battle.earned);
-    $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : `Wave ${battle.wave}/${battle.totalWaves}`;
+    $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : battle.zone.endless ? `Wave ${battle.wave}` : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
     paintSpell();
   } else {
@@ -319,4 +397,4 @@ if ('serviceWorker' in navigator) {
 }
 
 // Test hook (used by automated checks).
-window.__game = { save, get battle() { return battle; }, startBattle };
+window.__game = { save, get battle() { return battle; }, startBattle, endBattle, afterChange, toast, armoury };

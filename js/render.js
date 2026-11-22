@@ -1,7 +1,8 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
-import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS } from './data.js';
+import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
 import { ATTACK_TIME } from './sim.js';
 import { LOOKS } from './looks.js';
+import { RARITIES, SLOTS, rarityIndex } from './gear.js';
 
 // Palette letters: . = transparent
 const NECRO_GRID = [
@@ -40,6 +41,24 @@ const SPRITES = {
   necro1: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#3a2a5a', h: '#5a4a8a', R: '#2a2040', r: '#4a3a6a', E: '#8fd16a', T: '#7a5a30', O: '#8fd16a' } },
   necro2: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#2a1a4a', h: '#7a5ab8', R: '#241a3c', r: '#5a3a8a', E: '#8fd16a', T: '#c8a040', O: '#b8f090' } },
   necro3: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, S: '#e8e8d8', H: '#101010', h: '#303030', R: '#0a0a10', r: '#1a2a1a', E: '#b8f090', T: '#d8d0b0', O: '#b8f090' } },
+  wall: { scale: 4, palette: { B: '#e8e0c8', b: '#b8b09a', d: '#7a7260' },
+    grid: ['..B.B.B..', '.BBBBBBB.', '.BbBBbBB.', '.BBBBBBB.', '.BbBBBbB.', '.BBBBBBB.', '.bBBbBBb.', '.BBBBBBd.', 'dBBBBBBdd'] },
+  tower: { scale: 4, palette: { S: '#8a8498', s: '#6a6478', E: '#8fd16a', G: '#4a8a52' },
+    grid: ['.G.GG.G.', '.GGGGGG.', '..SSSS..', '..SEES..', '..SSSS..', '.SSSSSS.', '..SssS..', '..SSSS..', '..SssS..', '..SSSS..', '.SSSSSS.', '.SSssSS.', 'SSSSSSSS', 'SssSSssS'] },
+  icon_wall: { scale: 4, palette: { B: '#e8e0c8', b: '#b8b09a', d: '#7a7260' },
+    grid: ['..B.B.B..', '.BBBBBBB.', '.BbBBbBB.', '.BBBBBBB.', '.BbBBBbB.', '.BBBBBBB.', '.bBBbBBb.', 'dBBBBBBdd'] },
+  icon_trap: { scale: 4, palette: { B: '#e8e0c8', S: '#6a6478', s: '#4a4458' },
+    grid: ['..B..B..B.', '..B..B..B.', '.BB.BB.BB.', '.BB.BB.BB.', 'SSSSSSSSSS', 'SsSsSsSsSs'] },
+  icon_tower: { scale: 4, palette: { S: '#8a8498', s: '#6a6478', E: '#8fd16a', G: '#4a8a52' },
+    grid: ['.G.GG.G.', '.GGGGGG.', '..SSSS..', '..SEES..', '..SSSS..', '.SSSSSS.', '..SssS..', '.SSSSSS.', 'SSSSSSSS'] },
+  gear_weapon: { scale: 4, palette: { B: '#e8e0f0', W: '#9a6a30', G: '#c8a040' },
+    grid: ['........BB', '.......BBB', '......BBB.', '.....BBB..', '.B..BBB...', '.GBBBB....', '..GGB.....', '.WWG......', 'WW........'] },
+  gear_armour: { scale: 4, palette: { A: '#b0a8c8', a: '#8a82a8', G: '#c8a040' },
+    grid: ['.AA....AA.', 'AAAA..AAAA', 'AAAAAAAAAA', '.AAAAAAAA.', '.AAAGGAAA.', '.AAAGGAAA.', '.aAAAAAAa.', '..aAAAAa..'] },
+  gear_charm: { scale: 4, palette: { C: '#b0a8c8', G: '#8fd16a', H: '#e0ffd0' },
+    grid: ['.C......C.', '..C....C..', '...C..C...', '....CC....', '...GGGG...', '..GGHHGG..', '..GGHGGG..', '...GGGG...'] },
+  icon_dust: { scale: 4, palette: { D: '#e8e0c8', d: '#b8b09a' },
+    grid: ['....D.....', '...DDD....', '..DDdDD...', '.DDDDDDD..', 'DdDDdDDdD.'] },
   zombie: {
     scale: 4,
     palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848' },
@@ -276,6 +295,13 @@ const SPRITES = {
       'BB.......',
     ],
   },
+};
+
+const LANE_TOP_DRAW = 334, LANE_BOTTOM_DRAW = 446;
+const topRarity = (save) => {
+  let best = -1;
+  for (const slot of SLOTS) { const it = (save.gear || []).find((x) => x.id === (save.equipped || {})[slot]); if (it) best = Math.max(best, rarityIndex(it.rarity)); }
+  return best;
 };
 
 const cache = {};
@@ -530,7 +556,7 @@ function drawNecro(g, t, tier, battle) {
   }
 }
 
-function drawUnit(g, u, t) {
+function drawUnit(g, u, t, rar) {
   const s = unitSprite(u);
   const bob = u.def.ghostly ? 4 + Math.sin(t * 3 + u.id) * 3 : u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
   // Attack animation: wind up (lean back), strike (lunge and lean forward), then recover.
@@ -554,6 +580,14 @@ function drawUnit(g, u, t) {
   g.scale(1 / squash, squash);
   const x0 = -s.ax, y0 = -s.h;
   // Thin dark outline so overlapping units stay readable.
+  if (rar >= 1 && u.team === 'player' && !u.def.static) {
+    const col = RARITIES[rar].color;
+    s.rar = s.rar || {};
+    const sil = s.rar[col] || (s.rar[col] = silhouette(s.img, col));
+    g.globalAlpha = rar === 4 ? 0.65 + 0.3 * Math.sin(t * 5 + u.id) : 0.75;
+    for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) g.drawImage(sil, x0 + dx, y0 + dy);
+    g.globalAlpha = 1;
+  }
   for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) g.drawImage(s.dark, x0 + dx, y0 + dy);
   g.drawImage(u.flash > 0 ? s.flash : s.img, x0, y0);
   // Status tints: poisoned units glow green, burning units orange.
@@ -574,7 +608,19 @@ export function draw(g, battle, tier = 0) {
   drawBackground(g, t);
   drawNecro(g, t, tier, battle);
   const sorted = [...battle.units].sort((a, b) => a.y - b.y);
-  for (const u of sorted) drawUnit(g, u, t);
+  // Spike traps lie across the lane; their spikes shoot up when sprung.
+  for (const tr of battle.traps || []) {
+    const k = tr.pop > 0 ? Math.sin((tr.pop / 0.35) * Math.PI) : 0;
+    for (let y = LANE_TOP_DRAW; y <= LANE_BOTTOM_DRAW; y += 16) {
+      g.fillStyle = '#0a0710'; g.fillRect(tr.x - 14, y, 28, 6);
+      g.fillStyle = '#5a5268'; g.fillRect(tr.x - 13, y + 1, 26, 3);
+      const h = 9 + 18 * k;
+      g.fillStyle = k > 0.05 ? '#fff4d8' : '#d0c8b0';
+      for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(tr.x + i * 5.5 - 3.5, y + 3); g.lineTo(tr.x + i * 5.5, y + 3 - h); g.lineTo(tr.x + i * 5.5 + 3.5, y + 3); g.fill(); }
+    }
+  }
+  const rar = topRarity(battle.save);
+  for (const u of sorted) drawUnit(g, u, t, rar);
   drawFog(g, t);
   // Arrows and stones
   for (const p of battle.projectiles) {
@@ -612,7 +658,7 @@ export function draw(g, battle, tier = 0) {
   g.globalAlpha = 1;
   if (battle.spawnQueue.length === 0 && battle.alive('enemy') === 0 && !battle.result) {
     g.font = 'bold 28px system-ui, sans-serif'; g.fillStyle = '#e8e0f0';
-    g.fillText(battle.wave >= battle.totalWaves && !battle.bossSpawned ? 'The Peasant Champion approaches!' : 'Next wave incoming...', FIELD_W / 2, 200);
+    g.fillText(battle.wave >= battle.totalWaves && !battle.bossSpawned ? UNITS[battle.zone.boss].name + ' approaches!' : battle.zone.endless ? 'Wave ' + (battle.wave + 1) + ' incoming...' : 'Next wave incoming...', FIELD_W / 2, 200);
   }
 }
 

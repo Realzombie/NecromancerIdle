@@ -1,4 +1,5 @@
 // All tunable game numbers live here.
+import { gearMods } from './gear.js';
 export const GATE_X = 78;          // enemies reaching this x end the attempt
 export const NECRO_X = 44;         // where the necromancer stands
 export const FIELD_W = 960;        // logical battlefield size
@@ -18,6 +19,10 @@ export const UNITS = {
   mage:     { name: 'Bone Mage',       hp: 14, dmg: 14, atk: 1.8, speed: 32, range: 170, radius: 9,  raise: 24, rally: [200, 340], sprite: 'mage',     team: 'player', unlockCost: 2, costMul: 2.2, splash: 45, blurb: 'Hurls bolts that burst on impact.' },
   ghost:    { name: 'Ghost',           hp: 35, dmg: 8, atk: 0.9, speed: 60, range: 22,  radius: 9,  raise: 16, rally: [420, 640], sprite: 'ghost',    team: 'player', unlockCost: 2, costMul: 2.4, dodge: 0.3, ghostly: true, blurb: 'Drifts through blows. Dodges 30% of hits.' },
   abomination: { name: 'Abomination',  hp: 260, dmg: 18, atk: 1.6, speed: 22, range: 30,  radius: 17, raise: 40, rally: [380, 520], sprite: 'abomination', team: 'player', unlockCost: 2, costMul: 3.5, heavy: true, cleave: 38, blurb: 'A towering stitched horror that hits everything near it.' },
+
+  // Static defences (see DEFENCES). They never move and are not raised by the necromancer.
+  wall:     { name: 'Bone Wall',       hp: 120, dmg: 0, atk: 9, speed: 0, range: 0, radius: 9, sprite: 'wall', team: 'player', static: true, wall: true },
+  tower:    { name: 'Graveyard Tower', hp: 160, dmg: 12, atk: 1.3, speed: 0, range: 230, radius: 12, sprite: 'tower', team: 'player', static: true, tower: true },
 
   // Enemies. drop = souls banked per kill.
   peasant:  { name: 'Peasant',            hp: 20,  dmg: 3,  atk: 1.2, speed: 35, range: 22,  radius: 10, drop: 3,   sprite: 'peasant',  team: 'enemy' },
@@ -45,7 +50,7 @@ export const UNITS = {
   herodawn: { name: 'Hero of the Dawn',   hp: 14000, dmg: 110, atk: 1.1, speed: 32, range: 38, radius: 18, drop: 4000, sprite: 'herodawn', team: 'enemy', boss: true },
   supreme:  { name: 'Archmage Supreme',   hp: 10000, dmg: 120, atk: 2.0, speed: 26, range: 200, radius: 17, drop: 5200, sprite: 'supreme', team: 'enemy', boss: true, splash: 70 },
   slayer:   { name: 'The Dragonslayer',   hp: 20000, dmg: 160, atk: 1.2, speed: 28, range: 40, radius: 20, drop: 7000, sprite: 'slayer', team: 'enemy', boss: true },
-  herokind: { name: 'The Hero King',      hp: 30000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, heal: { amt: 300, every: 5, range: 240 } },
+  herokind: { name: 'The Hero King',      hp: 40000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, heal: { amt: 300, every: 5, range: 240 } },
   avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true },
 };
 
@@ -94,8 +99,12 @@ export const ZONES = [
     compose: (n) => [...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
   { id: 11, region: 3, name: "Dragon's Rest", blurb: 'Assassins slip through the dark, and sentinels bar the way.', waves: 8, scale: 1.32, rating: 950, boss: 'slayer',
     compose: (n) => [...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
-  { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.3, rating: 1060, boss: 'herokind',
+  { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.37, rating: 1060, boss: 'herokind',
     compose: (n) => [...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
+
+  // The Endless Crypt: waves never stop and get steadily worse. Unlocks after zone 12. No boss; fail is the only ending.
+  { id: 13, region: 4, name: 'The Endless Crypt', blurb: 'The living pour in forever. How long can you hold?', waves: Infinity, scale: 1.1, rating: 0, boss: null, endless: true,
+    compose: (n) => [...rep('assassin', 1 + Math.floor(n / 5)), ...rep('sentinel', Math.floor(n / 6)), ...rep('berserker', 1 + Math.floor(n / 5)), ...rep('archmage', 1 + Math.floor(n / 5)), ...rep('cleric', 1 + Math.floor(n / 8)), ...rep('crusader', Math.min(8, 2 + Math.floor(n / 4)))] },
 ];
 
 // Regions group zones on the map and set the look of the battlefield (see THEMES in render.js).
@@ -103,6 +112,7 @@ export const REGIONS = [
   { id: 1, name: 'The Greenmarch', theme: 'graveyard', zones: [1, 2, 3, 4] },
   { id: 2, name: 'The Crusader Reach', theme: 'holy', zones: [5, 6, 7, 8] },
   { id: 3, name: "The Heroes' Reach", theme: 'frost', zones: [9, 10, 11, 12] },
+  { id: 4, name: 'The Endless Crypt', theme: 'graveyard', zones: [13] },
 ];
 
 // ---- Skill tree ----
@@ -174,7 +184,38 @@ export function statEffect(stat, lvl, unit) {
   return `${stat === 'hp' ? '+' + Math.round(statBonus(lvl) * 100) + '% HP' : '+' + Math.round(statBonus(lvl) * 100) + '% damage'}`;
 }
 
-export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'player');
+export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'player' && !UNITS[k].static);
+
+// ---- Defences ----
+// Bought with souls on the Armoury screen. Each has levels; they stand ready at the start of every attempt.
+// A zone must be cleared first (needs). Rebirth wipes them unless Fortified Start keeps some.
+export const DEFENCES = {
+  wall:  { name: 'Bone Walls',      icon: 'wall',  needs: 1, max: 8, base: 60,  growth: 1.5,
+           effect: (l) => l ? Math.min(4, 1 + Math.floor((l - 1) / 2)) + ' walls, ' + wallHp(l) + ' HP each' : 'Block and slow the enemy front line.' },
+  trap:  { name: 'Spike Traps',     icon: 'trap',  needs: 2, max: 8, base: 90,  growth: 1.55,
+           effect: (l) => l ? Math.min(3, 1 + Math.floor((l - 1) / 3)) + ' traps, ' + trapFlat(l) + ' + ' + (trapPct(l) * 100).toFixed(0) + '% max HP per trigger' : 'Damage enemies as they march over them.' },
+  tower: { name: 'Graveyard Towers', icon: 'tower', needs: 3, max: 8, base: 180, growth: 1.6,
+           effect: (l) => l ? (l >= 5 ? 2 : 1) + (l >= 5 ? ' towers, ' : ' tower, ') + towerDmg(l) + ' damage per shot' : 'Shoot enemies from behind the line.' },
+};
+export const DEFENCE_KEYS = Object.keys(DEFENCES);
+export const wallHp = (l) => Math.round(120 * Math.pow(1.45, l - 1));
+export const wallCount = (l) => (l ? Math.min(4, 1 + Math.floor((l - 1) / 2)) : 0);
+export const trapFlat = (l) => 6 * l;
+export const trapPct = (l) => Math.min(0.08, 0.01 * l);
+export const trapCount = (l) => (l ? Math.min(3, 1 + Math.floor((l - 1) / 3)) : 0);
+export const towerDmg = (l) => Math.round(12 * Math.pow(1.4, l - 1));
+export const towerHp = (l) => Math.round(160 * Math.pow(1.35, l - 1));
+export const towerCount = (l) => (l ? (l >= 5 ? 2 : 1) : 0);
+
+// Level of a defence: bought levels, or the free start given by the Fortified Start perk.
+export function defLevel(save, key) {
+  const bought = save.nodes['def_' + key] || 0;
+  const f = perk(save, 'fort');
+  const free = key === 'tower' ? Math.max(0, f - 1) : f;
+  return Math.max(bought, free);
+}
+export function defCost(key, lvl) { return Math.ceil(DEFENCES[key].base * Math.pow(DEFENCES[key].growth, lvl)); }
+export function defUnlocked(save, key) { return save.bestZone >= DEFENCES[key].needs; }
 
 export function owned(save, unit) {
   return UNITS[unit].unlockCost === 0 || (save.nodes['unit_' + unit] || 0) > 0;
@@ -212,14 +253,19 @@ export function lookOf(save, unit) {
 }
 
 export function totalLevels(save) {
-  return Object.values(save.nodes).reduce((a, b) => a + b, 0);
+  let n = 0;
+  for (const [k, v] of Object.entries(save.nodes)) if (!k.startsWith('def_')) n += v;
+  return n;
 }
 
 // A rough comparable "power rating", shown against each zone's rating.
 export function playerRating(save) {
   const units = PLAYER_UNITS.filter((u) => owned(save, u)).length;
   const specials = SPECIAL_KEYS.filter((k) => hasSpecial(save, k)).length;
-  return Math.round(10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15);
+  const gm = gearMods(save);
+  const gear = (gm.dmg + gm.hp) * 50 + (gm.rise + gm.souls + gm.crit + gm.lifesteal + gm.thorns + gm.spell) * 30 + Object.keys(gm.fx).length * 10;
+  const defs = DEFENCE_KEYS.reduce((a, k) => a + defLevel(save, k) * 3, 0);
+  return Math.round(10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + gear + defs);
 }
 
 // The necromancer's look follows total levels (gear will add to this later).
@@ -252,6 +298,7 @@ export const PERKS = {
   conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
   restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4,  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
   echo:     { name: "Champion's Echo", icon: 'icon_fire', base: 15, growth: 1.7, max: 5,  effect: (l) => '+' + l * 10 + '% champion soul chance on replays' },
+  fort:     { name: 'Fortified Start', icon: 'icon_shield', base: 14, growth: 1.7, max: 5, effect: (l) => l ? 'Walls and traps start at level ' + l + (l > 1 ? ', towers at ' + (l - 1) : '') : 'No free defences' },
   ritual:   { name: 'Dark Ritual',     icon: 'icon_burst', base: 10, growth: 1.6, max: 6, effect: (l) => 'Raise Dead brings ' + (3 + l) + ' minions, ' + Math.round(45 * Math.pow(0.9, l)) + 's cooldown' },
 };
 export const PERK_KEYS = Object.keys(PERKS);
@@ -261,10 +308,10 @@ export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abom
 export function perk(save, key) { return (save.perks && save.perks[key]) || 0; }
 export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow(PERKS[key].growth, lvl)); }
 
-export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)); }
-export function raiseMul(save) { return 1 - 0.04 * perk(save, 'quick'); }
+export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)) * (1 + gearMods(save).souls); }
+export function raiseMul(save) { return Math.max(0.2, 1 - 0.04 * perk(save, 'quick') - gearMods(save).rise); }
 export function offlineCapHours(save) { return TUNING.offlineCapHours + 4 * perk(save, 'restless'); }
-export function spellCooldown(save) { return 45 * Math.pow(0.9, perk(save, 'ritual')); }
+export function spellCooldown(save) { return 45 * Math.pow(0.9, perk(save, 'ritual')) * (1 - gearMods(save).spell); }
 export function spellCount(save) { return 3 + perk(save, 'ritual'); }
 
 // Essence you would earn by rebirthing now.
@@ -278,5 +325,5 @@ export function canRebirth(save) { return save.bestZone >= REBIRTH_MIN_ZONE; }
 // Each rebirth makes the world fight back harder, so a stronger necromancer still has a challenge.
 export function worldMul(save) {
   const r = save.rebirths || 0;
-  return { hp: 1 + 0.5 * r, dmg: 1 + 0.25 * r, rating: 1 + 0.4 * r };
+  return { hp: Math.pow(2.2, r), dmg: Math.pow(1.5, r), rating: Math.pow(1.8, r) };
 }
