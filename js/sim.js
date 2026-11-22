@@ -1,21 +1,25 @@
 // Pure battle simulation: no DOM, so it can be tested in node.
 import {
-  UNITS, TUNING, ZONES, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y, upgradeCost,
+  UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
+  PLAYER_UNITS, STATS, owned, level, statCost, statMods, zoneById,
 } from './data.js';
 
 let nextId = 1;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+export const ATTACK_TIME = 0.32;   // length of the attack animation
+const SWING_DELAY = 0.13;          // the hit lands this far into the animation
 
 export class Battle {
-  constructor(save, zone = 1, rng = Math.random) {
+  constructor(save, zoneId = 1, rng = Math.random) {
     this.save = save;
     this.rng = rng;
-    this.zoneId = zone;
-    this.zone = ZONES[zone];
+    this.zone = zoneById(zoneId);
+    this.zoneId = zoneId;
     this.bossSpawned = false;
     this.units = [];
     this.projectiles = [];
     this.floaters = [];
+    this.fx = [];              // slashes and sparks (visual only)
     this.time = 0;
     this.wave = 0;
     this.spawnQueue = [];
@@ -27,29 +31,26 @@ export class Battle {
     this.kills = 0;
     this.earned = 0;           // souls banked when the attempt ends
     this.payout = 0;
-    for (let i = 0; i < TUNING.startZombies; i++) this.spawn('zombie', 150 + i * 30);
+    this.champDrop = 0;        // champion souls gained from the boss
+    for (let i = 0; i < TUNING.startZombies; i++) this.spawn('zombie', 300 + i * 40);
     for (const t of this.raiseTypes()) this.raiseTimers[t] = this.raiseInterval(t) * 0.5;
   }
 
   get totalWaves() { return this.zone.waves; }
-
-  mods() {
-    const u = this.save.upgrades;
-    return { hp: 1 + TUNING.upgradeStatPerLevel * u.hp, dmg: 1 + TUNING.upgradeStatPerLevel * u.dmg };
-  }
 
   rand(a, b) { return a + this.rng() * (b - a); }
 
   spawn(type, x) {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
-    if (def.team === 'player') { const m = this.mods(); hpMul = m.hp; dmgMul = m.dmg; }
-    else if (type !== 'champion') { const s = Math.pow(TUNING.waveScale, Math.max(0, this.wave - 1)); hpMul = s; dmgMul = s; }
+    if (def.team === 'player') { const m = statMods(this.save, type); hpMul = m.hp; dmgMul = m.dmg; }
+    else if (!def.boss) { const s = Math.pow(this.zone.scale, Math.max(0, this.wave - 1)); hpMul = s; dmgMul = s; }
     const u = {
       id: nextId++, type, def, team: def.team,
       x, y: this.rand(LANE_TOP, LANE_BOTTOM),
       hp: def.hp * hpMul, maxHp: def.hp * hpMul, dmg: def.dmg * dmgMul,
-      cd: this.rng() * def.atk, flash: 0, attackAnim: 0, moving: false,
+      cd: this.rng() * def.atk, flash: 0, attackAnim: 0, moving: false, engaged: false, swing: null,
+      facing: def.team === 'player' ? 1 : -1,
       speedMul: this.rand(0.85, 1.15),   // so the horde does not march in lockstep
       bias: this.rand(-16, 16),          // aims a little above or below its target
       wt: 0, wx: 0, wy: 0,               // wandering drift
@@ -78,13 +79,9 @@ export class Battle {
     return n;
   }
 
-  raiseTypes() {
-    return Object.keys(UNITS).filter((t) => UNITS[t].team === 'player' && this.save.bestZone >= UNITS[t].unlockZone);
-  }
+  raiseTypes() { return PLAYER_UNITS.filter((t) => owned(this.save, t)); }
 
-  raiseInterval(type) {
-    return UNITS[type].raise * Math.pow(TUNING.raiseCooldownFactor, this.save.upgrades.raise);
-  }
+  raiseInterval(type) { return UNITS[type].raise * statMods(this.save, type).cooldown; }
 
   raiseProgress(type) {
     return clamp((this.raiseTimers[type] || 0) / this.raiseInterval(type), 0, 1);
@@ -120,13 +117,13 @@ export class Battle {
         if (this.wave >= this.totalWaves) {
           if (this.bossSpawned) { this.finish('clear'); return; }
           this.bossSpawned = true;
-          this.spawn('champion', FIELD_W - 30);
+          this.spawn(this.zone.boss, FIELD_W - 30);
           this.pause = TUNING.wavePause;
           return;
         }
         this.wave++;
-        const n = this.zone.waveCount(this.wave);
-        this.spawnQueue = Array(n).fill('peasant');
+        // Shuffle so mixed waves arrive in a random order.
+        this.spawnQueue = this.zone.compose(this.wave).sort(() => this.rng() - 0.5);
         this.spawnTimer = 0;
         this.pause = TUNING.wavePause;
       }
@@ -150,6 +147,7 @@ export class Battle {
     // Deaths
     for (const u of this.units) {
       if (u.hp > 0) continue;
+      for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
       if (u.team === 'enemy') {
         this.earned += u.def.drop;
         this.kills++;
@@ -160,9 +158,20 @@ export class Battle {
 
     for (const f of this.floaters) f.t += dt;
     this.floaters = this.floaters.filter((f) => f.t < 1);
+    for (const f of this.fx) {
+      f.t += dt;
+      if (f.k === 'spark') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 260 * dt; }
+    }
+    this.fx = this.fx.filter((f) => f.t < f.life);
 
     // Failure: an enemy reached the necromancer.
     for (const u of this.units) if (u.team === 'enemy' && u.x <= GATE_X) { this.finish('fail'); return; }
+  }
+
+  spark(x, y, color) {
+    if (this.fx.length > 240) return;
+    const a = this.rand(0, Math.PI * 2), s = this.rand(40, 120);
+    this.fx.push({ k: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 50, t: 0, life: this.rand(0.2, 0.4), color });
   }
 
   updateUnit(u, dt) {
@@ -170,6 +179,23 @@ export class Battle {
     u.attackAnim = Math.max(0, u.attackAnim - dt);
     u.cd -= dt;
     u.moving = false;
+
+    // A swing in progress lands partway through the animation.
+    if (u.swing) {
+      u.swing.delay -= dt;
+      if (u.swing.delay <= 0) {
+        const t = u.swing.target;
+        u.swing = null;
+        if (t.hp > 0) {
+          if (u.def.range > 40) {
+            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16, target: t, dmg: u.dmg, speed: 340 });
+          } else if (Math.hypot(t.x - u.x, (t.y - u.y) * 1.5) <= (u.def.range + t.def.radius) * 1.4) {
+            this.fx.push({ k: 'slash', x: u.x + u.facing * 16, y: u.y - 18, dir: u.facing, t: 0, life: 0.2, color: u.team === 'player' ? '#d8f0c0' : '#f0d0c0' });
+            this.hit(t, u.dmg);
+          }
+        }
+      }
+    }
 
     let target = null, best = Infinity;
     for (const o of this.units) {
@@ -179,12 +205,13 @@ export class Battle {
     }
     if (u.team === 'player' && best > TUNING.aggroRange) target = null;
 
-    if (target && best <= u.def.range) {
+    u.engaged = !!(target && best <= u.def.range + target.def.radius);
+    if (u.engaged) {
+      u.facing = Math.sign(target.x - u.x) || u.facing;
       if (u.cd <= 0) {
         u.cd = u.def.atk;
-        u.attackAnim = 0.2;
-        if (u.def.range > 40) this.projectiles.push({ x: u.x, y: u.y - 14, target, dmg: u.dmg, speed: 320 });
-        else this.hit(target, u.dmg);
+        u.attackAnim = ATTACK_TIME;
+        u.swing = { delay: SWING_DELAY, target };
       }
       return;
     }
@@ -208,6 +235,7 @@ export class Battle {
 
     const sp = u.def.speed * u.speedMul;
     const dx = tx - u.x, dy = ty - u.y;
+    if (Math.abs(dx) > 1) u.facing = Math.sign(dx);
     u.x += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt);
     u.y += Math.sign(dy) * Math.min(Math.abs(dy), sp * 0.6 * dt);
     if (wander) {
@@ -218,10 +246,11 @@ export class Battle {
     u.moving = true;
   }
 
-  // Soft collision: units push each other apart but may overlap a little.
+  // Soft collision. Units that are fighting and bosses barely move, so a crowd cannot shove them around.
   separate(dt) {
     const us = this.units;
-    const k = Math.min(1, dt * 10);
+    const k = Math.min(1, dt * 12);
+    const mobility = (u) => (u.engaged ? 0.1 : 1) * (u.def.boss ? 0.04 : 1);
     for (let i = 0; i < us.length; i++) {
       for (let j = i + 1; j < us.length; j++) {
         const a = us[i], b = us[j];
@@ -231,10 +260,11 @@ export class Battle {
         let d = Math.hypot(dx, dy);
         if (d >= min) continue;
         if (d < 0.001) { dx = this.rand(-1, 1); dy = this.rand(-1, 1); d = Math.hypot(dx, dy) || 1; }
-        const push = (min - d) * 0.5 * k;
+        const push = (min - d) * k;
         const nx = dx / d, ny = dy / d;
-        a.x -= nx * push; b.x += nx * push;
-        a.y -= ny * push / 1.8; b.y += ny * push / 1.8;
+        const wa = mobility(a), wb = mobility(b), sum = wa + wb;
+        a.x -= nx * push * wa / sum; b.x += nx * push * wb / sum;
+        a.y -= ny * push * wa / sum / 1.8; b.y += ny * push * wb / sum / 1.8;
       }
     }
     for (const u of us) { u.y = clamp(u.y, LANE_MIN_Y, LANE_MAX_Y); u.x = Math.max(20, u.x); }
@@ -242,21 +272,42 @@ export class Battle {
 
   finish(result) {
     this.result = result;
-    if (result === 'clear') this.save.bestZone = Math.max(this.save.bestZone, this.zoneId);
+    const s = this.save;
+    if (result === 'clear') {
+      const first = !s.cleared[this.zoneId];
+      s.cleared[this.zoneId] = true;
+      s.bestZone = Math.max(s.bestZone, this.zoneId);
+      if (first || this.rng() < TUNING.repeatSoulChance) { this.champDrop = 1; s.champSouls += 1; }
+      this.firstClear = first;
+    }
     this.payout = Math.floor(this.earned * (result === 'clear' ? 1 : TUNING.failPayout));
-    this.save.souls += this.payout;
+    s.souls += this.payout;
   }
 
   hit(target, dmg) {
     target.hp -= dmg;
-    target.flash = 0.1;
+    target.flash = 0.12;
+    for (let i = 0; i < 3; i++) this.spark(target.x, target.y - 16, '#ffffff');
   }
 }
 
-export function buyUpgrade(save, key) {
-  const cost = upgradeCost(key, save.upgrades[key]);
+// ---- Skill tree actions ----
+export function zoneUnlocked(save, zoneId) { return zoneId === 1 || !!save.cleared[zoneId - 1]; }
+
+export function buyUnit(save, unit) {
+  const def = UNITS[unit];
+  if (owned(save, unit) || save.champSouls < def.unlockCost) return false;
+  save.champSouls -= def.unlockCost;
+  save.nodes['unit_' + unit] = 1;
+  return true;
+}
+
+export function buyStat(save, stat, unit) {
+  const lvl = level(save, stat, unit);
+  if (!owned(save, unit) || lvl >= STATS[stat].max) return false;
+  const cost = statCost(stat, unit, lvl);
   if (save.souls < cost) return false;
   save.souls -= cost;
-  save.upgrades[key]++;
+  save.nodes[stat + '_' + unit] = lvl + 1;
   return true;
 }

@@ -1,5 +1,6 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X } from './data.js';
+import { ATTACK_TIME } from './sim.js';
 
 // Palette letters: . = transparent
 const NECRO_GRID = [
@@ -18,6 +19,20 @@ const NECRO_GRID = [
   'RRRRRRRR..',
 ];
 const NECRO_BASE = { S: '#d8d0b8' };
+
+const BIG_GRID = [
+  '..HHHH..',
+  '.HHhhHH.',
+  '.HSSSSH.',
+  '.SESSES.',
+  '..SSSS..',
+  'HTTTTTTHW',
+  'STTTTTTSW',
+  '.TTTTTT.M',
+  '.TTTTTT.M',
+  '.PP..PP..',
+  '.PP..PP..',
+];
 
 const SPRITES = {
   necro0: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#4a4048', h: '#5a5058', R: '#3a3238', r: '#4a424a', E: '#c8c070', T: '#7a5a30', O: '#9a9a70' } },
@@ -73,21 +88,69 @@ const SPRITES = {
       '.PP..PP.',
     ],
   },
-  champion: {
-    scale: 6,
-    palette: { S: '#e0b890', H: '#b8b8c8', h: '#80808f', T: '#a84040', P: '#4a3a3a', E: '#202020', W: '#d0d0d8', M: '#6a4a2a' },
+  champion: { scale: 6, grid: BIG_GRID, palette: { S: '#e0b890', H: '#b8b8c8', h: '#80808f', T: '#a84040', P: '#4a3a3a', E: '#202020', W: '#d0d0d8', M: '#6a4a2a' } },
+  captain:  { scale: 6, grid: BIG_GRID, palette: { S: '#d8a880', H: '#5a6a9a', h: '#3a4a7a', T: '#3a5a9a', P: '#2a2a3a', E: '#202020', W: '#e0e0e8', M: '#8a5a2a' } },
+  priest:   { scale: 6, grid: BIG_GRID, palette: { S: '#e8c8a0', H: '#e8e0b0', h: '#c8a040', T: '#e8e0d0', P: '#c8b890', E: '#a02020', W: '#f0d060', M: '#c8a040' } },
+  commander:{ scale: 7, grid: BIG_GRID, palette: { S: '#c8a080', H: '#8a8a9a', h: '#50505f', T: '#2a2a3a', P: '#1a1a24', E: '#d03030', W: '#c0c0d0', M: '#50505f' } },
+  knight:   { scale: 5, grid: BIG_GRID, palette: { S: '#d0a888', H: '#a8a8b8', h: '#70707f', T: '#7a7a8a', P: '#3a3a48', E: '#202020', W: '#d0d0d8', M: '#6a4a2a' } },
+  militia: {
+    scale: 4,
+    palette: { K: '#e0b890', A: '#8a8a98', T: '#6a7a4a', P: '#4a3a3a', E: '#202020', W: '#8a5a2a', Y: '#d8d8e8' },
+    grid: [
+      '..AAAA..Y',
+      '.AAAAAA.W',
+      '..KKKK..W',
+      '.KEKKEK.W',
+      '..KKKK..W',
+      '.TTTTTTKW',
+      'KTTTTTT.W',
+      '.TTTTTT.W',
+      '.PP..PP.W',
+      '.PP..PP..',
+    ],
+  },
+  slinger: {
+    scale: 4,
+    palette: { K: '#e0b890', H: '#6a5a3a', T: '#8a7a5a', P: '#4a3a3a', E: '#202020', O: '#c8c0a0' },
     grid: [
       '..HHHH..',
-      '.HHhhHH.',
-      '.HSSSSH.',
-      '.SESSES.',
-      '..SSSS..',
-      'HTTTTTTHW',
-      'STTTTTTSW',
-      '.TTTTTT.M',
-      '.TTTTTT.M',
-      '.PP..PP..',
-      '.PP..PP..',
+      '.HHHHHH.',
+      '..KKKK..',
+      '.KEKKEK.',
+      '..KKKK..',
+      '.TTTTTT.',
+      'KTTTTTTO',
+      '.TTTTTT.',
+      '.PP..PP.',
+      '.PP..PP.',
+    ],
+  },
+  skeleton: {
+    scale: 4,
+    palette: { B: '#e8e0c8', E: '#2a2030', D: '#8a5a2a', Y: '#d8d8e8', G: '#c8a040' },
+    grid: [
+      '..BBBB...',
+      '.BBBBBB.Y',
+      '.BEBBEB.Y',
+      '..BBBB..Y',
+      'DDBBBBB.Y',
+      'DDDBBBBGG',
+      'DDDBBB...',
+      '.DD.BB...',
+      '...B.B...',
+      '...B.B...',
+    ],
+  },
+  hound: {
+    scale: 4,
+    palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', D: '#3a2f48', R: '#a04848' },
+    grid: [
+      '.......GG.',
+      '.GGGGGGGGE',
+      'GGGGGGGGGR',
+      '.gGGGGGGg.',
+      '.G.G..G.G.',
+      '.D.D..D.D.',
     ],
   },
   // Upgrade-card icons
@@ -166,8 +229,8 @@ function sprite(name) {
 }
 
 // A fresh canvas holding an icon sprite, for use in the HTML UI.
-export function iconCanvas(key) {
-  const s = sprite('icon_' + key);
+export function iconCanvas(name) {
+  const s = sprite(name);
   const c = document.createElement('canvas');
   c.width = s.w; c.height = s.h;
   c.getContext('2d').drawImage(s.img, 0, 0);
@@ -310,7 +373,7 @@ function drawNecro(g, t, tier, battle) {
     battle.raiseTypes().forEach((type, i) => {
       const bw = 70, bx = x - bw / 2, by = base + 18 + i * 9;
       g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(bx - 1, by - 1, bw + 2, 7);
-      g.fillStyle = type === 'zombie' ? '#8fd16a' : '#e8e0c8';
+      g.fillStyle = { zombie: '#8fd16a', archer: '#e8e0c8', skeleton: '#a8b0e0', hound: '#e0a050' }[type] || '#ffffff';
       g.fillRect(bx, by, bw * battle.raiseProgress(type), 5);
     });
   }
@@ -319,13 +382,24 @@ function drawNecro(g, t, tier, battle) {
 function drawUnit(g, u, t) {
   const s = sprite(u.def.sprite);
   const bob = u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
-  const lunge = u.attackAnim > 0 ? (u.team === 'player' ? 1 : -1) * 4 * (u.attackAnim / 0.2) : 0;
-  const px = Math.round(u.x + lunge), py = Math.round(u.y - bob);
+  // Attack animation: wind up (lean back), strike (lunge and lean forward), then recover.
+  let lunge = 0, lean = 0, squash = 1;
+  if (u.attackAnim > 0) {
+    const p = 1 - u.attackAnim / ATTACK_TIME;
+    const ranged = u.def.range > 40;
+    if (p < 0.4) { const k = p / 0.4; lunge = -(ranged ? 7 : 5) * k; lean = -0.28 * k; squash = 1 + 0.08 * k; }
+    else if (p < 0.6) { const k = (p - 0.4) / 0.2; lunge = ranged ? -7 + 3 * k : -5 + 17 * k; lean = ranged ? -0.28 + 0.2 * k : -0.28 + 0.8 * k; squash = 1.08 - 0.16 * k; }
+    else { const k = (p - 0.6) / 0.4; lunge = ranged ? -4 * (1 - k) : 12 * (1 - k); lean = (ranged ? -0.08 : 0.52) * (1 - k); squash = 0.92 + 0.08 * k; }
+  }
+  const dir = u.team === 'player' ? 1 : -1;
+  const px = Math.round(u.x + lunge * dir), py = Math.round(u.y - bob);
   g.fillStyle = u.team === 'player' ? 'rgba(143,209,106,0.28)' : 'rgba(214,89,107,0.28)';
   g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.45, 5, 0, 0, Math.PI * 2); g.fill();
   g.save();
   g.translate(px, py);
   if (u.team === 'enemy') g.scale(-1, 1);
+  g.rotate(lean);
+  g.scale(1 / squash, squash);
   const x0 = -s.w / 2, y0 = -s.h;
   // Thin dark outline so overlapping units stay readable.
   for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) g.drawImage(s.dark, x0 + dx, y0 + dy);
@@ -346,11 +420,30 @@ export function draw(g, battle, tier = 0) {
   const sorted = [...battle.units].sort((a, b) => a.y - b.y);
   for (const u of sorted) drawUnit(g, u, t);
   drawFog(g, t);
-  g.strokeStyle = '#d8d0b0'; g.lineWidth = 2;
+  // Arrows and stones
   for (const p of battle.projectiles) {
-    const a = p.angle || 0;
-    g.beginPath(); g.moveTo(p.x - Math.cos(a) * 8, p.y - Math.sin(a) * 8); g.lineTo(p.x, p.y); g.stroke();
+    const a = p.angle || 0, ca = Math.cos(a), sa = Math.sin(a);
+    g.strokeStyle = '#2a1c10'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(p.x - ca * 12, p.y - sa * 12); g.lineTo(p.x + ca * 3, p.y + sa * 3); g.stroke();
+    g.strokeStyle = '#e8e0c8'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(p.x - ca * 12, p.y - sa * 12); g.lineTo(p.x + ca * 3, p.y + sa * 3); g.stroke();
+    g.fillStyle = '#ffffff'; g.fillRect(p.x + ca * 3 - 2, p.y + sa * 3 - 2, 4, 4);
   }
+  // Slashes and sparks
+  for (const f of battle.fx) {
+    const k = f.t / f.life;
+    if (f.k === 'slash') {
+      g.save();
+      g.translate(f.x, f.y); g.scale(f.dir, 1);
+      g.strokeStyle = f.color; g.lineWidth = 5 - 3 * k; g.globalAlpha = 1 - k; g.lineCap = 'round';
+      g.beginPath(); g.arc(-6, 0, 18, -1.1 + k * 0.5, 1.1 + k * 0.5); g.stroke();
+      g.restore();
+    } else {
+      g.globalAlpha = 1 - k; g.fillStyle = f.color;
+      g.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
+    }
+  }
+  g.globalAlpha = 1; g.lineCap = 'butt';
   g.font = 'bold 16px system-ui, sans-serif'; g.textAlign = 'center';
   for (const f of battle.floaters) {
     g.globalAlpha = 1 - f.t;

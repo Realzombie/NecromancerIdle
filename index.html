@@ -17,6 +17,7 @@
   <canvas id="field" width="960" height="540"></canvas>
 
   <div id="hud" class="hidden">
+    <div class="pill" id="hud-zone">Zone</div>
     <div class="pill"><span class="ico">&#9760;</span> <b id="hud-souls">0</b> earned</div>
     <div class="pill" id="hud-wave">Wave 1/8</div>
     <div class="pill" id="hud-horde">Horde 3</div>
@@ -28,15 +29,41 @@
       <div class="home-top">
         <div>
           <h1>Necromancer Idle</h1>
-          <div class="rank">Rank: <b id="home-rank">Grave Robber</b></div>
+          <div class="rank">Rank: <b id="home-rank">Grave Robber</b> &middot; Power <b id="home-power">10</b></div>
         </div>
-        <div class="bank"><span class="ico">&#9760;</span> <b id="home-souls">0</b></div>
+        <div class="banks">
+          <div class="bank"><span class="ico">&#9760;</span> <b id="home-souls">0</b></div>
+          <div class="bank champ"><span class="ico2">&#9819;</span> <b id="home-champ">0</b></div>
+        </div>
       </div>
       <div id="home-note" class="note"></div>
-      <div id="upgrades" class="cards"></div>
-      <button id="btn-start" class="big">Enter: Graveyard Fields</button>
-      <div id="zone-info" class="zone-info"></div>
+      <div class="home-buttons">
+        <button id="btn-map" class="big">Conquer Zones</button>
+        <button id="btn-tree" class="big alt">Skill Tree <span id="tree-badge" class="badge hidden"></span></button>
+      </div>
+      <div id="home-hint" class="zone-info"></div>
     </div>
+  </div>
+
+  <div id="screen-map" class="screen page hidden">
+    <div class="page-top">
+      <button class="back" data-back>&larr; Back</button>
+      <h2>The Greenmarch</h2>
+      <div class="banks"><div class="bank"><span class="ico">&#9760;</span> <b class="b-souls">0</b></div></div>
+    </div>
+    <div id="zones" class="zones"></div>
+  </div>
+
+  <div id="screen-tree" class="screen page hidden">
+    <div class="page-top">
+      <button class="back" data-back>&larr; Back</button>
+      <h2>Skill Tree</h2>
+      <div class="banks">
+        <div class="bank"><span class="ico">&#9760;</span> <b class="b-souls">0</b></div>
+        <div class="bank champ"><span class="ico2">&#9819;</span> <b class="b-champ">0</b></div>
+      </div>
+    </div>
+    <div id="tree" class="tree"></div>
   </div>
 
   <div id="screen-result" class="screen hidden">
