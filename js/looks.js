@@ -187,6 +187,118 @@ export const LOOKS = {
     flags: { drain: [[4, 5, '#ff8080'], [3, 5, '#ff8080']] },
   },
 
+  deathknight: {
+    scale: 4, pad: 2,
+    grid: [
+      '..HHHH..L',
+      '.HHVVHH.L',
+      '.HHEEHH.L',
+      '..HHHH..L',
+      '.AAAAAAAL',
+      'AAAAAAAAL',
+      '.AAAAAA.L',
+      '.AAKKAA..',
+      '.AA..AA..',
+      '.DD..DD..',
+    ],
+    palette: { H: '#3a3a4a', V: '#101018', E: '#ff4040', A: '#5a5a72', K: '#8a8a9a', L: '#c8c8d8', D: '#2a2a38' },
+    hp: [
+      { rects: [[0, 4, '#8a8a9a', 1, 2], [7, 4, '#8a8a9a']] },
+      { rects: [[2, 0, '#d02030', 4]] },
+      { palette: { A: '#6a6a88' }, rects: [[2, 4, '#c8a040', 5], [3, 7, '#c8a040', 2], [2, 0, '#c8a040', 4]] },
+    ],
+    dmg: [
+      { rects: [[8, 0, '#e8e8f0']] },
+      { rects: [[8, 0, '#8ad0ff'], [8, 1, '#8ad0ff']] },
+      { palette: { L: '#ffb040' }, rects: [[8, 0, '#ffe080'], [7, 0, '#ff6020']] },
+    ],
+    flags: { charge: [[0, 6, '#ff4040', 1, 2]] },
+  },
+
+  plaguebearer: {
+    scale: 4, pad: 2,
+    grid: [
+      '..HHHH..',
+      '.HHHHHH.',
+      '.HSEESH.',
+      '.HSSSSH.',
+      '..RRRR.C',
+      '.RRRRRRC',
+      'RRRrrRRC',
+      '.RRrrRR.',
+      '.RRRRRR.',
+      '.RR..RR.',
+    ],
+    palette: { H: '#4a5a3a', S: '#b8c890', E: '#e0ff80', R: '#5a6a3a', r: '#7a8a4a', C: '#8a8a70' },
+    hp: [
+      { rects: [[2, 3, '#e8e0c8', 4], [0, 6, '#e8e0c8', 1, 2], [6, 8, '#e8e0c8']] },
+      { rects: [[3, 3, '#c8c0a8', 2], [4, 4, '#c8c0a8', 2]] },
+      { palette: { R: '#4a3a5a', r: '#6a5a7a', H: '#3a3a2a' }, rects: [] },
+    ],
+    dmg: [
+      { rects: [[7, 7, '#6a9a4a']] },
+      { rects: [[7, 7, '#9dff7a'], [7, 8, '#6a9a4a']] },
+      { rects: [[6, 7, '#b8ff7a', 2, 2], [8, 6, '#9dff7a']] },
+    ],
+    flags: { blight: [[0, 3, '#9dff7a'], [7, 2, '#9dff7a'], [0, 8, '#9dff7a']] },
+  },
+
+  gravepriest: {
+    scale: 4, pad: 2,
+    grid: [
+      '..HHHH..O',
+      '.HHHHHH.T',
+      '.HBEBEH.T',
+      '.HBBBBH.T',
+      '..HHHH..T',
+      '.WWRRWW.T',
+      'WWRRRRWWT',
+      '.WRRRRW.T',
+      '.WRRRRW..',
+      '.WWRRWW..',
+    ],
+    palette: { H: '#c8c0a8', B: '#e8e0c8', E: '#202020', W: '#d8d0b8', R: '#8a2a3a', T: '#7a5a30', O: '#e8e0a0' },
+    hp: [
+      { rects: [[2, 5, '#c8a040', 4, 1]] },
+      { rects: [[3, 0, '#e8e0a0', 2, 1], [2, 1, '#e8e0a0', 4, 1]] },
+      { rects: [[1, 0, '#ffe080'], [6, 0, '#ffe080'], [2, 0, '#ffe080', 4]] },
+    ],
+    dmg: [
+      { palette: { O: '#ffe8a0' }, rects: [] },
+      { rects: [[8, 0, '#ffffff']] },
+      { palette: { O: '#a0ffff' }, rects: [[7, 0, '#c0ffff']] },
+    ],
+    flags: { mend: [[0, 6, '#ffe080'], [7, 6, '#ffe080']] },
+  },
+
+  gargoyle: {
+    scale: 5, pad: 0,
+    grid: [
+      '.W.GGGG.W.',
+      'WWGGGGGGWW',
+      'WWGEGGEGWW',
+      '.WGGRRGGW.',
+      '..GGGGGG..',
+      '.GGSSSSGG.',
+      'GGSSSSSSGG',
+      '.GSSSSSSG.',
+      '..SS..SS..',
+      '..DD..DD..',
+    ],
+    palette: { G: '#8a8a98', W: '#6a6a7a', E: '#ff8030', R: '#4a4a58', S: '#7a7a8a', D: '#3a3a48' },
+    hp: [
+      { rects: [[3, 6, '#5a5a68'], [5, 7, '#5a5a68'], [2, 3, '#5a5a68']] },
+      { palette: { S: '#9a9aaa' }, rects: [[3, 5, '#b0b0c0', 4, 1]] },
+      { palette: { G: '#3a3a4a', S: '#4a4a5a' }, rects: [[4, 6, '#ff8030', 2, 1]] },
+    ],
+    dmg: [
+      { rects: [[1, 8, '#d8d0b0'], [8, 8, '#d8d0b0']] },
+      { rects: [[0, 7, '#d8d0b0', 1, 2], [9, 7, '#d8d0b0', 1, 2]] },
+      { palette: { E: '#ff4040' }, rects: [[0, 7, '#ff8030', 1, 2], [9, 7, '#ff8030', 1, 2]] },
+    ],
+    flags: { granite: [[4, 4, '#ffb040', 2, 1]] },
+  },
+
   abomination: {
     scale: 5, pad: 0,
     grid: [

@@ -285,3 +285,19 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 .ach.bounty { border-color: var(--accent); }
 .gt-lock { position: absolute; bottom: 0; right: 0.2em; font-style: normal; font-size: 0.9em; }
 .gt-up { position: absolute; top: 0.1em; right: 0.3em; color: var(--accent); font-style: normal; font-size: 0.9em; }
+
+/* ---- Bestiary ---- */
+.arm-body.bestiary { display: flex; flex-direction: column; gap: 0.5em; }
+.bst-top { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; font-size: 0.75em; }
+.bst-top .bst-sum { margin-left: auto; opacity: 0.85; text-align: right; }
+.bst-top b { color: var(--accent); }
+.bst-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4em; align-content: start; padding-right: 2px; }
+.bcard { display: flex; flex-direction: column; align-items: center; gap: 0.2em; padding: 0.4em 0.4em 0.5em; text-align: center; font-size: 0.65em;
+  background: linear-gradient(180deg, #2a2040, #1a1326); border: 2px solid var(--edge); border-radius: 0.5em; }
+.bcard.found { border-color: #4f7a38; }
+.bcard.boss.found { border-color: var(--gold); }
+.bcard canvas { height: calc(var(--u) * 40); width: auto; max-width: 100%; image-rendering: pixelated; }
+.bcard.unknown canvas { filter: brightness(0); opacity: 0.6; }
+.bcard .bn { font-weight: 700; font-size: 1.15em; color: #f0e8ff; }
+.bcard.boss .bn { color: var(--gold); }
+.bcard .bs { opacity: 0.85; } .bcard .bz { opacity: 0.6; } .bcard .ba { color: #ffb0b8; } .bcard .bg { color: var(--accent); }

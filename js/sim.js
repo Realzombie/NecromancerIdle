@@ -3,7 +3,7 @@ import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
   PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
-  BOSS_ABILITIES, DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
+  bestiaryBonus, BOSS_ABILITIES, DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
 
@@ -38,6 +38,9 @@ export class Battle {
     this.champDrop = 0;        // champion souls gained from the boss
     this.spellCd = 10;         // Raise Dead spell cooldown (seconds left)
     this.gm = gearMods(save);
+    this.bb = bestiaryBonus(save);
+    this.newFinds = [];       // enemy kinds defeated for the first time this attempt
+    save.seen = save.seen || {};
     this.traps = [];
     this.timers = [];          // delayed effects such as boss attack wind-ups
     this.corpses = [];         // dying units, kept briefly so the renderer can show them fall
@@ -149,7 +152,7 @@ export class Battle {
   spawn(type, x, y, flat) {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
-    if (def.team === 'player' && !def.static) { const m = statMods(this.save, type); hpMul = m.hp * (1 + this.gm.hp); dmgMul = m.dmg * (1 + this.gm.dmg); }
+    if (def.team === 'player' && !def.static) { const m = statMods(this.save, type); hpMul = m.hp * (1 + this.gm.hp) * (1 + this.bb.hp); dmgMul = m.dmg * (1 + this.gm.dmg) * (1 + this.bb.dmg); }
     else {
       const w = worldMul(this.save);
       const s = def.boss || flat ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
@@ -165,8 +168,9 @@ export class Battle {
       bias: this.rand(-16, 16),          // aims a little above or below its target
       wt: 0, wx: 0, wy: 0,               // wandering drift
       ht: this.rand(1, 4),
-      age: 0,
+      age: 0, fresh: true,
     };
+    if (def.team === 'enemy') { const e = this.save.seen[type] || (this.save.seen[type] = {}); e.seen = true; }
     u.status = {};
     // Elites: a rare, bigger and meaner enemy that drops triple souls and may carry gear.
     if (def.team === 'enemy' && !def.boss && !flat && this.wave >= 3 && this.rng() < 0.05) {
@@ -340,6 +344,9 @@ export class Battle {
       if (u.sp && u.sp.burst) this.sporeBurst(u);
       else if (u.team === 'player' && !u.def.static && this.gm.fx.martyr) this.sporeBurst(u, 1.5);
       if (u.team === 'enemy') {
+        const se = this.save.seen[u.type] || (this.save.seen[u.type] = {});
+        se.kills = (se.kills || 0) + 1;
+        if (se.kills === 1) this.newFinds.push(u.type);
         const drop = u.def.drop * soulMul(this.save) * (u.elite ? 3 : 1);
         this.earned += drop;
         this.kills++;
@@ -402,6 +409,17 @@ export class Battle {
       }
     }
 
+    // Plague aura: poisons every enemy close by.
+    if (u.def.aura) {
+      const A = u.def.aura, big = u.sp && u.sp.blight;
+      const r = A.r * (big ? 1.5 : 1), dps = A.dps * u.dmg * (big ? 2 : 1);
+      for (const o of this.units) {
+        if (o.team === u.team || o.hp <= 0 || Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) > r) continue;
+        const st = o.status.poison;
+        if (st) { st.t = Math.max(st.t, 0.5); st.dps = Math.max(st.dps, dps); } else o.status.poison = { t: 0.5, dps };
+      }
+    }
+
     // Regeneration and healing abilities.
     if (u.sp && u.sp.regen) u.hp = Math.min(u.maxHp, u.hp + 0.03 * u.maxHp * dt);
     if (u.def.heal) this.tryHeal(u, dt);
@@ -451,6 +469,7 @@ export class Battle {
     }
 
     if (u.def.static) return;
+    u.fresh = true;   // out of combat: the next blow is a fresh charge
 
     // Work out where to go.
     let tx, ty, wander = true;
@@ -562,6 +581,18 @@ export class Battle {
   tryHeal(u, dt) {
     u.healCd = (u.healCd === undefined ? u.def.heal.every * 0.5 : u.healCd) - dt;
     if (u.healCd > 0) return;
+    const amt = u.def.heal.amt * (u.team === 'player' && u.def.dmg ? u.dmg / u.def.dmg : 1);
+    if (u.sp && u.sp.mend) {
+      let any = false;
+      for (const o of this.units) {
+        if (o.team !== u.team || o === u || o.hp <= 0 || o.hp >= o.maxHp * 0.95) continue;
+        if (Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) > u.def.heal.range) continue;
+        o.hp = Math.min(o.maxHp, o.hp + amt * 0.6); any = true;
+        this.fx.push({ k: 'ring', x: o.x, y: o.y - 8, t: 0, life: 0.3, color: '#fff0a0' });
+      }
+      u.healCd = any ? u.def.heal.every : 0.5;
+      return;
+    }
     let pick = null, low = 0.95;
     for (const o of this.units) {
       if (o.team !== u.team || o === u || o.hp <= 0) continue;
@@ -571,7 +602,7 @@ export class Battle {
     }
     if (!pick) { u.healCd = 0.5; return; }
     u.healCd = u.def.heal.every;
-    pick.hp = Math.min(pick.maxHp, pick.hp + u.def.heal.amt);
+    pick.hp = Math.min(pick.maxHp, pick.hp + amt);
     this.fx.push({ k: 'ring', x: pick.x, y: pick.y - 8, t: 0, life: 0.35, color: '#fff0a0' });
     for (let i = 0; i < 4; i++) this.spark(pick.x, pick.y - 14, '#fff0a0');
   }
@@ -582,6 +613,7 @@ export class Battle {
       return;
     }
     if (src && src.sp) {
+      if (src.sp.charge && src.fresh) { dmg *= 2.5; src.fresh = false; this.fx.push({ k: 'ring', x: target.x, y: target.y - 8, t: 0, life: 0.3, color: '#ff8040' }); }
       if (src.sp.pack) dmg *= 1 + 0.1 * Math.min(5, this.alive('player', 'hound') - 1);
       if (src.sp.poison) target.status.poison = { t: 4, dps: 0.35 * src.dmg };
       if (src.sp.fire) target.status.burn = { t: 3, dps: 0.4 * src.dmg };
@@ -589,6 +621,8 @@ export class Battle {
     }
     if (target.sp && target.sp.shield) dmg *= 0.75;
     if (target.guard > 0) dmg *= 0.3;
+    if (target.def.armor) dmg *= 1 - target.def.armor;
+    if (target.sp && target.sp.granite && target.hp < target.maxHp * 0.3) dmg *= 0.5;
     const gm = this.gm;
     if (src && src.team === 'player' && !src.def.static) {
       if (gm.crit && this.rng() < gm.crit) { dmg *= 2; this.floaters.push({ x: target.x, y: target.y - 38, text: 'crit!', t: 0 }); }

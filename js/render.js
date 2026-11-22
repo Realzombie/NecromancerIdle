@@ -225,6 +225,14 @@ const SPRITES = {
       '.........',
     ],
   },
+  icon_charge: { scale: 5, palette: { R: '#ff8040' },
+    grid: ['.........', '....RR...', '.....RR..', 'RRRRRRRR.', 'RRRRRRRRR', 'RRRRRRRR.', '.....RR..', '....RR...', '.........'] },
+  icon_blight: { scale: 5, palette: { G: '#8fd16a', g: '#c8ff9a' },
+    grid: ['..GGG....', '.GGgGG.G.', 'GGGGGGGGG', 'GgGGGgGGG', '.GGGGGGG.', '..G.G.G..', '.G...G...', '.........', '.........'] },
+  icon_mend: { scale: 5, palette: { Y: '#ffe080' },
+    grid: ['...YYY...', '...YYY...', '...YYY...', 'YYYYYYYYY', 'YYYYYYYYY', 'YYYYYYYYY', '...YYY...', '...YYY...', '...YYY...'] },
+  icon_granite: { scale: 5, palette: { S: '#8a8a98', s: '#6a6a7a' },
+    grid: ['....SS...', '..SSSSS..', '.SSsSSSS.', 'SSSSSsSSS', 'SSsSSSSSS', 'SSSSSSsSS', '.SSSsSSS.', '..SSSSS..', '.........'] },
   icon_hp: {
     scale: 5,
     palette: { R: '#d6596b', r: '#9a3a4a', W: '#f4b0b8' },
@@ -619,7 +627,7 @@ function drawNecro(g, t, tier, battle) {
     battle.raiseTypes().forEach((type, i) => {
       const bw = 70, bx = x - bw / 2, by = base + 18 + i * 9;
       g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(bx - 1, by - 1, bw + 2, 7);
-      g.fillStyle = { zombie: '#8fd16a', archer: '#e8e0c8', skeleton: '#a8b0e0', hound: '#e0a050' }[type] || '#ffffff';
+      g.fillStyle = { zombie: '#8fd16a', archer: '#e8e0c8', skeleton: '#a8b0e0', hound: '#e0a050', mage: '#b070d0', ghost: '#b8d8e8', abomination: '#a0c080', deathknight: '#8a8aa8', plaguebearer: '#9dff7a', gravepriest: '#ffe080', gargoyle: '#9a9aaa' }[type] || '#ffffff';
       g.fillRect(bx, by, bw * battle.raiseProgress(type), 5);
     });
   }
@@ -643,6 +651,11 @@ function drawUnit(g, u, t, rar) {
   const px = Math.round(u.x + lunge * dir), py = Math.round(u.y - bob + (1 - rise) * 16);
   g.fillStyle = u.team === 'player' ? 'rgba(143,209,106,0.28)' : 'rgba(214,89,107,0.28)';
   g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.45, 5, 0, 0, Math.PI * 2); g.fill();
+  if (u.def.aura) {
+    const ar = u.def.aura.r * (u.sp && u.sp.blight ? 1.5 : 1);
+    g.fillStyle = 'rgba(120,220,90,' + (0.1 + 0.04 * Math.sin(t * 3 + u.id)) + ')';
+    g.beginPath(); g.ellipse(u.x, u.y - 4, ar, ar * 0.5, 0, 0, Math.PI * 2); g.fill();
+  }
   g.save();
   g.globalAlpha = (u.def.ghostly ? 0.75 : 1) * rise;
   g.translate(px, py);

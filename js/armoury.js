@@ -1,12 +1,15 @@
 // The Armoury screen: gear, defences and records (achievements). Builds HTML into #arm-body.
-import { DEFENCES, DEFENCE_KEYS, defLevel, defCost, defUnlocked, UNITS } from './data.js';
+import {
+  DEFENCES, DEFENCE_KEYS, defLevel, defCost, defUnlocked, UNITS, PLAYER_UNITS, ENEMY_KEYS, SPECIALS, SPECIAL_KEYS, syncBestiary, bestiaryBonus,
+  bossAbilityNames, firstZoneOf, lookOf,
+} from './data.js';
 import { buyDefence } from './sim.js';
 import {
   RARITIES, SLOTS, SLOT_NAMES, STAT_DEFS, GEAR_FX, MAX_UP, MAX_ITEMS, rarityIndex, rarityOf, statValue, itemPower,
   upgradeCost, rerollCost, salvageValue, equip, unequip, salvage, salvageBelow, upgradeItem, rerollItem,
 } from './gear.js';
 import { ACHIEVEMENTS, rewardText, isDone, ensureBounties, bountyText, nextBountyChamp } from './records.js';
-import { iconCanvas } from './render.js';
+import { iconCanvas, lookCanvas } from './render.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -14,6 +17,7 @@ export function createArmoury({ save, play, onChange }) {
   let tab = 'gear';
   let selected = null;     // selected item id
   let filter = 'all';      // inventory slot filter
+  let bstKind = 'enemies'; // bestiary: allies or enemies
 
   const items = () => save.gear || [];
   const byId = (id) => items().find((g) => g.id === id);
@@ -182,6 +186,57 @@ export function createArmoury({ save, play, onChange }) {
     root.appendChild(list);
   }
 
+  function renderBestiary(root) {
+    root.className = 'arm-body bestiary';
+    syncBestiary(save);
+    const seen = save.seen || {};
+    const bb = bestiaryBonus(save);
+    const foundEnemies = ENEMY_KEYS.filter((k) => seen[k] && seen[k].kills > 0).length;
+    const top = document.createElement('div');
+    top.className = 'bst-top';
+    for (const kind of ['enemies', 'allies']) {
+      const b = document.createElement('button');
+      b.className = 'chip' + (bstKind === kind ? ' on' : '');
+      b.textContent = kind === 'enemies' ? 'Enemies ' + foundEnemies + '/' + ENEMY_KEYS.length : 'Allies ' + bb.allies + '/' + PLAYER_UNITS.length;
+      b.onclick = () => { bstKind = kind; render(); };
+      top.appendChild(b);
+    }
+    top.insertAdjacentHTML('beforeend', '<span class="bst-sum">Bonus found so far: <b>+' + (bb.souls * 100).toFixed(1) + '% souls</b>, <b>+' + (bb.hp * 100).toFixed(1) + '% health and damage</b></span>');
+    root.appendChild(top);
+    const grid = document.createElement('div');
+    grid.className = 'bst-grid';
+    const list = bstKind === 'enemies' ? ENEMY_KEYS : PLAYER_UNITS;
+    for (const key of list) {
+      const def = UNITS[key];
+      const e = seen[key] || {};
+      const ally = def.team === 'player';
+      const known = ally ? !!e.owned : !!e.kills;
+      const spotted = ally ? !!e.owned : !!e.seen;
+      const card = document.createElement('div');
+      card.className = 'bcard' + (known ? ' found' : '') + (spotted ? '' : ' unknown') + (def.boss ? ' boss' : '');
+      card.appendChild(ally && e.owned ? lookCanvas(key, lookOf(save, key)) : iconCanvas(def.sprite));
+      let html = '<div class="bn">' + (spotted ? def.name : '???') + '</div>';
+      if (ally) {
+        const sp = SPECIAL_KEYS.filter((k) => SPECIALS[k].unit === key).map((k) => SPECIALS[k].name);
+        html += known
+          ? '<div class="bs">HP ' + def.hp + ' &middot; Dmg ' + def.dmg + ' &middot; ' + (def.range > 40 ? 'Ranged' : 'Melee') + '</div><div class="bz">' + def.blurb + '</div><div class="bg">' + (sp.length ? sp.join(', ') : '') + '</div>'
+          : '<div class="bz">Unlock it in the skill web.</div>';
+      } else if (known) {
+        const notes = [];
+        if (def.boss) notes.push(...bossAbilityNames(def)); else {
+          if (def.heal) notes.push('Heals allies'); if (def.splash) notes.push('Splash'); if (def.dodge) notes.push(Math.round(def.dodge * 100) + '% dodge'); if (def.range > 40) notes.push('Ranged');
+        }
+        html += '<div class="bs">HP ' + def.hp + ' &middot; Dmg ' + def.dmg + '</div>' + (notes.length ? '<div class="ba">' + notes.join(' &middot; ') + '</div>' : '') +
+          '<div class="bz">First met in zone ' + firstZoneOf(key) + ' &middot; slain ' + e.kills + '</div><div class="bg">+' + ((def.boss ? 0.4 : 0.15)) + '% souls</div>';
+      } else {
+        html += '<div class="bz">' + (spotted ? 'Defeat it to learn more.' : 'Not met yet.') + '</div>';
+      }
+      card.insertAdjacentHTML('beforeend', html);
+      grid.appendChild(card);
+    }
+    root.appendChild(grid);
+  }
+
   function done() { onChange(); render(); }
 
   function render() {
@@ -191,6 +246,7 @@ export function createArmoury({ save, play, onChange }) {
     root.innerHTML = '';
     if (tab === 'gear') renderGear(root);
     else if (tab === 'defences') renderDefences(root);
+    else if (tab === 'bestiary') renderBestiary(root);
     else renderRecords(root);
   }
 

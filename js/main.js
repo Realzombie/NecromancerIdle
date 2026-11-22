@@ -1,7 +1,7 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
-  bossAbilityNames, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
+  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
 } from './data.js';
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
@@ -77,6 +77,7 @@ function treeAvailable() {
 
 // ---- Home ----
 function renderHome() {
+  syncBestiary(save);
   setBanks();
   $('home-rank').textContent = NECRO_TIERS[necroTier(save)].name + (save.rebirths ? ' (Reborn x' + save.rebirths + ')' : '');
   const gain = essenceGain(save);
@@ -252,8 +253,9 @@ function endBattle() {
   }
   for (const a of fresh) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9733; ' + a.name + ' &middot; ' + rewardText(a.reward) + '</div>');
   for (const b of bounties) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9873; Bounty: ' + bountyText(b) + ' &middot; +' + b.dust + ' dust' + (b.champ ? ' +1 champion soul' : '') + '</div>');
+  for (const t of battle.newFinds || []) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#128214; Bestiary: ' + UNITS[t].name + ' (+' + (UNITS[t].boss ? '0.4' : '0.15') + '% souls)</div>');
   if (best >= 2) play('drop');
-  if (fresh.length || bounties.length) setTimeout(() => play('ach'), 400);
+  if (fresh.length || bounties.length || (battle.newFinds || []).length) setTimeout(() => play('ach'), 400);
   show('screen-result');
   if (autoOn) {
     $('result-text').textContent += ' Fighting again in 3 seconds... (Return Home to stop)';
@@ -277,6 +279,7 @@ function nextToast() {
 }
 // Called after anything the player buys or changes: awards milestones and saves.
 function afterChange() {
+  syncBestiary(save);
   const fresh = checkAchievements(save);
   for (const a of fresh) toast('Achievement: ' + a.name + ' (' + rewardText(a.reward) + ')');
   if (fresh.length) play('ach');

@@ -7,7 +7,8 @@ import { buyUnit, buyStat, buySpecial } from './sim.js';
 import { iconCanvas, lookCanvas } from './render.js';
 
 // Units sit evenly around the hub; only one unit's branches are open at a time.
-const ANGLE = { zombie: 180, skeleton: 231, archer: 283, mage: 334, ghost: 26, abomination: 77, hound: 129 };
+const RING = ['zombie', 'skeleton', 'archer', 'mage', 'ghost', 'abomination', 'hound', 'deathknight', 'plaguebearer', 'gravepriest', 'gargoyle'];
+const ANGLE = Object.fromEntries(RING.map((u, i) => [u, 180 + (i * 360) / RING.length]));
 const pol = (r, deg) => [Math.cos((deg * Math.PI) / 180) * r, Math.sin((deg * Math.PI) / 180) * r];
 
 export function createWeb({ save, play, onChange }) {
@@ -42,7 +43,7 @@ export function createWeb({ save, play, onChange }) {
     const hub = add({ id: 'hub', x: 0, y: 0, kind: 'hub' });
     if (!open.has('hub')) return { nodes, links };
     for (const u of PLAYER_UNITS) {
-      const [x, y] = pol(190, ANGLE[u]);
+      const [x, y] = pol(270, ANGLE[u]);
       const un = add({ id: 'unit:' + u, x, y, kind: 'unit', unit: u });
       links.push([hub, un]);
       if (!owned(save, u) || !open.has(u)) continue;

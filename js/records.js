@@ -1,5 +1,5 @@
 // Achievements: milestones that pay a reward once. Progress is read from save.stats and the rest of the save.
-import { PLAYER_UNITS, DEFENCE_KEYS, owned, defLevel } from './data.js';
+import { PLAYER_UNITS, DEFENCE_KEYS, ENEMY_KEYS, owned, defLevel } from './data.js';
 
 const st = (s, k) => (s.stats && s.stats[k]) || 0;
 
@@ -22,7 +22,9 @@ export const ACHIEVEMENTS = [
   { id: 'legend',   name: 'Legend Hunter',    desc: 'Find a Legendary item',          prog: (s) => [st(s, 'legendaries'), 1],  reward: { champ: 1 } },
   { id: 'upgrade5', name: 'Reforged',         desc: 'Upgrade an item to +5',          prog: (s) => [Math.max(0, ...(s.gear || []).map((g) => g.up)), 5],  reward: { dust: 30 } },
   { id: 'fort',     name: 'Fortress',         desc: 'Own a wall, a trap and a tower', prog: (s) => [DEFENCE_KEYS.filter((k) => defLevel(s, k) > 0).length, 3], reward: { dust: 25 } },
-  { id: 'roster',   name: 'Full Roster',      desc: 'Own all seven summons',          prog: (s) => [PLAYER_UNITS.filter((u) => owned(s, u)).length, PLAYER_UNITS.length], reward: { champ: 1 } },
+  { id: 'roster',   name: 'Full Roster',      desc: 'Own every summon',          prog: (s) => [PLAYER_UNITS.filter((u) => owned(s, u)).length, PLAYER_UNITS.length], reward: { champ: 1 } },
+  { id: 'nat10',    name: 'Naturalist',       desc: 'Defeat 10 kinds of enemy',       prog: (s) => [Object.values(s.seen || {}).filter((e) => e.kills > 0).length, 10], reward: { dust: 25 } },
+  { id: 'natall',   name: 'Zoologist',        desc: 'Defeat every kind of enemy',     prog: (s) => [Object.values(s.seen || {}).filter((e) => e.kills > 0).length, ENEMY_KEYS.length], reward: { champ: 1 } },
   { id: 'reborn1',  name: 'Born Again',       desc: 'Rebirth once',                   prog: (s) => [s.rebirths || 0, 1],       reward: { champ: 1 } },
   { id: 'reborn5',  name: 'Cycle of Death',   desc: 'Rebirth five times',             prog: (s) => [s.rebirths || 0, 5],       reward: { essence: 15 } },
   { id: 'rich',     name: 'Soul Merchant',    desc: 'Bank 10,000 souls in total',     prog: (s) => [st(s, 'soulsEarned'), 10000], reward: { dust: 40 } },

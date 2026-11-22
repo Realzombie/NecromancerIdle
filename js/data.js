@@ -19,6 +19,10 @@ export const UNITS = {
   mage:     { name: 'Bone Mage',       hp: 14, dmg: 14, atk: 1.8, speed: 32, range: 170, radius: 9,  raise: 24, rally: [200, 340], sprite: 'mage',     team: 'player', unlockCost: 2, costMul: 2.2, splash: 45, blurb: 'Hurls bolts that burst on impact.' },
   ghost:    { name: 'Ghost',           hp: 35, dmg: 8, atk: 0.9, speed: 60, range: 22,  radius: 9,  raise: 16, rally: [420, 640], sprite: 'ghost',    team: 'player', unlockCost: 2, costMul: 2.4, dodge: 0.3, ghostly: true, blurb: 'Drifts through blows. Dodges 30% of hits.' },
   abomination: { name: 'Abomination',  hp: 260, dmg: 18, atk: 1.6, speed: 22, range: 30,  radius: 17, raise: 40, rally: [380, 520], sprite: 'abomination', team: 'player', unlockCost: 2, costMul: 3.5, heavy: true, cleave: 38, blurb: 'A towering stitched horror that hits everything near it.' },
+  deathknight:  { name: 'Death Knight',   hp: 110, dmg: 14, atk: 1.1, speed: 70, range: 26,  radius: 12, raise: 28, rally: [380, 560], sprite: 'deathknight', team: 'player', unlockCost: 3, costMul: 3,   blurb: 'A fast armoured rider that crashes into the enemy line.' },
+  plaguebearer: { name: 'Plague Bearer',  hp: 70,  dmg: 3,  atk: 1.2, speed: 30, range: 24,  radius: 11, raise: 26, rally: [400, 580], sprite: 'plaguebearer', team: 'player', unlockCost: 3, costMul: 2.6, aura: { r: 62, dps: 1.4 }, blurb: 'Wreathed in a toxic cloud that poisons every enemy nearby.' },
+  gravepriest:  { name: 'Grave Priest',   hp: 45,  dmg: 3,  atk: 1.4, speed: 32, range: 120, radius: 9,  raise: 30, rally: [220, 360], sprite: 'gravepriest', team: 'player', unlockCost: 3, costMul: 2.4, heal: { amt: 14, every: 2.4, range: 170 }, blurb: 'Mends the wounded among your horde.' },
+  gargoyle:     { name: 'Gargoyle',       hp: 150, dmg: 9,  atk: 1.3, speed: 34, range: 24,  radius: 12, raise: 34, rally: [420, 600], sprite: 'gargoyle', team: 'player', unlockCost: 4, costMul: 3.2, armor: 0.2, blurb: 'Living stone. Shrugs off a fifth of every blow.' },
 
   // Static defences (see DEFENCES). They never move and are not raised by the necromancer.
   wall:     { name: 'Bone Wall',       hp: 120, dmg: 0, atk: 9, speed: 0, range: 0, radius: 9, sprite: 'wall', team: 'player', static: true, wall: true },
@@ -165,6 +169,14 @@ export const TIER_NAMES = {
               hpLook: ['Threadbare', 'Warded', 'Pauldroned', 'Crowned'],  dmgLook: ['Dim orb', 'Bright orb', 'Arcane orb', 'Void orb'] },
   ghost:    { hp: ['Solid Shroud', 'Spectral Chains', 'Wraith Crown'],  dmg: ['Cold Touch', 'Grave Claws', 'Soul Reaper'],
               hpLook: ['Wisp', 'Shrouded', 'Chained', 'Wraith-crowned'],  dmgLook: ['Wisp hands', 'Cold touch', 'Grave claws', 'Reaping claws'] },
+  deathknight: { hp: ['Plate Pauldrons', 'Crimson Plume', 'Gilded Barding'], dmg: ['Sharpened Lance', 'Runed Lance', 'Soulfire Lance'],
+              hpLook: ['Dented', 'Pauldroned', 'Plumed', 'Gilded'],            dmgLook: ['Plain lance', 'Sharp', 'Runed', 'Soulfire'] },
+  plaguebearer: { hp: ['Bandaged', 'Beaked Mask', 'Tainted Robes'],            dmg: ['Bubbling Censer', 'Noxious Fumes', 'Plague Heart'],
+              hpLook: ['Ragged', 'Bandaged', 'Masked', 'Tainted'],             dmgLook: ['Dim censer', 'Bubbling', 'Noxious', 'Plague-heart'] },
+  gravepriest: { hp: ['Gilded Trim', 'Mitre', 'Halo of Bone'],                  dmg: ['Brighter Light', 'Holy Focus', 'Wailing Skull'],
+              hpLook: ['Plain', 'Trimmed', 'Mitred', 'Haloed'],                dmgLook: ['Dim', 'Bright', 'Holy', 'Wailing'] },
+  gargoyle: { hp: ['Hardened Stone', 'Granite Plating', 'Obsidian Heart'],      dmg: ['Sharp Talons', 'Stone Fists', 'Obsidian Claws'],
+              hpLook: ['Cracked', 'Hardened', 'Plated', 'Obsidian'],           dmgLook: ['Dull claws', 'Talons', 'Fists', 'Obsidian claws'] },
   abomination: { hp: ['Heavy Stitching', 'Bone Plates', 'Iron Spikes'], dmg: ['Meaty Fists', 'Bone Knuckles', 'Wrecking Fists'],
               hpLook: ['Patchwork', 'Stitched', 'Plated', 'Spiked'],         dmgLook: ['Fists', 'Heavy fists', 'Knuckled', 'Wrecking'] },
 };
@@ -185,6 +197,14 @@ export const SPECIALS = {
             desc: 'Heals the ghost for half the damage it deals.' },
   regen:  { unit: 'abomination', name: 'Regeneration', icon: 'regen', cost: 500, needs: { stat: 'hp', tiers: 1 },
             desc: 'Slowly regrows 3% of its max HP every second.' },
+  charge: { unit: 'deathknight', name: 'Reckless Charge', icon: 'charge', cost: 500, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'The first blow of every fight lands for 2.5 times damage.' },
+  blight: { unit: 'plaguebearer', name: 'Virulent Cloud', icon: 'blight', cost: 500, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'The poison cloud is wider and twice as deadly.' },
+  mend:   { unit: 'gravepriest', name: 'Mass Mend',     icon: 'mend',   cost: 500, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'Heals every wounded ally in range, not just one.' },
+  granite:{ unit: 'gargoyle',    name: 'Granite Heart', icon: 'granite', cost: 550, needs: { stat: 'hp', tiers: 1 },
+            desc: 'Below 30% health, takes half damage.' },
   pack:   { unit: 'hound',    name: 'Pack Hunter',  icon: 'pack',   cost: 350, needs: { stat: 'dmg', tiers: 1 },
             desc: 'Each other living hound adds 10% damage (up to 5).' },
 };
@@ -322,12 +342,46 @@ export const PERKS = {
 };
 export const PERK_KEYS = Object.keys(PERKS);
 // Unit unlocks that Eternal Pact keeps, in the order they are kept.
-export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abomination'];
+export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abomination', 'deathknight', 'plaguebearer', 'gravepriest', 'gargoyle'];
 
 export function perk(save, key) { return (save.perks && save.perks[key]) || 0; }
 export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow(PERKS[key].growth, lvl)); }
 
-export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)) * (1 + gearMods(save).souls); }
+// ---- Bestiary ----
+// Finding things pays tiny permanent bonuses: each enemy kind defeated adds a little to souls (bosses more), and each
+// summon ever unlocked adds a little health and damage. Progress lives in save.seen and survives rebirth.
+export const ENEMY_KEYS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'enemy');
+export const BESTIARY_ENEMY = 0.0015, BESTIARY_BOSS = 0.004, BESTIARY_ALLY = 0.004;
+
+// Make sure everything you already own or cleared is recorded (covers older saves too).
+export function syncBestiary(save) {
+  save.seen = save.seen || {};
+  const mark = (t) => { const e = save.seen[t] || (save.seen[t] = {}); e.seen = true; e.kills = e.kills || 1; };
+  for (const u of PLAYER_UNITS) if (owned(save, u)) (save.seen[u] || (save.seen[u] = {})).owned = true;
+  for (const z of ZONES) {
+    if (z.endless || !save.cleared[z.id]) continue;
+    for (let n = 1; n <= z.waves; n++) for (const t of z.compose(n)) mark(t);
+    mark(z.boss);
+  }
+}
+export function bestiaryBonus(save) {
+  const seen = save.seen || {};
+  let souls = 0, allies = 0;
+  for (const k of ENEMY_KEYS) if (seen[k] && seen[k].kills > 0) souls += UNITS[k].boss ? BESTIARY_BOSS : BESTIARY_ENEMY;
+  for (const k of PLAYER_UNITS) if (seen[k] && seen[k].owned) allies++;
+  return { souls, hp: allies * BESTIARY_ALLY, dmg: allies * BESTIARY_ALLY, allies };
+}
+// The first zone an enemy type appears in.
+export function firstZoneOf(type) {
+  for (const z of ZONES) {
+    if (z.endless) continue;
+    if (z.boss === type) return z.id;
+    for (let n = 1; n <= z.waves; n++) if (z.compose(n).includes(type)) return z.id;
+  }
+  return 13;
+}
+
+export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)) * (1 + gearMods(save).souls) * (1 + bestiaryBonus(save).souls); }
 export function raiseMul(save) { return Math.max(0.2, 1 - 0.04 * perk(save, 'quick') - gearMods(save).rise); }
 export function offlineCapHours(save) { return TUNING.offlineCapHours + 4 * perk(save, 'restless'); }
 export function spellCooldown(save) { return 45 * Math.pow(0.9, perk(save, 'ritual')) * (1 - gearMods(save).spell); }
