@@ -27,7 +27,7 @@ function spend() {
 }
 
 for (const zone of ZONES.slice(0, maxZone)) {
-  let attempts = 0;
+  let attempts = 0, done = false;
   for (; attempts < 40;) {
     spend();
     attempts++;
@@ -36,9 +36,10 @@ for (const zone of ZONES.slice(0, maxZone)) {
     while (!b.result && t < 1200) { b.update(0.05); t += 0.05; }
     if (b.result === 'clear') {
       console.log(`zone ${zone.id} ${zone.name}: cleared on attempt ${attempts} (${t.toFixed(0)}s) rating ${playerRating(save)} (zone ${zone.rating}) levels ${totalLevels(save)} souls ${save.souls} cs ${save.champSouls}`);
+      done = true;
       break;
     }
     if (attempts % 5 === 0 || attempts === 1) console.log(`  zone ${zone.id} attempt ${attempts}: fail wave ${b.wave}/${b.totalWaves} rating ${playerRating(save)}`);
   }
-  if (attempts >= 40) { console.log(`zone ${zone.id}: not cleared in 40 attempts`); break; }
+  if (!done) { console.log(`zone ${zone.id}: not cleared in 40 attempts`); break; }
 }

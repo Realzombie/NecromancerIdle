@@ -2,7 +2,7 @@
 import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
-  PERKS, PACT_ORDER, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
+  PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
 } from './data.js';
 
 let nextId = 1;
@@ -50,7 +50,11 @@ export class Battle {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
     if (def.team === 'player') { const m = statMods(this.save, type); hpMul = m.hp; dmgMul = m.dmg; }
-    else if (!def.boss) { const s = Math.pow(this.zone.scale, Math.max(0, this.wave - 1)); hpMul = s; dmgMul = s; }
+    else {
+      const w = worldMul(this.save);
+      const s = def.boss ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
+      hpMul = s * w.hp; dmgMul = s * w.dmg;
+    }
     const u = {
       id: nextId++, type, def, team: def.team,
       x, y: this.rand(LANE_TOP, LANE_BOTTOM),

@@ -244,10 +244,10 @@ export function zoneById(id) { return ZONES.find((z) => z.id === id); }
 // that change how every future run starts.
 export const REBIRTH_MIN_ZONE = 3;       // best zone you must have cleared this run
 export const PERKS = {
-  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 6,  growth: 1.5, max: 8,  effect: (l) => 'Start with ' + (TUNING.startZombies + l) + ' zombies' },
-  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.55, max: 12, effect: (l) => '+' + l * 15 + '% souls from kills' },
-  quick:    { name: 'Quickening',      icon: 'icon_raise', base: 10, growth: 1.6, max: 10, effect: (l) => '-' + l * 4 + '% raise cooldowns' },
-  head:     { name: 'Prepared Dead',   icon: 'icon_hp',  base: 12, growth: 1.8, max: 6,  effect: (l) => 'Units start with +' + l + ' level of HP and damage' },
+  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 6,  growth: 1.5, max: 6,  effect: (l) => 'Start with ' + (TUNING.startZombies + l) + ' zombies' },
+  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.55, max: 8, effect: (l) => '+' + l * 15 + '% souls from kills' },
+  quick:    { name: 'Quickening',      icon: 'icon_raise', base: 10, growth: 1.6, max: 8, effect: (l) => '-' + l * 4 + '% raise cooldowns' },
+  head:     { name: 'Prepared Dead',   icon: 'icon_hp',  base: 12, growth: 1.8, max: 5,  effect: (l) => 'Units start with +' + l + ' level of HP and damage' },
   pact:     { name: 'Eternal Pact',    icon: 'skeleton', base: 15, growth: 1.9, max: 6,  effect: (l) => 'Keep ' + l + ' unit unlock' + (l === 1 ? '' : 's') },
   conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
   restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4,  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
@@ -271,6 +271,12 @@ export function spellCount(save) { return 3 + perk(save, 'ritual'); }
 export function essenceGain(save) {
   let e = 0;
   for (const id of Object.keys(save.cleared)) if (save.cleared[id]) e += 3 * Math.pow(Number(id), 1.35);
-  return Math.floor(e) + Math.floor(totalLevels(save) / 12);
+  return Math.floor((Math.floor(e) + Math.floor(totalLevels(save) / 12)) * (1 + 0.2 * (save.rebirths || 0)));
 }
 export function canRebirth(save) { return save.bestZone >= REBIRTH_MIN_ZONE; }
+
+// Each rebirth makes the world fight back harder, so a stronger necromancer still has a challenge.
+export function worldMul(save) {
+  const r = save.rebirths || 0;
+  return { hp: 1 + 0.5 * r, dmg: 1 + 0.25 * r, rating: 1 + 0.4 * r };
+}

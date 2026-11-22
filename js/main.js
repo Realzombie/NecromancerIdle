@@ -1,7 +1,7 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
-  PERKS, PERK_KEYS, perk, perkCost, essenceGain, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
+  PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
 } from './data.js';
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
@@ -110,19 +110,21 @@ function renderMap() {
   const box = $('zones');
   box.innerHTML = '';
   const mine = playerRating(save);
+  const wm = worldMul(save);
   for (const zid of region.zones) {
     const z = zoneById(zid);
     const unlocked = zoneUnlocked(save, z.id);
     const cleared = !!save.cleared[z.id];
     const boss = UNITS[z.boss];
-    const diff = mine >= z.rating ? 'ok' : mine >= z.rating * 0.7 ? 'hard' : 'wall';
+    const need = Math.round(z.rating * wm.rating);
+    const diff = mine >= need ? 'ok' : mine >= need * 0.7 ? 'hard' : 'wall';
     const el = document.createElement('div');
     el.className = 'zone' + (cleared ? ' cleared' : '') + (unlocked ? '' : ' locked');
     el.innerHTML =
       `<div class="znum">${cleared ? '&#10003;' : z.id}</div>` +
       `<div class="zname">${z.name}</div>` +
       `<div class="zblurb">${unlocked ? z.blurb : 'Locked: clear the previous zone'}</div>` +
-      `<div class="zrate ${unlocked ? diff : ''}">Rating ${z.rating} <small>(you ${mine})</small></div>` +
+      `<div class="zrate ${unlocked ? diff : ''}">Rating ${need} <small>(you ${mine})</small></div>` +
       `<div class="zboss">Boss: ${boss.name}<br><span class="ico2">&#9819;</span> ${cleared ? 'Champion soul (25% chance)' : 'Champion soul'}</div>`;
     const b = document.createElement('button');
     b.className = 'big';
