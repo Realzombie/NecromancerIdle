@@ -177,7 +177,7 @@ function endBattle() {
     text = `${UNITS[battle.zone.boss].name} is dead and ${battle.zone.name} is yours. +${battle.payout} souls banked.`;
     if (battle.champDrop) text += ' The boss dropped a champion soul. Spend it in the skill tree!';
   } else {
-    text = `The living breached the gate. +${battle.payout} souls banked from ${battle.kills} kills.`;
+    text = `The living chased you off. +${battle.payout} souls banked from ${battle.kills} kills.`;
   }
   $('result-text').textContent = text;
   show('screen-result');
