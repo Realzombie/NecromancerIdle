@@ -1,5 +1,5 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
-import { FIELD_W, FIELD_H, NECRO_X, GATE_X } from './data.js';
+import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS } from './data.js';
 import { ATTACK_TIME } from './sim.js';
 import { LOOKS } from './looks.js';
 
@@ -94,6 +94,22 @@ const SPRITES = {
   priest:   { scale: 6, grid: BIG_GRID, palette: { S: '#e8c8a0', H: '#e8e0b0', h: '#c8a040', T: '#e8e0d0', P: '#c8b890', E: '#a02020', W: '#f0d060', M: '#c8a040' } },
   commander:{ scale: 7, grid: BIG_GRID, palette: { S: '#c8a080', H: '#8a8a9a', h: '#50505f', T: '#2a2a3a', P: '#1a1a24', E: '#d03030', W: '#c0c0d0', M: '#50505f' } },
   knight:   { scale: 5, grid: BIG_GRID, palette: { S: '#d0a888', H: '#a8a8b8', h: '#70707f', T: '#7a7a8a', P: '#3a3a48', E: '#202020', W: '#d0d0d8', M: '#6a4a2a' } },
+  crusader: { scale: 5, grid: BIG_GRID, palette: { S: '#d0a888', H: '#c8c8d8', h: '#8a8a9a', T: '#ece6e6', P: '#6a2a2a', E: '#202020', W: '#d0d0d8', M: '#a02828' } },
+  paladin:  { scale: 6, grid: BIG_GRID, palette: { S: '#e0b890', H: '#e8d070', h: '#b09a40', T: '#d8d8e8', P: '#8a7a30', E: '#202020', W: '#fff0a0', M: '#e8d070' } },
+  inquisitor: { scale: 7, grid: BIG_GRID, palette: { S: '#d8b890', H: '#2a1a1a', h: '#4a2a2a', T: '#6a1a1a', P: '#2a1010', E: '#ffd040', W: '#d0d0d8', M: '#4a3a2a' } },
+  templar:  { scale: 7, grid: BIG_GRID, palette: { S: '#d0a888', H: '#c8c8d8', h: '#7a7a8a', T: '#d8d8e8', P: '#5a1a1a', E: '#202020', W: '#e8e8f0', M: '#a02828' } },
+  archbishop: { scale: 7, grid: BIG_GRID, palette: { S: '#e8c8a0', H: '#f0e8c0', h: '#c8a040', T: '#f0f0f8', P: '#c8a040', E: '#4060c0', W: '#ffe080', M: '#c8a040' } },
+  avenger:  { scale: 8, grid: BIG_GRID, palette: { S: '#f0d8b8', H: '#fff0a0', h: '#e0c050', T: '#fff8e0', P: '#d0b040', E: '#ffffff', W: '#ffffff', M: '#ffe060' } },
+  crossbow: {
+    scale: 4,
+    palette: { K: '#e0b890', H: '#6a6a78', T: '#4a5a7a', P: '#3a3a48', E: '#202020', O: '#9a8a6a' },
+    grid: ['..HHHH..', '.HHHHHH.', '..KKKK..', '.KEKKEK.', '..KKKK..', '.TTTTTT.', 'KTTTTTTO', '.TTTTTTO', '.PP..PP.', '.PP..PP.'],
+  },
+  cleric: {
+    scale: 4,
+    palette: { K: '#e8c8a0', H: '#f0e8d0', T: '#f0e8d8', P: '#c8b890', E: '#202020', O: '#f0d060' },
+    grid: ['..HHHH.O', '.HHHHHHO', '..KKKK.O', '.KEKKEK.', '..KKKK..', '.TTTTTT.', 'KTTTTTT.', '.TTTTTT.', '.TTTTTT.', '.PP..PP.'],
+  },
   militia: {
     scale: 4,
     palette: { K: '#e0b890', A: '#8a8a98', T: '#6a7a4a', P: '#4a3a3a', E: '#202020', W: '#8a5a2a', Y: '#d8d8e8' },
@@ -185,6 +201,21 @@ const SPRITES = {
       '....r....',
     ],
   },
+  icon_frost: {
+    scale: 5,
+    palette: { I: '#a0e0ff' },
+    grid: ['....I....', '.I..I..I.', '..I.I.I..', '...III...', 'IIIIIIIII', '...III...', '..I.I.I..', '.I..I..I.', '....I....'],
+  },
+  icon_drain: {
+    scale: 5,
+    palette: { R: '#d6596b', r: '#f4b0b8' },
+    grid: ['....R....', '...RRR...', '..RRRRR..', '..RRrRR..', '.RRRrRRR.', '.RRRRRRR.', '..RRRRR..', '...RRR...', '....R....'],
+  },
+  icon_regen: {
+    scale: 5,
+    palette: { G: '#8fd16a' },
+    grid: ['...GGG...', '...GGG...', '...GGG...', 'GGGGGGGGG', 'GGGGGGGGG', 'GGGGGGGGG', '...GGG...', '...GGG...', '...GGG...'],
+  },
   icon_poison: {
     scale: 5,
     palette: { G: '#8fd16a', g: '#c8ff9a' },
@@ -241,6 +272,7 @@ function silhouette(c, color) {
 
 function sprite(name) {
   if (cache[name]) return cache[name];
+  if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
   const s = SPRITES[name];
   const w = Math.max(...s.grid.map((r) => r.length));
   const c = document.createElement('canvas');
@@ -325,7 +357,7 @@ const bones = Array.from({ length: 12 }, () => ({ x: 120 + rnd() * 800, y: 460 +
 const bats = [0, 1, 2].map((i) => ({ off: i * 400, y: 50 + i * 38, speed: 38 + i * 12, ph: i }));
 
 function drawTree(g, t) {
-  g.fillStyle = '#17101f';
+  g.fillStyle = TH.tree;
   const x = t.x, y = t.y, h = t.h;
   g.fillRect(x - 3, y - h, 6, h);
   g.fillRect(x - 3 + t.lean * 12, y - h - 14, 5, 16);
@@ -347,14 +379,14 @@ function drawGrave(g, o) {
 }
 
 function drawCastle(g, t) {
-  g.fillStyle = '#150e20';
+  g.fillStyle = TH.castle;
   g.fillRect(830, 262, 130, 70);
   for (const [x, w, h] of [[820, 26, 110], [884, 22, 130], [930, 30, 96]]) {
     g.fillRect(x, 332 - h, w, h);
     for (let i = 0; i < w; i += 8) g.fillRect(x + i, 332 - h - 7, 5, 7);
     g.beginPath(); g.moveTo(x - 3, 332 - h - 7); g.lineTo(x + w / 2, 332 - h - 34); g.lineTo(x + w + 3, 332 - h - 7); g.fill();
   }
-  g.fillStyle = '#e8c860';
+  g.fillStyle = TH.windows;
   [[830, 290], [892, 262], [940, 280], [860, 305], [905, 300]].forEach(([x, y], i) => {
     g.globalAlpha = 0.55 + 0.45 * Math.sin(t * 3 + i * 1.7);
     g.fillRect(x, y, 4, 7);
@@ -362,17 +394,37 @@ function drawCastle(g, t) {
   g.globalAlpha = 1;
 }
 
+const theme = (regionId) => (REGIONS.find((r) => r.id === regionId) || REGIONS[0]).theme;
+
+// Look of each region's battlefield.
+const THEMES = {
+  graveyard: { skyTop: '#1a1030', skyBot: '#46305f', stars: true, orb: '#d8d0b0', orbCut: '#2a1c42', hills: '#1d1430', castle: '#150e20', windows: '#e8c860', tree: '#17101f',
+    groundA: '#2c3a2a', groundB: '#243021', groundC: '#26331f', path: 'rgba(70,58,48,0.35)', tuft: '#3a5236', fog: 'rgba(200,190,230,0.05)', bats: true },
+  holy: { skyTop: '#27367a', skyBot: '#f3b07c', stars: false, orb: '#fff0b0', orbCut: null, hills: '#6a5a8a', castle: '#3a3052', windows: '#fff0a0', tree: '#2a3020',
+    groundA: '#5a7248', groundB: '#4a6238', groundC: '#52693f', path: 'rgba(210,200,176,0.4)', tuft: '#7a9c5a', fog: 'rgba(255,232,205,0.08)', bats: false },
+};
+let TH = THEMES.graveyard;
+
 function drawBackground(g, t) {
   const sky = g.createLinearGradient(0, 0, 0, 330);
-  sky.addColorStop(0, '#1a1030'); sky.addColorStop(1, '#46305f');
+  sky.addColorStop(0, TH.skyTop); sky.addColorStop(1, TH.skyBot);
   g.fillStyle = sky; g.fillRect(0, 0, FIELD_W, 330);
-  g.fillStyle = '#e8e0f0';
-  for (const s of stars) { g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 2 + s.x); g.fillRect(s.x, s.y, s.r, s.r); }
-  g.globalAlpha = 1;
-  g.fillStyle = '#d8d0b0'; g.beginPath(); g.arc(640, 90, 34, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#2a1c42'; g.beginPath(); g.arc(628, 82, 30, 0, Math.PI * 2); g.fill();
+  if (TH.stars) {
+    g.fillStyle = '#e8e0f0';
+    for (const s of stars) { g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 2 + s.x); g.fillRect(s.x, s.y, s.r, s.r); }
+    g.globalAlpha = 1;
+  }
+  if (TH.orbCut) {
+    g.fillStyle = TH.orb; g.beginPath(); g.arc(640, 90, 34, 0, Math.PI * 2); g.fill();
+    g.fillStyle = TH.orbCut; g.beginPath(); g.arc(628, 82, 30, 0, Math.PI * 2); g.fill();
+  } else {
+    const glow = g.createRadialGradient(640, 100, 10, 640, 100, 120);
+    glow.addColorStop(0, 'rgba(255,240,180,0.55)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
+    g.fillStyle = glow; g.fillRect(500, 0, 280, 240);
+    g.fillStyle = TH.orb; g.beginPath(); g.arc(640, 100, 40, 0, Math.PI * 2); g.fill();
+  }
   // Far hills
-  g.fillStyle = '#1d1430';
+  g.fillStyle = TH.hills;
   g.beginPath(); g.moveTo(0, 330);
   for (let x = 0; x <= FIELD_W; x += 40) g.lineTo(x, 300 + Math.sin(x * 0.012) * 18 + Math.sin(x * 0.05) * 6);
   g.lineTo(FIELD_W, 330); g.fill();
@@ -380,21 +432,21 @@ function drawBackground(g, t) {
   for (const tr of trees) drawTree(g, tr);
   // Bats
   g.fillStyle = '#0c0814';
-  for (const b of bats) {
+  for (const b of TH.bats ? bats : []) {
     const x = ((t * b.speed + b.off) % (FIELD_W + 120)) - 60, y = b.y + Math.sin(t * 1.5 + b.ph) * 14;
     const flap = Math.sin(t * 14 + b.ph) > 0 ? 5 : -1;
     g.fillRect(x - 2, y, 5, 3);
     g.fillRect(x - 10, y + flap - 2, 8, 2); g.fillRect(x + 4, y + flap - 2, 8, 2);
   }
   // Ground
-  g.fillStyle = '#2c3a2a'; g.fillRect(0, 330, FIELD_W, FIELD_H - 330);
-  g.fillStyle = '#243021'; g.fillRect(0, 330, FIELD_W, 6);
-  g.fillStyle = '#26331f';
+  g.fillStyle = TH.groundA; g.fillRect(0, 330, FIELD_W, FIELD_H - 330);
+  g.fillStyle = TH.groundB; g.fillRect(0, 330, FIELD_W, 6);
+  g.fillStyle = TH.groundC;
   for (let i = 0; i < 60; i++) g.fillRect((i * 97) % FIELD_W, 340 + ((i * 53) % 190), 6, 2);
   // Worn path along the lane
-  g.fillStyle = 'rgba(70,58,48,0.35)'; g.fillRect(0, 385, FIELD_W, 55);
+  g.fillStyle = TH.path; g.fillRect(0, 385, FIELD_W, 55);
   // Grass tufts, graves, bones
-  g.fillStyle = '#3a5236';
+  g.fillStyle = TH.tuft;
   for (const f of tufts) { g.fillRect(f.x, f.y - f.h, 1, f.h); g.fillRect(f.x + 2, f.y - f.h + 1, 1, f.h - 1); g.fillRect(f.x - 2, f.y - f.h + 1, 1, f.h - 1); }
   for (const o of [...graves].sort((a, b) => a.y - b.y)) drawGrave(g, o);
   g.fillStyle = '#c8c0a8';
@@ -402,7 +454,7 @@ function drawBackground(g, t) {
 }
 
 function drawFog(g, t) {
-  g.fillStyle = 'rgba(200,190,230,0.05)';
+  g.fillStyle = TH.fog;
   for (let i = 0; i < 4; i++) {
     const x = ((t * (6 + i * 3) + i * 300) % (FIELD_W + 400)) - 200;
     g.beginPath(); g.ellipse(x, 400 + i * 28, 240, 26, 0, 0, Math.PI * 2); g.fill();
@@ -458,7 +510,7 @@ function drawNecro(g, t, tier, battle) {
 
 function drawUnit(g, u, t) {
   const s = unitSprite(u);
-  const bob = u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
+  const bob = u.def.ghostly ? 4 + Math.sin(t * 3 + u.id) * 3 : u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
   // Attack animation: wind up (lean back), strike (lunge and lean forward), then recover.
   let lunge = 0, lean = 0, squash = 1;
   if (u.attackAnim > 0) {
@@ -473,6 +525,7 @@ function drawUnit(g, u, t) {
   g.fillStyle = u.team === 'player' ? 'rgba(143,209,106,0.28)' : 'rgba(214,89,107,0.28)';
   g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.45, 5, 0, 0, Math.PI * 2); g.fill();
   g.save();
+  if (u.def.ghostly) g.globalAlpha = 0.75;
   g.translate(px, py);
   if (u.team === 'enemy') g.scale(-1, 1);
   g.rotate(lean);
@@ -495,6 +548,7 @@ function drawUnit(g, u, t) {
 
 export function draw(g, battle, tier = 0) {
   const t = battle.time;
+  TH = THEMES[theme(battle.zone.region)];
   drawBackground(g, t);
   drawNecro(g, t, tier, battle);
   const sorted = [...battle.units].sort((a, b) => a.y - b.y);
@@ -541,6 +595,7 @@ export function draw(g, battle, tier = 0) {
 }
 
 export function drawIdle(g, t, tier = 0) {
+  TH = THEMES.graveyard;
   drawBackground(g, t);
   drawNecro(g, t, tier, null);
   drawFog(g, t);

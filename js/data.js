@@ -14,7 +14,10 @@ export const UNITS = {
   zombie:   { name: 'Zombie',          hp: 40, dmg: 5, atk: 1.0, speed: 40, range: 22,  radius: 10, raise: 12, rally: [400, 600], sprite: 'zombie',   team: 'player', unlockCost: 0, costMul: 1,   blurb: 'Slow, sturdy front line.' },
   archer:   { name: 'Skeleton Archer', hp: 15, dmg: 6, atk: 1.2, speed: 35, range: 150, radius: 9,  raise: 18, rally: [260, 400], sprite: 'archer',   team: 'player', unlockCost: 1, costMul: 1.6, blurb: 'Shoots from behind the line.' },
   skeleton: { name: 'Skeleton Warrior',hp: 60, dmg: 7, atk: 1.1, speed: 38, range: 24,  radius: 10, raise: 14, rally: [380, 570], sprite: 'skeleton', team: 'player', unlockCost: 1, costMul: 2,   blurb: 'Sword and shield. Tough and steady.' },
-  hound:    { name: 'Zombie Hound',    hp: 25, dmg: 4, atk: 0.6, speed: 85, range: 20,  radius: 8,  raise: 9,  rally: [420, 640], sprite: 'hound',    team: 'player', unlockCost: 2, costMul: 2.5, blurb: 'Fast and fierce, but fragile.' },
+  hound:    { name: 'Zombie Hound',    hp: 25, dmg: 4, atk: 0.6, speed: 85, range: 20,  radius: 8,  raise: 9,  rally: [420, 640], sprite: 'hound',    team: 'player', unlockCost: 1, costMul: 2.5, blurb: 'Fast and fierce, but fragile.' },
+  mage:     { name: 'Bone Mage',       hp: 14, dmg: 14, atk: 1.8, speed: 32, range: 170, radius: 9,  raise: 24, rally: [200, 340], sprite: 'mage',     team: 'player', unlockCost: 2, costMul: 2.2, splash: 45, blurb: 'Hurls bolts that burst on impact.' },
+  ghost:    { name: 'Ghost',           hp: 35, dmg: 8, atk: 0.9, speed: 60, range: 22,  radius: 9,  raise: 16, rally: [420, 640], sprite: 'ghost',    team: 'player', unlockCost: 2, costMul: 2.4, dodge: 0.3, ghostly: true, blurb: 'Drifts through blows. Dodges 30% of hits.' },
+  abomination: { name: 'Abomination',  hp: 260, dmg: 18, atk: 1.6, speed: 22, range: 30,  radius: 17, raise: 40, rally: [380, 520], sprite: 'abomination', team: 'player', unlockCost: 2, costMul: 3.5, heavy: true, cleave: 38, blurb: 'A towering stitched horror that hits everything near it.' },
 
   // Enemies. drop = souls banked per kill.
   peasant:  { name: 'Peasant',            hp: 20,  dmg: 3,  atk: 1.2, speed: 35, range: 22,  radius: 10, drop: 3,   sprite: 'peasant',  team: 'enemy' },
@@ -25,6 +28,16 @@ export const UNITS = {
   captain:  { name: 'Militia Captain',    hp: 800, dmg: 16, atk: 1.0, speed: 32, range: 32,  radius: 16, drop: 160, sprite: 'captain',  team: 'enemy', boss: true },
   priest:   { name: 'Mad Priest',         hp: 1400,dmg: 20, atk: 1.1, speed: 28, range: 32,  radius: 16, drop: 260, sprite: 'priest',   team: 'enemy', boss: true },
   commander:{ name: 'Knight Commander',   hp: 2600,dmg: 30, atk: 1.1, speed: 28, range: 34,  radius: 18, drop: 420, sprite: 'commander',team: 'enemy', boss: true },
+
+  // Region 2: the Crusader Reach.
+  crusader: { name: 'Crusader',           hp: 150, dmg: 12, atk: 1.2, speed: 30, range: 28,  radius: 12, drop: 22,  sprite: 'crusader', team: 'enemy' },
+  crossbow: { name: 'Crossbowman',        hp: 45,  dmg: 15, atk: 1.8, speed: 30, range: 190, radius: 9,  drop: 20,  sprite: 'crossbow', team: 'enemy' },
+  cleric:   { name: 'Cleric',             hp: 70,  dmg: 4,  atk: 2.0, speed: 30, range: 140, radius: 9,  drop: 24,  sprite: 'cleric',   team: 'enemy', heal: { amt: 18, every: 2.2, range: 160 } },
+  paladin:  { name: 'Paladin',            hp: 420, dmg: 24, atk: 1.4, speed: 26, range: 30,  radius: 14, drop: 55,  sprite: 'paladin',  team: 'enemy' },
+  inquisitor:{ name: 'The Inquisitor',    hp: 3200, dmg: 40, atk: 1.1, speed: 28, range: 34, radius: 17, drop: 700,  sprite: 'inquisitor', team: 'enemy', boss: true },
+  templar:  { name: 'Templar Lord',       hp: 5000, dmg: 55, atk: 1.2, speed: 26, range: 36, radius: 18, drop: 1000, sprite: 'templar',  team: 'enemy', boss: true },
+  archbishop:{ name: 'The Archbishop',    hp: 6500, dmg: 65, atk: 1.3, speed: 26, range: 150, radius: 17, drop: 1500, sprite: 'archbishop', team: 'enemy', boss: true, heal: { amt: 120, every: 4, range: 220 } },
+  avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true },
 };
 
 export const TUNING = {
@@ -46,14 +59,30 @@ export const TUNING = {
 // The first region. compose(n) lists the enemy types in wave n.
 const rep = (type, n) => Array(Math.max(0, n)).fill(type);
 export const ZONES = [
-  { id: 1, name: 'Graveyard Fields', blurb: 'Peasants stumble in from the village.', waves: 8, scale: 1.09, rating: 35, boss: 'champion',
+  { id: 1, region: 1, name: 'Graveyard Fields', blurb: 'Peasants stumble in from the village.', waves: 8, scale: 1.09, rating: 35, boss: 'champion',
     compose: (n) => rep('peasant', 2 + n) },
-  { id: 2, name: 'Burned Farmstead', blurb: 'The militia has taken up spears.', waves: 8, scale: 1.15, rating: 100, boss: 'captain',
+  { id: 2, region: 1, name: 'Burned Farmstead', blurb: 'The militia has taken up spears.', waves: 8, scale: 1.15, rating: 100, boss: 'captain',
     compose: (n) => [...rep('peasant', 3 + n), ...rep('militia', 2 + Math.floor(n / 2))] },
-  { id: 3, name: 'Chapel Hill', blurb: 'Slingers pelt your horde from the pews.', waves: 10, scale: 1.16, rating: 200, boss: 'priest',
+  { id: 3, region: 1, name: 'Chapel Hill', blurb: 'Slingers pelt your horde from the pews.', waves: 10, scale: 1.16, rating: 200, boss: 'priest',
     compose: (n) => [...rep('peasant', 2 + Math.floor(n / 2)), ...rep('militia', 2 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 3))] },
-  { id: 4, name: 'Castle Gatehouse', blurb: 'Armoured knights hold the gate.', waves: 10, scale: 1.17, rating: 285, boss: 'commander',
+  { id: 4, region: 1, name: 'Castle Gatehouse', blurb: 'Armoured knights hold the gate.', waves: 10, scale: 1.17, rating: 285, boss: 'commander',
     compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 2)), ...rep('knight', 1 + Math.floor(n / 3))] },
+
+  // Region 2
+  { id: 5, region: 2, name: 'Pilgrim Road', blurb: 'Crusaders and crossbowmen march to purge you.', waves: 8, scale: 1.26, rating: 370, boss: 'inquisitor',
+    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('crusader', 1 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3))] },
+  { id: 6, region: 2, name: 'Cathedral Steps', blurb: 'Clerics mend the wounded faster than you can cut them down.', waves: 8, scale: 1.38, rating: 460, boss: 'templar',
+    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2)] },
+  { id: 7, region: 2, name: 'Hallowed Ground', blurb: 'Paladins in blessed plate hold the line.', waves: 10, scale: 1.3, rating: 570, boss: 'archbishop',
+    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
+  { id: 8, region: 2, name: 'The Holy Citadel', blurb: 'The last bastion of the faithful.', waves: 10, scale: 1.33, rating: 780, boss: 'avenger',
+    compose: (n) => [...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
+];
+
+// Regions group zones on the map and set the look of the battlefield (see THEMES in render.js).
+export const REGIONS = [
+  { id: 1, name: 'The Greenmarch', theme: 'graveyard', zones: [1, 2, 3, 4] },
+  { id: 2, name: 'The Crusader Reach', theme: 'holy', zones: [5, 6, 7, 8] },
 ];
 
 // ---- Skill tree ----
@@ -83,6 +112,12 @@ export const TIER_NAMES = {
               hpLook: ['Wooden', 'Iron', 'Helmed', 'Gilded'],           dmgLook: ['Plain blade', 'Keen', 'Runed', 'Flaming'] },
   hound:    { hp: ['Thick Hide', 'Spiked Collar', 'Bone Armour'],       dmg: ['Sharp Fangs', 'Rending Fangs', 'Bone Fangs'],
               hpLook: ['Mangy', 'Hardy', 'Spiked', 'Bone-armoured'],    dmgLook: ['Snarling', 'Fanged', 'Rending', 'Savage'] },
+  mage:     { hp: ['Warded Robes', 'Pauldrons', 'Lich Crown'],          dmg: ['Brighter Orb', 'Arcane Focus', 'Void Orb'],
+              hpLook: ['Threadbare', 'Warded', 'Pauldroned', 'Crowned'],  dmgLook: ['Dim orb', 'Bright orb', 'Arcane orb', 'Void orb'] },
+  ghost:    { hp: ['Solid Shroud', 'Spectral Chains', 'Wraith Crown'],  dmg: ['Cold Touch', 'Grave Claws', 'Soul Reaper'],
+              hpLook: ['Wisp', 'Shrouded', 'Chained', 'Wraith-crowned'],  dmgLook: ['Wisp hands', 'Cold touch', 'Grave claws', 'Reaping claws'] },
+  abomination: { hp: ['Heavy Stitching', 'Bone Plates', 'Iron Spikes'], dmg: ['Meaty Fists', 'Bone Knuckles', 'Wrecking Fists'],
+              hpLook: ['Patchwork', 'Stitched', 'Plated', 'Spiked'],         dmgLook: ['Fists', 'Heavy fists', 'Knuckled', 'Wrecking'] },
 };
 
 // Unique abilities. Each belongs to a unit and unlocks once a tier of a chain is finished.
@@ -95,6 +130,12 @@ export const SPECIALS = {
             desc: 'Arrows set enemies alight, burning them over time.' },
   shield: { unit: 'skeleton', name: 'Shield Wall',  icon: 'shield', cost: 300, needs: { stat: 'hp', tiers: 1 },
             desc: 'Takes 25% less damage from every hit.' },
+  frost:  { unit: 'mage',     name: 'Frost Bolt',   icon: 'frost',  cost: 450, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'Bolts chill enemies, slowing them for a few seconds.' },
+  drain:  { unit: 'ghost',    name: 'Soul Drain',   icon: 'drain',  cost: 450, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'Heals the ghost for half the damage it deals.' },
+  regen:  { unit: 'abomination', name: 'Regeneration', icon: 'regen', cost: 500, needs: { stat: 'hp', tiers: 1 },
+            desc: 'Slowly regrows 3% of its max HP every second.' },
   pack:   { unit: 'hound',    name: 'Pack Hunter',  icon: 'pack',   cost: 350, needs: { stat: 'dmg', tiers: 1 },
             desc: 'Each other living hound adds 10% damage (up to 5).' },
 };

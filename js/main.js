@@ -1,6 +1,6 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
-  playerRating, zoneById, hasSpecial, specialReady,
+  playerRating, zoneById, hasSpecial, specialReady, REGIONS,
 } from './data.js';
 import { Battle, zoneUnlocked } from './sim.js';
 import { createWeb } from './web.js';
@@ -84,12 +84,28 @@ function goHome() {
 }
 
 // ---- Zone map ----
+let mapRegion = 1;
 function renderMap() {
   setBanks();
+  // Region tabs: a region opens once the zone before it is cleared.
+  const tabs = $('region-tabs');
+  tabs.innerHTML = '';
+  for (const r of REGIONS) {
+    const isOpen = zoneUnlocked(save, r.zones[0]);
+    const t = document.createElement('button');
+    t.className = 'tab' + (r.id === mapRegion ? ' on' : '') + (isOpen ? '' : ' locked');
+    t.textContent = isOpen ? r.name : r.name + ' (locked)';
+    t.disabled = !isOpen;
+    t.onclick = () => { mapRegion = r.id; renderMap(); };
+    tabs.appendChild(t);
+  }
+  const region = REGIONS.find((r) => r.id === mapRegion);
+  $('map-title').textContent = region.name;
   const box = $('zones');
   box.innerHTML = '';
   const mine = playerRating(save);
-  for (const z of ZONES) {
+  for (const zid of region.zones) {
+    const z = zoneById(zid);
     const unlocked = zoneUnlocked(save, z.id);
     const cleared = !!save.cleared[z.id];
     const boss = UNITS[z.boss];

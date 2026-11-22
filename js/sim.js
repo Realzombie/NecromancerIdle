@@ -151,20 +151,29 @@ export class Battle {
       const dx = p.target.x - p.x, dy = (p.target.y - 14) - p.y;
       const d = Math.hypot(dx, dy);
       const step = p.speed * dt;
-      if (d <= step) { this.hit(p.target, p.dmg, p.src); p.dead = true; }
+      if (d <= step) {
+        this.hit(p.target, p.dmg, p.src);
+        if (p.splash) {
+          this.fx.push({ k: 'ring', x: p.target.x, y: p.target.y - 10, t: 0, life: 0.3, color: '#c080e0' });
+          for (const o of this.units) {
+            if (o.team === p.target.team && o !== p.target && o.hp > 0 && Math.hypot(o.x - p.target.x, (o.y - p.target.y) * 1.5) <= p.splash) this.hit(o, p.dmg * 0.6, p.src, true);
+          }
+        }
+        p.dead = true;
+      }
       else { p.x += dx / d * step; p.y += dy / d * step; p.angle = Math.atan2(dy, dx); }
     }
     this.projectiles = this.projectiles.filter((p) => !p.dead);
 
     // Poison and burning tick over time.
     for (const u of this.units) {
-      for (const k of ['poison', 'burn']) {
+      for (const k of ['poison', 'burn', 'slow']) {
         const st = u.status[k];
         if (!st) continue;
         st.t -= dt;
-        u.hp -= st.dps * dt;
+        if (st.dps) u.hp -= st.dps * dt;
         st.fx = (st.fx || 0) - dt;
-        if (st.fx <= 0) { st.fx = 0.25; this.spark(u.x + this.rand(-6, 6), u.y - 14, k === 'poison' ? '#9dff7a' : '#ff9030'); }
+        if (st.fx <= 0 && k !== 'slow') { st.fx = 0.25; this.spark(u.x + this.rand(-6, 6), u.y - 14, k === 'poison' ? '#9dff7a' : '#ff9030'); }
         if (st.t <= 0) delete u.status[k];
       }
     }
@@ -204,8 +213,13 @@ export class Battle {
   updateUnit(u, dt) {
     u.flash = Math.max(0, u.flash - dt);
     u.attackAnim = Math.max(0, u.attackAnim - dt);
-    u.cd -= dt;
+    const slowed = !!u.status.slow;
+    u.cd -= dt * (slowed ? 0.6 : 1);
     u.moving = false;
+
+    // Regeneration and healing abilities.
+    if (u.sp && u.sp.regen) u.hp = Math.min(u.maxHp, u.hp + 0.03 * u.maxHp * dt);
+    if (u.def.heal) this.tryHeal(u, dt);
 
     // A swing in progress lands partway through the animation.
     if (u.swing) {
@@ -215,10 +229,17 @@ export class Battle {
         u.swing = null;
         if (t.hp > 0) {
           if (u.def.range > 40) {
-            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16, target: t, dmg: u.dmg, speed: 340, src: u });
+            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16, target: t, dmg: u.dmg, speed: u.def.splash ? 260 : 340, src: u, splash: u.def.splash || 0, magic: !!u.def.splash });
           } else if (Math.hypot(t.x - u.x, (t.y - u.y) * 1.5) <= (u.def.range + t.def.radius) * 1.4) {
             this.fx.push({ k: 'slash', x: u.x + u.facing * 16, y: u.y - 18, dir: u.facing, t: 0, life: 0.2, color: u.team === 'player' ? '#d8f0c0' : '#f0d0c0' });
             this.hit(t, u.dmg, u);
+            if (u.def.cleave) {
+              for (const o of this.units) {
+                if (o.team === u.team || o === t || o.hp <= 0) continue;
+                if (Math.hypot(o.x - t.x, (o.y - t.y) * 1.5) <= u.def.cleave) this.hit(o, u.dmg * 0.7, u);
+              }
+              this.fx.push({ k: 'ring', x: t.x, y: t.y - 6, t: 0, life: 0.3, color: '#d8c8a0' });
+            }
           }
         }
       }
@@ -261,7 +282,7 @@ export class Battle {
       tx = -100; ty = u.y;
     }
 
-    const sp = u.def.speed * u.speedMul;
+    const sp = u.def.speed * u.speedMul * (slowed ? 0.6 : 1);
     const dx = tx - u.x, dy = ty - u.y;
     if (Math.abs(dx) > 1) u.facing = Math.sign(dx);
     u.x += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt);
@@ -278,7 +299,7 @@ export class Battle {
   separate(dt) {
     const us = this.units;
     const k = Math.min(1, dt * 12);
-    const mobility = (u) => (u.engaged ? 0.1 : 1) * (u.def.boss ? 0.04 : 1);
+    const mobility = (u) => (u.engaged ? 0.1 : 1) * (u.def.boss ? 0.04 : u.def.heavy ? 0.25 : 1);
     for (let i = 0; i < us.length; i++) {
       for (let j = i + 1; j < us.length; j++) {
         const a = us[i], b = us[j];
@@ -323,15 +344,39 @@ export class Battle {
     }
   }
 
-  hit(target, dmg, src) {
+  // Enemies with a heal ability mend the most wounded ally in range every few seconds.
+  tryHeal(u, dt) {
+    u.healCd = (u.healCd === undefined ? u.def.heal.every * 0.5 : u.healCd) - dt;
+    if (u.healCd > 0) return;
+    let pick = null, low = 0.95;
+    for (const o of this.units) {
+      if (o.team !== u.team || o === u || o.hp <= 0) continue;
+      if (Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) > u.def.heal.range) continue;
+      const r = o.hp / o.maxHp;
+      if (r < low) { low = r; pick = o; }
+    }
+    if (!pick) { u.healCd = 0.5; return; }
+    u.healCd = u.def.heal.every;
+    pick.hp = Math.min(pick.maxHp, pick.hp + u.def.heal.amt);
+    this.fx.push({ k: 'ring', x: pick.x, y: pick.y - 8, t: 0, life: 0.35, color: '#fff0a0' });
+    for (let i = 0; i < 4; i++) this.spark(pick.x, pick.y - 14, '#fff0a0');
+  }
+
+  hit(target, dmg, src, quiet) {
+    if (target.def.dodge && this.rng() < target.def.dodge) {
+      this.floaters.push({ x: target.x, y: target.y - 34, text: 'miss', t: 0 });
+      return;
+    }
     if (src && src.sp) {
       if (src.sp.pack) dmg *= 1 + 0.1 * Math.min(5, this.alive('player', 'hound') - 1);
       if (src.sp.poison) target.status.poison = { t: 4, dps: 0.35 * src.dmg };
       if (src.sp.fire) target.status.burn = { t: 3, dps: 0.4 * src.dmg };
+      if (src.sp.frost) target.status.slow = { t: 3 };
     }
     if (target.sp && target.sp.shield) dmg *= 0.75;
     target.hp -= dmg;
-    this.emit('hit', target.team);
+    if (src && src.sp && src.sp.drain && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.5);
+    if (!quiet) this.emit('hit', target.team);
     target.flash = 0.12;
     for (let i = 0; i < 3; i++) this.spark(target.x, target.y - 16, '#ffffff');
   }
