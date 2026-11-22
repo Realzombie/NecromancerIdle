@@ -624,3 +624,100 @@ export function drawIdle(g, t, tier = 0) {
 }
 
 export { FIELD_H, GATE_X };
+
+// ---- Zone clear celebration ----
+// v = { t, parts }. Draws on top of the frozen battlefield: dimming, golden rays, a banner that pops in,
+// the rewards, and rising soul wisps with gold sparkles.
+const easeOutBack = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+export function drawVictory(g, v, dt, info) {
+  v.t += dt;
+  const t = v.t;
+  // Particles: a gold burst when the banner lands, then green souls drifting up.
+  if (!v.burst && t > 0.25) {
+    v.burst = true;
+    for (let i = 0; i < 60; i++) {
+      const a = Math.random() * Math.PI * 2, s = 120 + Math.random() * 280;
+      v.parts.push({ x: FIELD_W / 2, y: 190, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, life: 0.9 + Math.random() * 0.8, t: 0, c: Math.random() < 0.5 ? '#ffd860' : '#fff4b0', g: 260 });
+    }
+  }
+  if (t < 3) {
+    for (let i = 0; i < 2; i++) v.parts.push({ x: Math.random() * FIELD_W, y: 470 + Math.random() * 40, vx: (Math.random() - 0.5) * 20, vy: -(50 + Math.random() * 70), life: 1.6 + Math.random(), t: 0, c: '#8fd16a', g: 0, sway: Math.random() * 6 });
+  }
+  for (const p of v.parts) {
+    p.t += dt;
+    p.x += p.vx * dt + (p.sway ? Math.sin(p.t * 3 + p.sway) * 0.6 : 0);
+    p.y += p.vy * dt;
+    p.vy += p.g * dt;
+  }
+  v.parts = v.parts.filter((p) => p.t < p.life);
+
+  const fade = Math.min(1, t / 0.6);
+  g.fillStyle = `rgba(10,6,20,${0.5 * fade})`;
+  g.fillRect(0, 0, FIELD_W, FIELD_H);
+
+  // Rotating golden rays behind the banner
+  g.save();
+  g.translate(FIELD_W / 2, 190);
+  g.rotate(t * 0.35);
+  g.globalAlpha = 0.16 * fade;
+  g.fillStyle = '#ffe080';
+  for (let i = 0; i < 12; i++) {
+    g.rotate(Math.PI / 6);
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(-40, -520); g.lineTo(40, -520); g.closePath(); g.fill();
+  }
+  g.restore();
+  g.globalAlpha = 1;
+
+  for (const p of v.parts) {
+    g.globalAlpha = Math.max(0, 1 - p.t / p.life);
+    g.fillStyle = p.c;
+    const s = p.g ? 4 : 5;
+    g.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+  }
+  g.globalAlpha = 1;
+
+  // Banner
+  const k = Math.min(1, Math.max(0, (t - 0.15) / 0.5));
+  if (k > 0) {
+    g.save();
+    g.translate(FIELD_W / 2, 190);
+    g.scale(easeOutBack(k), easeOutBack(k));
+    g.textAlign = 'center';
+    g.font = 'bold 78px system-ui, sans-serif';
+    g.lineWidth = 10; g.strokeStyle = '#1a1030'; g.lineJoin = 'round';
+    g.strokeText('ZONE CLEARED', 0, 0);
+    const grad = g.createLinearGradient(0, -60, 0, 10);
+    grad.addColorStop(0, '#fff4b0'); grad.addColorStop(1, '#e0a020');
+    g.fillStyle = grad;
+    g.fillText('ZONE CLEARED', 0, 0);
+    g.font = 'bold 28px system-ui, sans-serif';
+    g.lineWidth = 6;
+    g.strokeText(info.zone, 0, 44);
+    g.fillStyle = '#e8e0f0';
+    g.fillText(info.zone, 0, 44);
+    g.restore();
+  }
+
+  // Rewards, one line at a time
+  const lines = [`${info.boss} is dead`, `+${info.payout} souls`];
+  if (info.champ) lines.push('♛ A champion soul rises from the corpse');
+  g.textAlign = 'center';
+  g.font = 'bold 24px system-ui, sans-serif';
+  lines.forEach((text, i) => {
+    const a = Math.min(1, Math.max(0, (t - (0.9 + i * 0.5)) / 0.3));
+    if (a <= 0) return;
+    g.globalAlpha = a;
+    const y = 270 + i * 34 - (1 - a) * 12;
+    g.lineWidth = 6; g.strokeStyle = '#1a1030'; g.strokeText(text, FIELD_W / 2, y);
+    g.fillStyle = i === 1 ? '#b8f090' : i === 2 ? '#ffd860' : '#e8e0f0';
+    g.fillText(text, FIELD_W / 2, y);
+  });
+  g.globalAlpha = 1;
+  if (t > 1.6) {
+    g.globalAlpha = 0.5 + 0.4 * Math.sin(t * 4);
+    g.font = '18px system-ui, sans-serif'; g.fillStyle = '#e8e0f0';
+    g.fillText('tap to continue', FIELD_W / 2, 400);
+    g.globalAlpha = 1;
+  }
+}

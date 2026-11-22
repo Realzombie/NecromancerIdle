@@ -5,7 +5,7 @@ import {
 } from './data.js';
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
-import { draw, drawIdle, iconCanvas } from './render.js';
+import { draw, drawIdle, drawVictory, iconCanvas } from './render.js';
 import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted } from './audio.js';
 
@@ -17,6 +17,7 @@ g.imageSmoothingEnabled = false;
 
 const save = loadSave();
 let battle = null;
+let victory = null;   // celebration state while a cleared zone plays its animation
 let speed = 1;
 let idleTime = 0;
 let homeNote = '';
@@ -186,6 +187,7 @@ $('btn-rebirth').onclick = () => { rebirthArmed = null; renderRebirth(); show('s
 
 // ---- Battle ----
 function startBattle(zoneId) {
+  victory = null;
   battle = new Battle(save, zoneId);
   lastFirstClear = false;
   speed = 1;
@@ -253,6 +255,8 @@ $('btn-map').onclick = () => { renderMap(); show('screen-map'); };
 $('btn-tree').onclick = () => { setBanks(); show('screen-tree'); web.render(); };
 for (const b of document.querySelectorAll('[data-back]')) b.onclick = goHome;
 $('btn-home').onclick = goHome;
+// Tap to skip the clear celebration (after a short beat so it is seen).
+canvas.addEventListener('pointerdown', () => { if (victory && victory.t > 1.2) { victory = null; endBattle(); } });
 $('btn-speed').onclick = () => {
   speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
   $('btn-speed').textContent = speed + 'x';
@@ -276,9 +280,19 @@ function frame(now) {
       const steps = speed * 2;
       for (let i = 0; i < steps; i++) battle.update(dt / 2);
       drainSounds(battle);
-      if (battle.result) endBattle();
+      if (battle.result === 'clear') {
+        victory = { t: 0, parts: [] };
+        $('btn-spell').classList.add('hidden');
+      } else if (battle.result) endBattle();
     }
+    if (victory) battle.time += dt;
     draw(g, battle, tier);
+    if (victory) {
+      // The horde cheers: everyone hops on the spot.
+      for (const u of battle.units) if (u.team === 'player') u.moving = true;
+      drawVictory(g, victory, dt, { zone: battle.zone.name, boss: UNITS[battle.zone.boss].name, payout: battle.payout, champ: battle.champDrop });
+      if (victory.t > 4.2) { victory = null; endBattle(); }
+    }
     $('hud-souls').textContent = Math.floor(battle.earned);
     $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
