@@ -27,6 +27,13 @@ export function loadSave() {
   return defaultSave();
 }
 
+// Wipe progress in place (other modules hold a reference to the same object).
+export function resetSave(save) {
+  for (const k of Object.keys(save)) delete save[k];
+  Object.assign(save, defaultSave());
+  try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+}
+
 export function writeSave(save) {
   try {
     save.lastSeen = Date.now();

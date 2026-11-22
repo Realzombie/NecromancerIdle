@@ -3,7 +3,7 @@ import {
 } from './data.js';
 import { Battle, buyUnit, buyStat, zoneUnlocked } from './sim.js';
 import { draw, drawIdle, iconCanvas } from './render.js';
-import { loadSave, writeSave } from './save.js';
+import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -201,6 +201,24 @@ function drainSounds(b) {
   for (const e of b.events) play(e.n, e);
   b.events.length = 0;
 }
+
+// ---- Reset save: two taps so it cannot happen by accident ----
+const resetBtn = $('btn-reset');
+let resetTimer = null;
+function disarmReset() { clearTimeout(resetTimer); resetTimer = null; resetBtn.textContent = 'Reset save'; resetBtn.classList.remove('armed'); }
+resetBtn.onclick = () => {
+  if (!resetTimer) {
+    resetBtn.textContent = 'Tap again to erase everything';
+    resetBtn.classList.add('armed');
+    resetTimer = setTimeout(disarmReset, 4000);
+    return;
+  }
+  disarmReset();
+  resetSave(save);
+  writeSave(save);
+  homeNote = 'Save reset. A fresh necromancer rises.';
+  goHome();
+};
 
 // ---- Wiring ----
 $('btn-map').onclick = () => { renderMap(); show('screen-map'); };
