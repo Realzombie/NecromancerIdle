@@ -54,3 +54,46 @@ export function checkAchievements(save) {
   }
   return fresh;
 }
+
+// ---- Bounties: three short goals that refill as you finish them. They only move when you play. ----
+const BOUNTY_TYPES = {
+  kills:   { text: (n) => `Kill ${n} enemies`,                       goal: (z) => 40 + z * 15, gain: (r) => r.kills },
+  battles: { text: (n) => `Fight ${n} battles`,                      goal: () => 4,             gain: () => 1 },
+  wins:    { text: (n) => `Clear a zone ${n} times`,                 goal: () => 2,             gain: (r) => (r.won ? 1 : 0) },
+  elites:  { text: (n) => `Slay ${n} elite enemies`,                 goal: () => 3,             gain: (r) => r.elites },
+  gear:    { text: (n) => `Find ${n} pieces of gear`,                goal: () => 4,             gain: (r) => r.gear },
+  endless: { text: (n) => `Survive ${n} Endless Crypt waves`,        goal: () => 15,            gain: (r) => r.endlessWaves, needs: (s) => s.cleared && s.cleared[12] },
+};
+export const bountyText = (b) => BOUNTY_TYPES[b.type].text(b.goal);
+export const nextBountyChamp = (save) => (save.bountyDone || 0) % 5 === 4;
+
+export function ensureBounties(save) {
+  save.bounties = save.bounties || [];
+  const z = Math.max(1, save.bestZone || 1);
+  const have = new Set(save.bounties.map((b) => b.type));
+  const pool = Object.keys(BOUNTY_TYPES).filter((k) => !have.has(k) && (!BOUNTY_TYPES[k].needs || BOUNTY_TYPES[k].needs(save)));
+  while (save.bounties.length < 3 && pool.length) {
+    const k = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    save.bounties.push({ type: k, goal: BOUNTY_TYPES[k].goal(z), prog: 0, dust: 10 + 3 * z });
+  }
+}
+
+// Call once when a battle ends. Returns the bounties completed (already paid and replaced).
+export function reportBattle(save, battle) {
+  ensureBounties(save);
+  const r = { kills: battle.kills, won: battle.result === 'clear', elites: battle.eliteKills || 0, gear: (battle.drops || []).length, endlessWaves: battle.endless ? battle.endless.waves : 0 };
+  const done = [];
+  for (const b of save.bounties) {
+    b.prog = Math.min(b.goal, b.prog + BOUNTY_TYPES[b.type].gain(r));
+    if (b.prog >= b.goal) done.push(b);
+  }
+  for (const b of done) {
+    save.bountyDone = (save.bountyDone || 0) + 1;
+    b.champ = save.bountyDone % 5 === 0 ? 1 : 0;
+    save.dust = (save.dust || 0) + b.dust;
+    save.champSouls += b.champ;
+  }
+  save.bounties = save.bounties.filter((b) => !done.includes(b));
+  ensureBounties(save);
+  return done;
+}

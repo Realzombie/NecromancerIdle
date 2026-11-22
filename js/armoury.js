@@ -5,7 +5,7 @@ import {
   RARITIES, SLOTS, SLOT_NAMES, STAT_DEFS, GEAR_FX, MAX_UP, MAX_ITEMS, rarityIndex, rarityOf, statValue, itemPower,
   upgradeCost, rerollCost, salvageValue, equip, unequip, salvage, salvageBelow, upgradeItem, rerollItem,
 } from './gear.js';
-import { ACHIEVEMENTS, rewardText, isDone } from './records.js';
+import { ACHIEVEMENTS, rewardText, isDone, ensureBounties, bountyText, nextBountyChamp } from './records.js';
 import { iconCanvas } from './render.js';
 
 const $ = (id) => document.getElementById(id);
@@ -24,13 +24,18 @@ export function createArmoury({ save, play, onChange }) {
       (it.fx ? `<div class="gl fx">${GEAR_FX[it.fx].name}: ${GEAR_FX[it.fx].desc}</div>` : '');
   }
 
+  function betterThanWorn(it) {
+    const cur = byId(save.equipped && save.equipped[it.slot]);
+    return !cur || itemPower(it) > itemPower(cur);
+  }
+
   function tile(it) {
     const R = rarityOf(it);
     const el = document.createElement('button');
     el.className = 'gtile' + (selected === it.id ? ' sel' : '') + (isEquipped(it) ? ' worn' : '');
     el.style.setProperty('--rc', R.color);
     el.appendChild(iconCanvas('gear_' + it.slot));
-    el.insertAdjacentHTML('beforeend', `<span class="gt-name">${it.name}${it.up ? ' +' + it.up : ''}</span>` + (it.isNew ? '<i class="gt-new">NEW</i>' : '') + (isEquipped(it) ? '<i class="gt-eq">E</i>' : ''));
+    el.insertAdjacentHTML('beforeend', `<span class="gt-name">${it.name}${it.up ? ' +' + it.up : ''}</span>` + (it.isNew ? '<i class="gt-new">NEW</i>' : '') + (isEquipped(it) ? '<i class="gt-eq">E</i>' : '') + (it.locked ? '<i class="gt-lock">&#128274;</i>' : '') + (!isEquipped(it) && betterThanWorn(it) ? '<i class="gt-up">&#9650;</i>' : ''));
     el.onclick = () => { selected = it.id; delete it.isNew; render(); };
     return el;
   }
@@ -66,7 +71,8 @@ export function createArmoury({ save, play, onChange }) {
         const rc = rerollCost(sel);
         add(`Reroll extras <span class="dust">&#10022; ${rc}</span>`, 'plain', () => { if (rerollItem(save, sel.id)) { play('buy'); done(); } }, (save.dust || 0) >= rc);
       }
-      if (!isEquipped(sel)) add(`Salvage <span class="dust">+${salvageValue(sel)}</span>`, 'warn', () => { salvage(save, sel.id); selected = null; play('click'); done(); });
+      add(sel.locked ? 'Unlock' : 'Lock', 'plain', () => { sel.locked = !sel.locked; play('click'); done(); });
+      if (!isEquipped(sel)) add(`Salvage <span class="dust">+${salvageValue(sel)}</span>`, 'warn', () => { salvage(save, sel.id); selected = null; play('click'); done(); }, !sel.locked);
     }
     // ---- Right: equipped slots and the bag ----
     const right = document.createElement('div');
@@ -151,6 +157,15 @@ export function createArmoury({ save, play, onChange }) {
     top.innerHTML = [['Kills', n(s.kills)], ['Attempts', n(s.attempts)], ['Zones cleared', n(s.clears)], ['Defeats', n(s.fails)], ['Gear found', n(s.gearFound)], ['Rebirths', n(save.rebirths)]]
       .map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
     root.appendChild(top);
+    ensureBounties(save);
+    const head = document.createElement('div');
+    head.className = 'rec-head';
+    head.textContent = 'Bounties: finish them by playing, and new ones appear' + (nextBountyChamp(save) ? '. The next one also pays a champion soul!' : '.');
+    root.appendChild(head);
+    const bw = document.createElement('div');
+    bw.className = 'bounties';
+    bw.innerHTML = save.bounties.map((b) => `<div class="ach bounty"><div class="ach-top"><b>${bountyText(b)}</b><span>${b.prog}/${b.goal}</span></div><div class="ach-bar"><i style="width:${(100 * b.prog) / b.goal}%"></i></div><div class="ach-rw">${b.dust} bone dust</div></div>`).join('');
+    root.appendChild(bw);
     const list = document.createElement('div');
     list.className = 'rec-list';
     const sorted = [...ACHIEVEMENTS].sort((a, b) => Number(isDone(save, a)) - Number(isDone(save, b)));

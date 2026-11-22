@@ -279,3 +279,9 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 #hud .btn.auto { margin-left: 0; } #hud #btn-pause { margin-left: auto; }
 
 .zabil { color: #ffb0b8; opacity: 0.9; }
+
+.rec-head { font-size: 0.75em; opacity: 0.8; text-align: left; }
+.bounties { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4em; }
+.ach.bounty { border-color: var(--accent); }
+.gt-lock { position: absolute; bottom: 0; right: 0.2em; font-style: normal; font-size: 0.9em; }
+.gt-up { position: absolute; top: 0.1em; right: 0.3em; color: var(--accent); font-style: normal; font-size: 0.9em; }

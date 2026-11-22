@@ -156,7 +156,7 @@ function autoTrim(save) {
   const eq = Object.values(save.equipped || {});
   let worst = null;
   for (const it of save.gear) {
-    if (eq.includes(it.id)) continue;
+    if (eq.includes(it.id) || it.locked) continue;
     if (!worst || rarityIndex(it.rarity) < rarityIndex(worst.rarity) || (it.rarity === worst.rarity && itemPower(it) < itemPower(worst))) worst = it;
   }
   if (worst) salvage(save, worst.id);
@@ -176,6 +176,7 @@ export function salvage(save, id) {
   if (i < 0) return 0;
   const it = save.gear[i];
   if (save.equipped && save.equipped[it.slot] === id) return 0;
+  if (it.locked) return 0;
   const v = salvageValue(it);
   save.gear.splice(i, 1);
   save.dust = (save.dust || 0) + v;

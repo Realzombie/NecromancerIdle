@@ -9,7 +9,7 @@ import { draw, drawIdle, drawVictory, iconCanvas } from './render.js';
 import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
 import { createArmoury } from './armoury.js';
-import { checkAchievements, rewardText } from './records.js';
+import { checkAchievements, rewardText, reportBattle, bountyText } from './records.js';
 import { RARITIES, rarityIndex } from './gear.js';
 
 const $ = (id) => document.getElementById(id);
@@ -220,6 +220,7 @@ function startBattle(zoneId) {
 
 function endBattle() {
   const fresh = checkAchievements(save);
+  const bounties = reportBattle(save, battle);
   writeSave(save);
   const won = battle.result === 'clear';
   const E = battle.endless;
@@ -250,8 +251,9 @@ function endBattle() {
     extra.appendChild(chip);
   }
   for (const a of fresh) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9733; ' + a.name + ' &middot; ' + rewardText(a.reward) + '</div>');
+  for (const b of bounties) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9873; Bounty: ' + bountyText(b) + ' &middot; +' + b.dust + ' dust' + (b.champ ? ' +1 champion soul' : '') + '</div>');
   if (best >= 2) play('drop');
-  if (fresh.length) setTimeout(() => play('ach'), 400);
+  if (fresh.length || bounties.length) setTimeout(() => play('ach'), 400);
   show('screen-result');
   if (autoOn) {
     $('result-text').textContent += ' Fighting again in 3 seconds... (Return Home to stop)';
