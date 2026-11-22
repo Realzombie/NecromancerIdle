@@ -400,6 +400,12 @@ const trees = [60, 205, 395, 560, 700, 905].map((x) => ({ x: x + rnd() * 30, y: 
 const graves = Array.from({ length: 26 }, () => ({ x: rnd() * FIELD_W, y: 340 + rnd() * 180, kind: Math.floor(rnd() * 3), s: 0.8 + rnd() * 0.6 }));
 const tufts = Array.from({ length: 90 }, () => ({ x: rnd() * FIELD_W, y: 338 + rnd() * 195, h: 3 + Math.floor(rnd() * 4) }));
 const bones = Array.from({ length: 12 }, () => ({ x: 120 + rnd() * 800, y: 460 + rnd() * 70 }));
+const peakPts = Array.from({ length: 41 }, (_, i) => ({ x: i * 24, y: 232 + rnd() * 52 + Math.sin(i * 0.5) * 14 }));
+const clouds = Array.from({ length: 6 }, (_, i) => ({ x: i * 190 + rnd() * 60, y: 30 + rnd() * 150, w: 80 + rnd() * 120, sp: 3 + rnd() * 5 }));
+const flakes = Array.from({ length: 110 }, () => ({ x: rnd() * FIELD_W, y: rnd() * FIELD_H, sp: 28 + rnd() * 50, ph: rnd() * 6.28, r: 1 + Math.floor(rnd() * 2) }));
+const motes = Array.from({ length: 36 }, () => ({ x: rnd() * FIELD_W, y: 120 + rnd() * 400, sp: 5 + rnd() * 12, ph: rnd() * 6.28, r: 1 + rnd() * 1.6 }));
+const lamps = [300, 540, 780].map((x, i) => ({ x, y: 356 + (i % 2) * 6 }));
+const blades = Array.from({ length: 80 }, (_, i) => ({ x: i * 12 + rnd() * 8, h: 9 + rnd() * 9, ph: rnd() * 6.28 }));
 const bats = [0, 1, 2].map((i) => ({ off: i * 400, y: 50 + i * 38, speed: 38 + i * 12, ph: i }));
 
 function drawTree(g, t) {
@@ -445,11 +451,14 @@ const theme = (regionId) => (REGIONS.find((r) => r.id === regionId) || REGIONS[0
 // Look of each region's battlefield.
 const THEMES = {
   graveyard: { skyTop: '#1a1030', skyBot: '#46305f', stars: true, orb: '#d8d0b0', orbCut: '#2a1c42', hills: '#1d1430', castle: '#150e20', windows: '#e8c860', tree: '#17101f',
-    groundA: '#2c3a2a', groundB: '#243021', groundC: '#26331f', path: 'rgba(70,58,48,0.35)', tuft: '#3a5236', fog: 'rgba(200,190,230,0.05)', bats: true },
+    groundA: '#2c3a2a', groundB: '#243021', groundC: '#26331f', path: 'rgba(70,58,48,0.35)', tuft: '#3a5236', fog: 'rgba(200,190,230,0.05)', bats: true,
+    peaks: '#171028', cloud: 'rgba(90,70,120,0.35)', weather: 'wisps', mote: '#9dff7a', lamp: '#ffb040', lightning: true, halo: 'rgba(216,208,176,0.22)' },
   frost: { skyTop: '#0e1a38', skyBot: '#8ab0d8', stars: true, orb: '#e8f0ff', orbCut: '#1a2a52', hills: '#6a80a8', castle: '#2a3858', windows: '#a0d0ff', tree: '#1c2a40',
-    groundA: '#c8d8e8', groundB: '#a8bcd0', groundC: '#b8cadc', path: 'rgba(120,150,185,0.35)', tuft: '#e8f0f8', fog: 'rgba(220,235,255,0.1)', bats: false },
+    groundA: '#c8d8e8', groundB: '#a8bcd0', groundC: '#b8cadc', path: 'rgba(120,150,185,0.35)', tuft: '#e8f0f8', fog: 'rgba(220,235,255,0.1)', bats: false,
+    peaks: '#4a608a', cloud: 'rgba(200,220,255,0.18)', weather: 'snow', mote: '#ffffff', lamp: '#a0d8ff', aurora: true, halo: 'rgba(232,240,255,0.2)' },
   holy: { skyTop: '#27367a', skyBot: '#f3b07c', stars: false, orb: '#fff0b0', orbCut: null, hills: '#6a5a8a', castle: '#3a3052', windows: '#fff0a0', tree: '#2a3020',
-    groundA: '#5a7248', groundB: '#4a6238', groundC: '#52693f', path: 'rgba(210,200,176,0.4)', tuft: '#7a9c5a', fog: 'rgba(255,232,205,0.08)', bats: false },
+    groundA: '#5a7248', groundB: '#4a6238', groundC: '#52693f', path: 'rgba(210,200,176,0.4)', tuft: '#7a9c5a', fog: 'rgba(255,232,205,0.08)', bats: false,
+    peaks: '#5a4a7a', cloud: 'rgba(255,225,200,0.5)', weather: 'motes', mote: '#ffe890', lamp: '#ffe090', halo: 'rgba(255,240,180,0.0)' },
 };
 let TH = THEMES.graveyard;
 
@@ -462,14 +471,49 @@ function drawBackground(g, t) {
     for (const s of stars) { g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 2 + s.x); g.fillRect(s.x, s.y, s.r, s.r); }
     g.globalAlpha = 1;
   }
+  if (TH.aurora) {
+    g.save(); g.globalCompositeOperation = 'lighter';
+    ['#40ffb0', '#6080ff', '#c060ff'].forEach((c, band) => {
+      g.fillStyle = c;
+      for (let x = 0; x < FIELD_W; x += 10) {
+        g.globalAlpha = 0.07 + 0.05 * Math.sin(x * 0.02 + t * 0.8 + band);
+        const y = 60 + band * 26 + Math.sin(x * 0.011 + t * 0.35 + band * 2) * 28;
+        g.fillRect(x, y, 10, 46);
+      }
+    });
+    g.restore();
+  }
+  if (TH.halo) {
+    const hg = g.createRadialGradient(640, 90, 20, 640, 90, 150);
+    hg.addColorStop(0, TH.halo); hg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = hg; g.fillRect(470, 0, 340, 260);
+  }
   if (TH.orbCut) {
-    g.fillStyle = TH.orb; g.beginPath(); g.arc(640, 90, 34, 0, Math.PI * 2); g.fill();
-    g.fillStyle = TH.orbCut; g.beginPath(); g.arc(628, 82, 30, 0, Math.PI * 2); g.fill();
+    // A crescent: the moon disc with a circle cut out of it (clipped, so the sky shows through).
+    g.save();
+    g.beginPath(); g.arc(640, 90, 34, 0, Math.PI * 2); g.clip();
+    g.fillStyle = TH.orb; g.beginPath(); g.rect(600, 50, 80, 80); g.arc(626, 80, 30, 0, Math.PI * 2); g.fill('evenodd');
+    g.restore();
   } else {
     const glow = g.createRadialGradient(640, 100, 10, 640, 100, 120);
     glow.addColorStop(0, 'rgba(255,240,180,0.55)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
     g.fillStyle = glow; g.fillRect(500, 0, 280, 240);
     g.fillStyle = TH.orb; g.beginPath(); g.arc(640, 100, 40, 0, Math.PI * 2); g.fill();
+  }
+  // Drifting clouds
+  g.fillStyle = TH.cloud;
+  for (const c of clouds) {
+    const x = ((c.x + t * c.sp) % (FIELD_W + 320)) - 160;
+    g.beginPath(); g.ellipse(x, c.y, c.w * 0.5, 12, 0, 0, Math.PI * 2); g.ellipse(x - c.w * 0.25, c.y + 5, c.w * 0.32, 9, 0, 0, Math.PI * 2); g.ellipse(x + c.w * 0.28, c.y + 4, c.w * 0.3, 10, 0, 0, Math.PI * 2); g.fill();
+  }
+  // Distant jagged peaks behind the hills
+  g.fillStyle = TH.peaks;
+  g.beginPath(); g.moveTo(0, 330);
+  for (const p of peakPts) g.lineTo(p.x, p.y);
+  g.lineTo(FIELD_W, 330); g.fill();
+  if (TH.lightning) {
+    const f = (t + 9) % 17;
+    if (f < 0.3) { g.fillStyle = 'rgba(200,210,255,' + (0.28 * (1 - f / 0.3) * (f > 0.12 && f < 0.18 ? 0.3 : 1)) + ')'; g.fillRect(0, 0, FIELD_W, 330); }
   }
   // Far hills
   g.fillStyle = TH.hills;
@@ -491,12 +535,29 @@ function drawBackground(g, t) {
   g.fillStyle = TH.groundB; g.fillRect(0, 330, FIELD_W, 6);
   g.fillStyle = TH.groundC;
   for (let i = 0; i < 60; i++) g.fillRect((i * 97) % FIELD_W, 340 + ((i * 53) % 190), 6, 2);
-  // Worn path along the lane
+  // Ground fades darker towards the viewer
+  const gd = g.createLinearGradient(0, 330, 0, FIELD_H);
+  gd.addColorStop(0, 'rgba(0,0,0,0)'); gd.addColorStop(1, 'rgba(0,0,0,0.38)');
+  g.fillStyle = gd; g.fillRect(0, 330, FIELD_W, FIELD_H - 330);
+  // Worn path along the lane, with flagstones
   g.fillStyle = TH.path; g.fillRect(0, 385, FIELD_W, 55);
+  g.fillStyle = 'rgba(0,0,0,0.12)';
+  for (let i = 0; i < 24; i++) g.fillRect((i * 83) % FIELD_W, 392 + ((i * 37) % 40), 22, 7);
   // Grass tufts, graves, bones
   g.fillStyle = TH.tuft;
   for (const f of tufts) { g.fillRect(f.x, f.y - f.h, 1, f.h); g.fillRect(f.x + 2, f.y - f.h + 1, 1, f.h - 1); g.fillRect(f.x - 2, f.y - f.h + 1, 1, f.h - 1); }
   for (const o of [...graves].sort((a, b) => a.y - b.y)) drawGrave(g, o);
+  // Lamp posts: a small flame and a soft pool of light
+  for (const l of lamps) {
+    g.fillStyle = '#0c0814'; g.fillRect(l.x - 2, l.y - 40, 4, 40); g.fillRect(l.x - 6, l.y - 48, 12, 9);
+    const fl = 0.75 + 0.25 * Math.sin(t * 9 + l.x) * Math.sin(t * 5.3 + l.x * 0.3);
+    g.fillStyle = TH.lamp; g.fillRect(l.x - 3, l.y - 46, 6, 5);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    const lg = g.createRadialGradient(l.x, l.y - 44, 2, l.x, l.y - 44, 70);
+    lg.addColorStop(0, TH.lamp); lg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = 0.22 * fl; g.fillStyle = lg; g.fillRect(l.x - 70, l.y - 114, 140, 140);
+    g.restore();
+  }
   g.fillStyle = '#c8c0a8';
   for (const b of bones) { g.fillRect(b.x, b.y, 8, 2); g.fillRect(b.x - 1, b.y - 1, 2, 4); g.fillRect(b.x + 7, b.y - 1, 2, 4); }
 }
@@ -516,6 +577,14 @@ function drawNecro(g, t, tier, battle) {
   g.fillStyle = '#1a1424'; g.beginPath(); g.ellipse(x, base + 2, 40, 11, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = '#2c2440'; g.beginPath(); g.ellipse(x, base, 38, 9, 0, 0, Math.PI * 2); g.fill();
   const cast = battle ? battle.cast : 0;
+  // Rune circle on the platform
+  g.save(); g.translate(x, base); g.scale(1, 0.26);
+  g.strokeStyle = 'rgba(143,209,106,' + (0.28 + cast * 0.6) + ')'; g.lineWidth = 3;
+  g.beginPath(); g.arc(0, 0, 52 + cast * 16, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(0, 0, 36, 0, Math.PI * 2); g.stroke();
+  g.rotate(t * (0.4 + cast * 3)); g.fillStyle = g.strokeStyle;
+  for (let i = 0; i < 8; i++) { g.rotate(Math.PI / 4); g.fillRect(40, -2, 10, 4); }
+  g.restore();
   // Aura grows with tier
   if (tier >= 1 || cast > 0) {
     const r = 55 + tier * 14 + cast * 60;
@@ -568,12 +637,14 @@ function drawUnit(g, u, t, rar) {
     else if (p < 0.6) { const k = (p - 0.4) / 0.2; lunge = ranged ? -7 + 3 * k : -5 + 17 * k; lean = ranged ? -0.28 + 0.2 * k : -0.28 + 0.8 * k; squash = 1.08 - 0.16 * k; }
     else { const k = (p - 0.6) / 0.4; lunge = ranged ? -4 * (1 - k) : 12 * (1 - k); lean = (ranged ? -0.08 : 0.52) * (1 - k); squash = 0.92 + 0.08 * k; }
   }
+  if (!u.attackAnim && !u.moving) squash = 1 + 0.025 * Math.sin(t * 3 + u.id * 1.3);
+  const rise = u.age < 0.45 ? u.age / 0.45 : 1;
   const dir = u.team === 'player' ? 1 : -1;
-  const px = Math.round(u.x + lunge * dir), py = Math.round(u.y - bob);
+  const px = Math.round(u.x + lunge * dir), py = Math.round(u.y - bob + (1 - rise) * 16);
   g.fillStyle = u.team === 'player' ? 'rgba(143,209,106,0.28)' : 'rgba(214,89,107,0.28)';
   g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.45, 5, 0, 0, Math.PI * 2); g.fill();
   g.save();
-  if (u.def.ghostly) g.globalAlpha = 0.75;
+  g.globalAlpha = (u.def.ghostly ? 0.75 : 1) * rise;
   g.translate(px, py);
   if (u.team === 'enemy') g.scale(-1, 1);
   g.rotate(lean);
@@ -594,6 +665,7 @@ function drawUnit(g, u, t, rar) {
   const sick = u.status && (u.status.poison ? s.poison : u.status.burn ? s.burn : null);
   if (sick) { g.globalAlpha = 0.35 + 0.15 * Math.sin(t * 10 + u.id); g.drawImage(sick, x0, y0); g.globalAlpha = 1; }
   g.restore();
+  g.globalAlpha = 1;
   if (u.hp < u.maxHp) {
     const w = Math.max(18, s.w * 0.8);
     g.fillStyle = '#000'; g.fillRect(px - w / 2, py - s.h - 8, w, 4);
@@ -602,7 +674,101 @@ function drawUnit(g, u, t, rar) {
   }
 }
 
+// Falling corpse: topples over, sinks and fades.
+function drawCorpse(g, c) {
+  const u = c.u, s = unitSprite(u), p = c.t / 0.7;
+  const fall = Math.min(1, p * 2.4), ease = 1 - Math.pow(1 - fall, 3);
+  g.save();
+  g.globalAlpha = Math.max(0, 1 - p * p) * (u.def.ghostly ? 0.7 : 1);
+  g.translate(Math.round(c.x), Math.round(c.y + p * 5));
+  if (u.team === 'enemy') g.scale(-1, 1);
+  g.rotate(-ease * (u.def.static ? 0.05 : 1.45));
+  const x0 = -s.ax, y0 = -s.h;
+  g.drawImage(s.dark, x0 + 1, y0); g.drawImage(s.dark, x0 - 1, y0);
+  g.drawImage(p < 0.12 ? s.flash : s.img, x0, y0);
+  g.restore();
+}
+
+function drawProjectiles(g, battle, t) {
+  for (const p of battle.projectiles) {
+    const a = p.angle || 0, ca = Math.cos(a), sa = Math.sin(a);
+    if (p.magic) {
+      const col = p.src && p.src.sp && p.src.sp.frost ? '#9fd8ff' : p.src && p.src.team === 'enemy' ? '#ff7a60' : '#c080e0';
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let i = 5; i >= 1; i--) {
+        g.globalAlpha = 0.14 * (6 - i); g.fillStyle = col;
+        g.beginPath(); g.arc(p.x - ca * i * 5, p.y - sa * i * 5, 5 - i * 0.6, 0, Math.PI * 2); g.fill();
+      }
+      g.globalAlpha = 0.5 + 0.2 * Math.sin(t * 20); g.beginPath(); g.arc(p.x, p.y, 9, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = 1; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(p.x, p.y, 3.5, 0, Math.PI * 2); g.fill();
+      g.restore();
+      continue;
+    }
+    const fire = p.src && p.src.sp && p.src.sp.fire;
+    if (fire) {
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let i = 4; i >= 1; i--) { g.globalAlpha = 0.18 * (5 - i); g.fillStyle = '#ff8020'; g.beginPath(); g.arc(p.x - ca * i * 4, p.y - sa * i * 4, 4, 0, Math.PI * 2); g.fill(); }
+      g.restore();
+    }
+    g.strokeStyle = '#2a1c10'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(p.x - ca * 12, p.y - sa * 12); g.lineTo(p.x + ca * 3, p.y + sa * 3); g.stroke();
+    g.strokeStyle = fire ? '#ffd890' : '#e8e0c8'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(p.x - ca * 12, p.y - sa * 12); g.lineTo(p.x + ca * 3, p.y + sa * 3); g.stroke();
+    g.fillStyle = fire ? '#ffb040' : '#ffffff'; g.fillRect(p.x + ca * 3 - 2, p.y + sa * 3 - 2, 4, 4);
+  }
+}
+
+// Foreground grass sways in front of the units, snow and motes drift over everything.
+function drawForeground(g, t) {
+  g.fillStyle = TH.tuft;
+  for (const b of blades) {
+    const sw = Math.sin(t * 1.6 + b.ph) * 2.5, y = FIELD_H - 2;
+    g.fillRect(b.x, y - b.h * 0.5, 2, b.h * 0.5 + 2);
+    g.fillRect(b.x + sw * 0.5, y - b.h * 0.8, 2, b.h * 0.3);
+    g.fillRect(b.x + sw, y - b.h, 2, b.h * 0.2);
+  }
+}
+function drawAmbient(g, t) {
+  if (TH.weather === 'snow') {
+    g.fillStyle = TH.mote;
+    for (const f of flakes) {
+      const y = (f.y + t * f.sp) % FIELD_H, x = (f.x + Math.sin(t * 0.8 + f.ph) * 14 + t * 9) % FIELD_W;
+      g.globalAlpha = 0.55 + 0.3 * Math.sin(f.ph + t); g.fillRect(x, y, f.r, f.r);
+    }
+  } else {
+    g.fillStyle = TH.mote;
+    for (const m of motes) {
+      const y = ((m.y - t * m.sp) % 420 + 420) % 420 + 100, x = (m.x + Math.sin(t * 0.7 + m.ph) * 20 + FIELD_W) % FIELD_W;
+      const a = 0.25 + 0.5 * (0.5 + 0.5 * Math.sin(t * 2 + m.ph));
+      g.globalAlpha = a * 0.5; g.beginPath(); g.arc(x, y, m.r * 3, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = a; g.fillRect(x - m.r / 2, y - m.r / 2, m.r, m.r);
+    }
+  }
+  g.globalAlpha = 1;
+}
+
+let vignette = null;
+function drawVignette(g) {
+  if (!vignette) {
+    vignette = document.createElement('canvas'); vignette.width = FIELD_W; vignette.height = FIELD_H;
+    const v = vignette.getContext('2d');
+    const gr = v.createRadialGradient(FIELD_W / 2, FIELD_H / 2, FIELD_H * 0.45, FIELD_W / 2, FIELD_H / 2, FIELD_W * 0.62);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.5)');
+    v.fillStyle = gr; v.fillRect(0, 0, FIELD_W, FIELD_H);
+  }
+  g.drawImage(vignette, 0, 0);
+}
+
 export function draw(g, battle, tier = 0) {
+  const sh = battle.shake || 0;
+  g.save();
+  if (sh > 0) g.translate((Math.random() - 0.5) * sh * 7, (Math.random() - 0.5) * sh * 7);
+  drawScene(g, battle, tier);
+  g.restore();
+  drawVignette(g);
+}
+
+function drawScene(g, battle, tier = 0) {
   const t = battle.time;
   TH = THEMES[theme(battle.zone.region)];
   drawBackground(g, t);
@@ -620,17 +786,12 @@ export function draw(g, battle, tier = 0) {
     }
   }
   const rar = topRarity(battle.save);
+  for (const c of battle.corpses || []) drawCorpse(g, c);
   for (const u of sorted) drawUnit(g, u, t, rar);
+  drawForeground(g, t);
   drawFog(g, t);
-  // Arrows and stones
-  for (const p of battle.projectiles) {
-    const a = p.angle || 0, ca = Math.cos(a), sa = Math.sin(a);
-    g.strokeStyle = '#2a1c10'; g.lineWidth = 4;
-    g.beginPath(); g.moveTo(p.x - ca * 12, p.y - sa * 12); g.lineTo(p.x + ca * 3, p.y + sa * 3); g.stroke();
-    g.strokeStyle = '#e8e0c8'; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(p.x - ca * 12, p.y - sa * 12); g.lineTo(p.x + ca * 3, p.y + sa * 3); g.stroke();
-    g.fillStyle = '#ffffff'; g.fillRect(p.x + ca * 3 - 2, p.y + sa * 3 - 2, 4, 4);
-  }
+  drawAmbient(g, t);
+  drawProjectiles(g, battle, t);
   // Slashes and sparks
   for (const f of battle.fx) {
     const k = f.t / f.life;
@@ -643,6 +804,11 @@ export function draw(g, battle, tier = 0) {
       g.strokeStyle = f.color; g.lineWidth = 5 - 3 * k; g.globalAlpha = 1 - k; g.lineCap = 'round';
       g.beginPath(); g.arc(-6, 0, 18, -1.1 + k * 0.5, 1.1 + k * 0.5); g.stroke();
       g.restore();
+    } else if (f.k === 'soul') {
+      const sx = f.x + Math.sin(f.t * 7) * 5, sy = f.y - f.t * 55;
+      g.globalAlpha = (1 - k) * 0.35; g.fillStyle = '#b8f090'; g.beginPath(); g.arc(sx, sy, 7, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = (1 - k) * 0.95; g.beginPath(); g.arc(sx, sy, 3, 0, Math.PI * 2); g.fill();
+      g.fillRect(sx - 1, sy + 3, 2, 5 * (1 - k));
     } else {
       g.globalAlpha = 1 - k; g.fillStyle = f.color;
       g.fillRect(f.x - 1.5, f.y - 1.5, 3, 3);
@@ -666,7 +832,10 @@ export function drawIdle(g, t, tier = 0) {
   TH = THEMES.graveyard;
   drawBackground(g, t);
   drawNecro(g, t, tier, null);
+  drawForeground(g, t);
   drawFog(g, t);
+  drawAmbient(g, t);
+  drawVignette(g);
 }
 
 export { FIELD_H, GATE_X };

@@ -39,6 +39,8 @@ export class Battle {
     this.spellCd = 10;         // Raise Dead spell cooldown (seconds left)
     this.gm = gearMods(save);
     this.traps = [];
+    this.corpses = [];         // dying units, kept briefly so the renderer can show them fall
+    this.shake = 0;            // screen shake strength (visual only)
     this.setupDefences();
     const startZombies = TUNING.startZombies + perk(save, 'horde');
     for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
@@ -88,6 +90,7 @@ export class Battle {
       bias: this.rand(-16, 16),          // aims a little above or below its target
       wt: 0, wx: 0, wy: 0,               // wandering drift
       ht: this.rand(1, 4),
+      age: 0,
     };
     u.status = {};
     if (def.team === 'player' && !def.static) {
@@ -130,6 +133,7 @@ export class Battle {
     const pool = this.raiseTypes().filter((t) => !UNITS[t].heavy);
     for (let i = 0; i < spellCount(this.save); i++) this.spawn(pool[Math.floor(this.rng() * pool.length)], NECRO_X + 60 + i * 10);
     this.cast = 0.8;
+    this.shake = Math.max(this.shake, 0.35);
     this.fx.push({ k: 'ring', x: NECRO_X + 20, y: 420, t: 0, life: 0.6, color: '#8fd16a' });
     this.emit('raise');
     return true;
@@ -144,6 +148,9 @@ export class Battle {
     this.time += dt;
     this.cast = Math.max(0, this.cast - dt);
     this.spellCd = Math.max(0, this.spellCd - dt);
+    this.shake = Math.max(0, this.shake - dt * 1.6);
+    for (const c of this.corpses) c.t += dt;
+    this.corpses = this.corpses.filter((c) => c.t < 0.7);
 
     // The necromancer raises each unit type on its own cooldown.
     for (const type of this.raiseTypes()) {
@@ -230,6 +237,7 @@ export class Battle {
       for (const o of this.units) if (o.team === 'enemy' && o.hp > 0 && Math.abs(o.x - tr.x) < 34 + o.def.radius * 0.5) { hot = true; break; }
       if (!hot) continue;
       tr.cd = 1.4; tr.pop = 0.35;
+      this.shake = Math.max(this.shake, 0.25);
       this.emit('trap');
       for (const o of this.units) {
         if (o.team !== 'enemy' || o.hp <= 0 || Math.abs(o.x - tr.x) > 44 + o.def.radius * 0.5) continue;
@@ -244,6 +252,9 @@ export class Battle {
       if (u.hp > 0) continue;
       for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
       this.emit('die', u.team);
+      if (this.corpses.length < 50) this.corpses.push({ u, x: u.x, y: u.y, t: 0 });
+      if (u.team === 'enemy' && this.fx.length < 260) this.fx.push({ k: 'soul', x: u.x, y: u.y - 20, t: 0, life: 1.1 });
+      if (u.def.boss) this.shake = 1;
       if (u.sp && u.sp.burst) this.sporeBurst(u);
       else if (u.team === 'player' && !u.def.static && this.gm.fx.martyr) this.sporeBurst(u, 1.5);
       if (u.team === 'enemy') {
@@ -278,6 +289,7 @@ export class Battle {
   }
 
   updateUnit(u, dt) {
+    u.age += dt;
     u.flash = Math.max(0, u.flash - dt);
     u.attackAnim = Math.max(0, u.attackAnim - dt);
     if (u.def.wall) return;   // walls only stand there and soak damage
@@ -475,6 +487,7 @@ export class Battle {
     }
     if (gm.thorns && target.team === 'player' && src && src.team === 'enemy' && src.def.range <= 40 && src.hp > 0) src.hp -= dmg * gm.thorns;
     target.hp -= dmg;
+    if (src && src.def.boss) this.shake = Math.max(this.shake, 0.45);
     if (src && src.sp && src.sp.drain && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.5);
     if (!quiet) this.emit('hit', target.team);
     target.flash = 0.12;
