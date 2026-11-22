@@ -649,20 +649,29 @@ function drawUnit(g, u, t, rar) {
   if (u.team === 'enemy') g.scale(-1, 1);
   g.rotate(lean);
   g.scale(1 / squash, squash);
+  if (u.elite) g.scale(1.22, 1.22);
+  const baseAlpha = g.globalAlpha;
   const x0 = -s.ax, y0 = -s.h;
+  if (u.elite) {
+    s.rar = s.rar || {};
+    const gold = s.rar['#ffd060'] || (s.rar['#ffd060'] = silhouette(s.img, '#ffd060'));
+    g.globalAlpha = baseAlpha * (0.6 + 0.3 * Math.sin(t * 6 + u.id));
+    for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) g.drawImage(gold, x0 + dx, y0 + dy);
+    g.globalAlpha = baseAlpha;
+  }
   // Thin dark outline so overlapping units stay readable.
   if (rar >= 1 && u.team === 'player' && !u.def.static) {
     const col = RARITIES[rar].color;
     s.rar = s.rar || {};
     const sil = s.rar[col] || (s.rar[col] = silhouette(s.img, col));
-    g.globalAlpha = rar === 4 ? 0.65 + 0.3 * Math.sin(t * 5 + u.id) : 0.75;
+    g.globalAlpha = baseAlpha * (rar === 4 ? 0.65 + 0.3 * Math.sin(t * 5 + u.id) : 0.75);
     for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) g.drawImage(sil, x0 + dx, y0 + dy);
-    g.globalAlpha = 1;
+    g.globalAlpha = baseAlpha;
   }
   for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) g.drawImage(s.dark, x0 + dx, y0 + dy);
   g.drawImage(u.flash > 0 ? s.flash : s.img, x0, y0);
   // Status tints: poisoned units glow green, burning units orange.
-  const sick = u.status && (u.status.poison ? s.poison : u.status.burn ? s.burn : null);
+  const sick = u.enraged ? s.burn : u.status && (u.status.poison ? s.poison : u.status.burn ? s.burn : null);
   if (sick) { g.globalAlpha = 0.35 + 0.15 * Math.sin(t * 10 + u.id); g.drawImage(sick, x0, y0); g.globalAlpha = 1; }
   g.restore();
   g.globalAlpha = 1;

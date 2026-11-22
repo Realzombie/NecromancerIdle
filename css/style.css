@@ -274,3 +274,6 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 #hud .btn.auto { margin-left: auto; } #hud #btn-speed { margin-left: 0; }
 .mute.music { right: calc(var(--u) * 56); }
 .zones .zone:only-child { grid-column: 2 / 4; }
+
+.savebar { display: flex; justify-content: center; gap: 0.6em; }
+#hud .btn.auto { margin-left: 0; } #hud #btn-pause { margin-left: auto; }

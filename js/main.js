@@ -10,7 +10,7 @@ import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
 import { createArmoury } from './armoury.js';
 import { checkAchievements, rewardText } from './records.js';
-import { RARITIES, rarityIndex } from './gear.js';
+import { RARITIES, rarityIndex, rollDrops, equipIfBetter } from './gear.js';
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
@@ -28,6 +28,7 @@ let lastFirstClear = false;
 let lastZone = 1;
 let autoOn = false;
 let autoTimer = null;
+let paused = false;
 
 function fitUi() { app.style.setProperty('--u', app.clientHeight / 540 + 'px'); }
 window.addEventListener('resize', fitUi);
@@ -47,9 +48,16 @@ function claimOffline() {
   if (secs < TUNING.offlineMinSeconds) return;
   const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp) * (1 + 0.25 * perk(save, 'restless')));
   save.souls += gained;
+  let found = 0;
+  if (secs >= 1800) {
+    // Long absences also turn up some gear (up to three pieces).
+    const drops = rollDrops(save, Math.random, Math.max(1, save.bestZone), { cleared: false, count: Math.min(3, Math.floor(secs / 3600) || 1) });
+    for (const it of drops) equipIfBetter(save, it);
+    found = drops.length;
+  }
   writeSave(save);
   const h = Math.floor(secs / 3600), mnt = Math.floor((secs % 3600) / 60);
-  homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + 'h ' : ''}${mnt}m away.`;
+  homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + 'h ' : ''}${mnt}m away.` + (found ? ` They also dragged back ${found} piece${found > 1 ? 's' : ''} of gear.` : '');
 }
 
 function setBanks() {
@@ -199,7 +207,13 @@ $('btn-rebirth-go').onclick = () => {
 $('btn-rebirth').onclick = () => { rebirthArmed = null; renderRebirth(); show('screen-rebirth'); };
 
 // ---- Battle ----
+function setPaused(p) {
+  paused = p;
+  $('btn-pause').textContent = p ? 'Resume' : 'Pause';
+  $('btn-pause').classList.toggle('on', p);
+}
 function startBattle(zoneId) {
+  setPaused(false);
   clearTimeout(autoTimer);
   lastZone = zoneId;
   victory = null;
@@ -296,7 +310,10 @@ muteBtn.onclick = () => { unlock(); setMuted(!isMuted()); paintMute(); play('cli
 paintMute();
 
 function drainSounds(b) {
-  for (const e of b.events) play(e.n, e);
+  for (const e of b.events) {
+    play(e.n, e);
+    if (navigator.vibrate && (e.n === 'boss' || e.n === 'win' || e.n === 'lose')) { try { navigator.vibrate(e.n === 'boss' ? 150 : [80, 60, 160]); } catch (err) { /* ignore */ } }
+  }
   b.events.length = 0;
 }
 
@@ -327,6 +344,28 @@ $('btn-tree').onclick = () => { setBanks(); show('screen-tree'); web.render(); }
 $('btn-arm').onclick = () => { setBanks(); armoury.render(); show('screen-armoury'); };
 $('btn-retry').onclick = () => { clearTimeout(autoTimer); startBattle(lastZone); };
 $('btn-auto').onclick = () => setAuto(!autoOn);
+$('btn-pause').onclick = () => setPaused(!paused);
+// Export and import: a text code holding the whole save, so progress can be backed up or moved between devices.
+$('btn-export').onclick = async () => {
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify(save))));
+  try { await navigator.clipboard.writeText(code); homeNote = 'Save code copied to the clipboard. Paste it somewhere safe.'; }
+  catch (e) { window.prompt('Copy this save code:', code); homeNote = 'Save code shown. Keep a copy somewhere safe.'; }
+  renderHome();
+};
+$('btn-import').onclick = () => {
+  const code = window.prompt('Paste a save code to load it. This replaces your current save.');
+  if (!code) return;
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (!data || typeof data.nodes !== 'object' || typeof data.souls !== 'number') throw new Error('bad');
+    resetSave(save);
+    Object.assign(save, data);
+    save.lastSeen = Date.now();
+    writeSave(save);
+    homeNote = 'Save loaded.';
+  } catch (e) { homeNote = 'That save code did not work. Nothing was changed.'; }
+  goHome();
+};
 const musicBtn = $('btn-music');
 function paintMusic() { musicBtn.textContent = isMusicOn() ? '\u266B' : '\u2715'; musicBtn.style.opacity = isMusicOn() ? 1 : 0.55; }
 musicBtn.onclick = () => { unlock(); setMusic(!isMusicOn()); paintMusic(); play('click'); };
@@ -354,7 +393,7 @@ function frame(now) {
   last = now;
   const tier = necroTier(save);
   if (battle) {
-    if (!battle.result) {
+    if (!battle.result && !paused) {
       const steps = speed * 2;
       for (let i = 0; i < steps; i++) battle.update(dt / 2);
       drainSounds(battle);
@@ -397,4 +436,4 @@ if ('serviceWorker' in navigator) {
 }
 
 // Test hook (used by automated checks).
-window.__game = { save, get battle() { return battle; }, startBattle, endBattle, afterChange, toast, armoury };
+window.__game = { setPaused, save, get battle() { return battle; }, startBattle, endBattle, afterChange, toast, armoury };

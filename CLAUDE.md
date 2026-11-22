@@ -177,3 +177,10 @@ Put these in one `data` file so they are easy to change.
   - **Foreground and finish:** swaying grass in front of the units and a cached vignette over everything.
   - **Units:** they rise out of the ground when raised, breathe while idle, and topple over, sink and fade when killed (corpses live 0.7s). Enemy kills release a drifting soul wisp.
   - **Effects:** glowing magic bolts with trails (frost blue, enemy red, mage purple), fire arrows with an ember trail, screen shake on boss hits, traps, boss deaths and Raise Dead, and a rotating rune circle under the necromancer that flares when casting.
+- **Extras round (Nov 22):**
+  - **Elites:** from wave 3, 5% of ordinary enemies spawn as elites (2.2x HP, 1.3x damage, drawn bigger with a gold glow, triple souls). Each elite killed in an attempt has a 40% chance (up to 4) of an extra gear drop.
+  - **Boss mechanics:** every boss enrages below 30% HP (+35% damage, attacks 20% faster, red tint, shake). The Militia Captain, Mad Priest, Inquisitor, Templar Lord and Hero King also call reinforcements on a timer (`summon` in `UNITS`); adds spawn at base strength.
+  - **Pause button** in battle, phone vibration on boss, win and lose.
+  - **Export and import save** as a text code (home screen), so progress can be backed up or moved between devices.
+  - **Offline gear:** being away 30 minutes or more also brings back up to 3 pieces of gear.
+  - Fixed ghosts and rising units losing their transparency when a rarity glow was drawn.

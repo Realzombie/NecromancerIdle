@@ -71,13 +71,13 @@ export class Battle {
 
   rand(a, b) { return a + this.rng() * (b - a); }
 
-  spawn(type, x, y) {
+  spawn(type, x, y, flat) {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
     if (def.team === 'player' && !def.static) { const m = statMods(this.save, type); hpMul = m.hp * (1 + this.gm.hp); dmgMul = m.dmg * (1 + this.gm.dmg); }
     else {
       const w = worldMul(this.save);
-      const s = def.boss ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
+      const s = def.boss || flat ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
       hpMul = s * w.hp; dmgMul = s * w.dmg;
     }
     const u = {
@@ -93,6 +93,11 @@ export class Battle {
       age: 0,
     };
     u.status = {};
+    // Elites: a rare, bigger and meaner enemy that drops triple souls and may carry gear.
+    if (def.team === 'enemy' && !def.boss && !flat && this.wave >= 3 && this.rng() < 0.05) {
+      u.elite = true; u.hp = u.maxHp = u.maxHp * 2.2; u.dmg *= 1.3;
+    }
+    if (def.summon) u.sumCd = def.summon.every * 0.7;
     if (def.team === 'player' && !def.static) {
       u.look = lookOf(this.save, type);
       u.sp = {};
@@ -258,9 +263,10 @@ export class Battle {
       if (u.sp && u.sp.burst) this.sporeBurst(u);
       else if (u.team === 'player' && !u.def.static && this.gm.fx.martyr) this.sporeBurst(u, 1.5);
       if (u.team === 'enemy') {
-        const drop = u.def.drop * soulMul(this.save);
+        const drop = u.def.drop * soulMul(this.save) * (u.elite ? 3 : 1);
         this.earned += drop;
         this.kills++;
+        if (u.elite) { this.eliteKills = (this.eliteKills || 0) + 1; this.fx.push({ k: 'ring', x: u.x, y: u.y - 8, t: 0, life: 0.5, color: '#ffd060' }); }
         this.floaters.push({ x: u.x, y: u.y - 30, text: '+' + Math.round(drop), t: 0 });
         if (this.gm.fx.reaper && !u.def.boss && this.rng() < 0.12 && this.alive('player') < 90) {
           const z = this.spawn('zombie', clamp(u.x, 120, FIELD_W - 80), u.y);
@@ -297,6 +303,26 @@ export class Battle {
     const frenzy = this.gm.fx.frenzy && u.team === 'player' && u.hp < u.maxHp * 0.5 ? 1.3 : 1;
     u.cd -= dt * (slowed ? 0.6 : 1) * frenzy;
     u.moving = false;
+
+    // Bosses enrage when badly hurt and some call reinforcements.
+    if (u.def.boss) {
+      if (!u.enraged && u.hp < u.maxHp * 0.3) {
+        u.enraged = true; u.dmg *= 1.35;
+        this.shake = Math.max(this.shake, 0.7); this.emit('boss');
+        this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.6, color: '#ff5040' });
+        this.floaters.push({ x: u.x, y: u.y - 60, text: 'ENRAGED', t: 0 });
+      }
+      if (u.def.summon && this.alive('enemy') < 30) {
+        u.sumCd -= dt;
+        if (u.sumCd <= 0) {
+          u.sumCd = u.def.summon.every;
+          for (let i = 0; i < u.def.summon.n; i++) this.spawn(u.def.summon.type, u.x + 14 + i * 14, undefined, true);
+          this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.5, color: '#d6596b' });
+          this.floaters.push({ x: u.x, y: u.y - 60, text: 'reinforcements!', t: 0 });
+          this.emit('wave');
+        }
+      }
+    }
 
     // Regeneration and healing abilities.
     if (u.sp && u.sp.regen) u.hp = Math.min(u.maxHp, u.hp + 0.03 * u.maxHp * dt);
@@ -338,7 +364,7 @@ export class Battle {
     if (u.engaged) {
       u.facing = Math.sign(target.x - u.x) || u.facing;
       if (u.cd <= 0) {
-        u.cd = u.def.atk;
+        u.cd = u.def.atk * (u.enraged ? 0.8 : 1);
         u.attackAnim = ATTACK_TIME;
         u.swing = { delay: SWING_DELAY, target };
         this.emit(u.def.range > 40 ? 'shoot' : 'swing', u.team);
@@ -437,6 +463,10 @@ export class Battle {
     } else {
       this.drops = rollDrops(s, this.rng, this.zoneId, { cleared: result === 'clear', first: !!this.firstClear });
     }
+    // Each elite killed has a 40% chance to carry a piece of gear.
+    const bonus = [];
+    for (let i = 0; i < Math.min(4, this.eliteKills || 0); i++) if (this.rng() < 0.4) bonus.push(...rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }));
+    this.drops.push(...bonus);
     for (const it of this.drops) equipIfBetter(s, it);
   }
 
