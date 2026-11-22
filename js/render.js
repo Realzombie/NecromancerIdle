@@ -675,6 +675,11 @@ function drawUnit(g, u, t, rar) {
   if (sick) { g.globalAlpha = 0.35 + 0.15 * Math.sin(t * 10 + u.id); g.drawImage(sick, x0, y0); g.globalAlpha = 1; }
   g.restore();
   g.globalAlpha = 1;
+  if (u.guard > 0) {
+    g.strokeStyle = '#a0d8ff'; g.lineWidth = 3; g.globalAlpha = 0.55 + 0.25 * Math.sin(t * 12);
+    g.beginPath(); g.ellipse(px, py - s.h * 0.5, s.w * 0.65, s.h * 0.62, 0, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = 'rgba(160,216,255,0.15)'; g.fill(); g.globalAlpha = 1;
+  }
   if (u.hp < u.maxHp) {
     const w = Math.max(18, s.w * 0.8);
     g.fillStyle = '#000'; g.fillRect(px - w / 2, py - s.h - 8, w, 4);
@@ -813,6 +818,20 @@ function drawScene(g, battle, tier = 0) {
       g.strokeStyle = f.color; g.lineWidth = 5 - 3 * k; g.globalAlpha = 1 - k; g.lineCap = 'round';
       g.beginPath(); g.arc(-6, 0, 18, -1.1 + k * 0.5, 1.1 + k * 0.5); g.stroke();
       g.restore();
+    } else if (f.k === 'tele') {
+      // Red warning on the ground: the inner disc fills as the strike gets closer.
+      g.fillStyle = 'rgba(255,60,40,' + (0.1 + 0.12 * Math.sin(f.t * 18)) + ')';
+      g.beginPath(); g.ellipse(f.x, f.y, f.r, f.r * 0.5, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,60,40,0.3)';
+      g.beginPath(); g.ellipse(f.x, f.y, f.r * k, f.r * 0.5 * k, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#ff5040'; g.lineWidth = 2; g.globalAlpha = 0.9;
+      g.beginPath(); g.ellipse(f.x, f.y, f.r, f.r * 0.5, 0, 0, Math.PI * 2); g.stroke();
+    } else if (f.k === 'bolt') {
+      g.strokeStyle = '#fff6c0'; g.lineWidth = 5 - 3 * k; g.globalAlpha = 1 - k; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(f.x, 0);
+      for (let y = 30, i = 0; y < f.y; y += 30, i++) g.lineTo(f.x + Math.sin(f.seed + i * 12.9) * 14, y);
+      g.lineTo(f.x, f.y); g.stroke();
+      g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(f.x, f.y, 26 * (1 - k), 12 * (1 - k), 0, 0, Math.PI * 2); g.fill();
     } else if (f.k === 'soul') {
       const sx = f.x + Math.sin(f.t * 7) * 5, sy = f.y - f.t * 55;
       g.globalAlpha = (1 - k) * 0.35; g.fillStyle = '#b8f090'; g.beginPath(); g.arc(sx, sy, 7, 0, Math.PI * 2); g.fill();

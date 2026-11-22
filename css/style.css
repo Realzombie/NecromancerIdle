@@ -277,3 +277,5 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 
 .savebar { display: flex; justify-content: center; gap: 0.6em; }
 #hud .btn.auto { margin-left: 0; } #hud #btn-pause { margin-left: auto; }
+
+.zabil { color: #ffb0b8; opacity: 0.9; }

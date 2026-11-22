@@ -29,30 +29,49 @@ export const UNITS = {
   militia:  { name: 'Militia Spearman',   hp: 38,  dmg: 5,  atk: 1.1, speed: 36, range: 28,  radius: 10, drop: 6,   sprite: 'militia',  team: 'enemy' },
   slinger:  { name: 'Slinger',            hp: 16,  dmg: 5,  atk: 1.4, speed: 32, range: 150, radius: 9,  drop: 6,   sprite: 'slinger',  team: 'enemy' },
   knight:   { name: 'Knight',             hp: 110, dmg: 10, atk: 1.2, speed: 30, range: 26,  radius: 12, drop: 14,  sprite: 'knight',   team: 'enemy' },
-  champion: { name: 'Peasant Champion',   hp: 400, dmg: 12, atk: 1.0, speed: 30, range: 30,  radius: 16, drop: 100, sprite: 'champion', team: 'enemy', boss: true },
-  captain:  { name: 'Militia Captain',    hp: 800, dmg: 16, atk: 1.0, speed: 32, range: 32,  radius: 16, drop: 160, sprite: 'captain',  team: 'enemy', boss: true, summon: { type: 'militia', n: 2, every: 16 } },
-  priest:   { name: 'Mad Priest',         hp: 1400,dmg: 20, atk: 1.1, speed: 28, range: 32,  radius: 16, drop: 260, sprite: 'priest',   team: 'enemy', boss: true, summon: { type: 'peasant', n: 3, every: 14 } },
-  commander:{ name: 'Knight Commander',   hp: 2600,dmg: 30, atk: 1.1, speed: 28, range: 34,  radius: 18, drop: 420, sprite: 'commander',team: 'enemy', boss: true },
+  champion: { name: 'Peasant Champion',   hp: 400, dmg: 12, atk: 1.0, speed: 30, range: 30,  radius: 16, drop: 100, sprite: 'champion', team: 'enemy', boss: true, abil: ['slam'] },
+  captain:  { name: 'Militia Captain',    hp: 800, dmg: 16, atk: 1.0, speed: 32, range: 32,  radius: 16, drop: 160, sprite: 'captain',  team: 'enemy', boss: true, abil: ['leap'], summon: { type: 'militia', n: 2, every: 16 } },
+  priest:   { name: 'Mad Priest',         hp: 1400,dmg: 20, atk: 1.1, speed: 28, range: 32,  radius: 16, drop: 260, sprite: 'priest',   team: 'enemy', boss: true, abil: ['smite'], summon: { type: 'peasant', n: 3, every: 14 } },
+  commander:{ name: 'Knight Commander',   hp: 2600,dmg: 30, atk: 1.1, speed: 28, range: 34,  radius: 18, drop: 420, sprite: 'commander',team: 'enemy', boss: true, abil: ['guard','slam'] },
 
   // Region 2: the Crusader Reach.
   crusader: { name: 'Crusader',           hp: 150, dmg: 12, atk: 1.2, speed: 30, range: 28,  radius: 12, drop: 22,  sprite: 'crusader', team: 'enemy' },
   crossbow: { name: 'Crossbowman',        hp: 45,  dmg: 15, atk: 1.8, speed: 30, range: 190, radius: 9,  drop: 20,  sprite: 'crossbow', team: 'enemy' },
   cleric:   { name: 'Cleric',             hp: 70,  dmg: 4,  atk: 2.0, speed: 30, range: 140, radius: 9,  drop: 24,  sprite: 'cleric',   team: 'enemy', heal: { amt: 18, every: 2.2, range: 160 } },
   paladin:  { name: 'Paladin',            hp: 420, dmg: 24, atk: 1.4, speed: 26, range: 30,  radius: 14, drop: 55,  sprite: 'paladin',  team: 'enemy' },
-  inquisitor:{ name: 'The Inquisitor',    hp: 3200, dmg: 40, atk: 1.1, speed: 28, range: 34, radius: 17, drop: 700,  sprite: 'inquisitor', team: 'enemy', boss: true, summon: { type: 'crusader', n: 1, every: 18 } },
-  templar:  { name: 'Templar Lord',       hp: 5000, dmg: 55, atk: 1.2, speed: 26, range: 36, radius: 18, drop: 1000, sprite: 'templar',  team: 'enemy', boss: true, summon: { type: 'crusader', n: 2, every: 18 } },
-  archbishop:{ name: 'The Archbishop',    hp: 6500, dmg: 65, atk: 1.3, speed: 26, range: 150, radius: 17, drop: 1500, sprite: 'archbishop', team: 'enemy', boss: true, heal: { amt: 120, every: 4, range: 220 } },
+  inquisitor:{ name: 'The Inquisitor',    hp: 3200, dmg: 40, atk: 1.1, speed: 28, range: 34, radius: 17, drop: 700,  sprite: 'inquisitor', team: 'enemy', boss: true, abil: ['curse'], summon: { type: 'crusader', n: 1, every: 18 } },
+  templar:  { name: 'Templar Lord',       hp: 5000, dmg: 55, atk: 1.2, speed: 26, range: 36, radius: 18, drop: 1000, sprite: 'templar',  team: 'enemy', boss: true, abil: ['slam','guard'], summon: { type: 'crusader', n: 2, every: 18 } },
+  archbishop:{ name: 'The Archbishop',    hp: 6500, dmg: 65, atk: 1.3, speed: 26, range: 150, radius: 17, drop: 1500, sprite: 'archbishop', team: 'enemy', boss: true, abil: ['smite','curse'], heal: { amt: 120, every: 4, range: 220 } },
   // Region 3: the Heroes' Reach.
   berserker:{ name: 'Berserker',          hp: 260, dmg: 28, atk: 0.8, speed: 52, range: 26,  radius: 11, drop: 70,  sprite: 'berserker', team: 'enemy' },
   archmage: { name: 'Archmage',           hp: 120, dmg: 36, atk: 2.0, speed: 30, range: 190, radius: 9,  drop: 80,  sprite: 'archmage', team: 'enemy', splash: 55 },
   assassin: { name: 'Assassin',           hp: 150, dmg: 40, atk: 0.7, speed: 70, range: 22,  radius: 9,  drop: 75,  sprite: 'assassin', team: 'enemy', dodge: 0.35 },
   sentinel: { name: 'Sentinel',           hp: 900, dmg: 48, atk: 1.5, speed: 24, range: 32,  radius: 15, drop: 160, sprite: 'sentinel', team: 'enemy' },
-  herodawn: { name: 'Hero of the Dawn',   hp: 14000, dmg: 110, atk: 1.1, speed: 32, range: 38, radius: 18, drop: 4000, sprite: 'herodawn', team: 'enemy', boss: true },
-  supreme:  { name: 'Archmage Supreme',   hp: 10000, dmg: 120, atk: 2.0, speed: 26, range: 200, radius: 17, drop: 5200, sprite: 'supreme', team: 'enemy', boss: true, splash: 70 },
-  slayer:   { name: 'The Dragonslayer',   hp: 20000, dmg: 160, atk: 1.2, speed: 28, range: 40, radius: 20, drop: 7000, sprite: 'slayer', team: 'enemy', boss: true },
-  herokind: { name: 'The Hero King',      hp: 40000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, summon: { type: 'berserker', n: 1, every: 16 }, heal: { amt: 300, every: 5, range: 240 } },
-  avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true },
+  herodawn: { name: 'Hero of the Dawn',   hp: 14000, dmg: 110, atk: 1.1, speed: 32, range: 38, radius: 18, drop: 4000, sprite: 'herodawn', team: 'enemy', boss: true, abil: ['leap','slam'] },
+  supreme:  { name: 'Archmage Supreme',   hp: 10000, dmg: 120, atk: 2.0, speed: 26, range: 200, radius: 17, drop: 5200, sprite: 'supreme', team: 'enemy', boss: true, abil: ['volley','smite'], splash: 70 },
+  slayer:   { name: 'The Dragonslayer',   hp: 20000, dmg: 160, atk: 1.2, speed: 28, range: 40, radius: 20, drop: 7000, sprite: 'slayer', team: 'enemy', boss: true, abil: ['slam','leap','volley'] },
+  herokind: { name: 'The Hero King',      hp: 40000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, abil: ['smite','guard'], summon: { type: 'berserker', n: 1, every: 16 }, heal: { amt: 300, every: 5, range: 240 } },
+  avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true, abil: ['leap','guard'] },
 };
+
+// Boss abilities. Each boss lists some in its `abil`. Slam, leap and smite show a red warning first so they can be seen coming.
+export const BOSS_ABILITIES = {
+  slam:   { name: 'Ground Slam',  every: 14, windup: 0.9, radius: 72, dmgMul: 1.3 },
+  leap:   { name: 'Leap',         every: 17, windup: 0.6, radius: 58, dmgMul: 1.1 },
+  smite:  { name: 'Smite',        every: 13, windup: 1.0, targets: 2, radius: 34, dmgMul: 2.2 },
+  volley: { name: 'Volley',       every: 12, count: 6, dmgMul: 0.7 },
+  guard:  { name: 'Guard Stance', every: 22, duration: 3.5, reduce: 0.7 },
+  curse:  { name: 'Binding Chains', every: 19, duration: 4 },
+};
+// Everything a boss can do, for the zone map.
+export function bossAbilityNames(def) {
+  const out = ['Enrages'];
+  if (def.summon) out.push('Reinforcements');
+  if (def.heal) out.push('Heals allies');
+  if (def.splash) out.push('Splash bolts');
+  for (const k of def.abil || []) out.push(BOSS_ABILITIES[k].name);
+  return out;
+}
 
 export const TUNING = {
   startZombies: 3,

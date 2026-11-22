@@ -1,7 +1,7 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
-  PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
+  bossAbilityNames, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
 } from './data.js';
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
@@ -10,7 +10,7 @@ import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
 import { createArmoury } from './armoury.js';
 import { checkAchievements, rewardText } from './records.js';
-import { RARITIES, rarityIndex, rollDrops, equipIfBetter } from './gear.js';
+import { RARITIES, rarityIndex } from './gear.js';
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
@@ -48,16 +48,9 @@ function claimOffline() {
   if (secs < TUNING.offlineMinSeconds) return;
   const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp) * (1 + 0.25 * perk(save, 'restless')));
   save.souls += gained;
-  let found = 0;
-  if (secs >= 1800) {
-    // Long absences also turn up some gear (up to three pieces).
-    const drops = rollDrops(save, Math.random, Math.max(1, save.bestZone), { cleared: false, count: Math.min(3, Math.floor(secs / 3600) || 1) });
-    for (const it of drops) equipIfBetter(save, it);
-    found = drops.length;
-  }
   writeSave(save);
   const h = Math.floor(secs / 3600), mnt = Math.floor((secs % 3600) / 60);
-  homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + 'h ' : ''}${mnt}m away.` + (found ? ` They also dragged back ${found} piece${found > 1 ? 's' : ''} of gear.` : '');
+  homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + 'h ' : ''}${mnt}m away.`;
 }
 
 function setBanks() {
@@ -147,7 +140,7 @@ function renderMap() {
       (z.endless
         ? `<div class="zrate ok">Best: wave ${save.bestEndless || 0}</div><div class="zboss">No boss, no end. New record waves pay essence, gear and a champion soul every 10 waves.</div>`
         : `<div class="zrate ${unlocked ? diff : ''}">Rating ${need} <small>(you ${mine})</small></div>` +
-          `<div class="zboss">Boss: ${boss.name}<br><span class="ico2">&#9819;</span> ${cleared ? 'Champion soul (25% chance)' : 'Champion soul'}</div>`);
+          `<div class="zboss">Boss: ${boss.name}<br><small class="zabil">${bossAbilityNames(boss).join(' &middot; ')}</small><br><span class="ico2">&#9819;</span> ${cleared ? 'Champion soul (25% chance)' : 'Champion soul'}</div>`);
     const b = document.createElement('button');
     b.className = 'big';
     b.textContent = z.endless ? 'Enter' : cleared ? 'Replay' : 'Fight';

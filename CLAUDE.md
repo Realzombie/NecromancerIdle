@@ -182,5 +182,5 @@ Put these in one `data` file so they are easy to change.
   - **Boss mechanics:** every boss enrages below 30% HP (+35% damage, attacks 20% faster, red tint, shake). The Militia Captain, Mad Priest, Inquisitor, Templar Lord and Hero King also call reinforcements on a timer (`summon` in `UNITS`); adds spawn at base strength.
   - **Pause button** in battle, phone vibration on boss, win and lose.
   - **Export and import save** as a text code (home screen), so progress can be backed up or moved between devices.
-  - **Offline gear:** being away 30 minutes or more also brings back up to 3 pieces of gear.
   - Fixed ghosts and rising units losing their transparency when a rarity glow was drawn.
+- **Boss abilities and tidy-ups (Nov 22):** offline gear removed again (gear is a reward for active play). Every boss now has special attacks from `BOSS_ABILITIES` in `js/data.js`, listed per boss in `abil`: Ground Slam, Leap (jumps onto your units), Smite (lightning on random units), Volley (arcane bolts), Guard Stance (takes 70% less damage for 3.5s) and Binding Chains (slows the whole horde). Slam, leap and smite show a red warning circle first. Enraged bosses use them 25% more often. The zone map lists each boss's abilities. The moon now draws as a clean clipped crescent.

@@ -3,7 +3,7 @@ import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
   PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
-  DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
+  BOSS_ABILITIES, DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
 
@@ -39,6 +39,7 @@ export class Battle {
     this.spellCd = 10;         // Raise Dead spell cooldown (seconds left)
     this.gm = gearMods(save);
     this.traps = [];
+    this.timers = [];          // delayed effects such as boss attack wind-ups
     this.corpses = [];         // dying units, kept briefly so the renderer can show them fall
     this.shake = 0;            // screen shake strength (visual only)
     this.setupDefences();
@@ -48,6 +49,80 @@ export class Battle {
   }
 
   get totalWaves() { return this.zone.waves; }
+
+  later(delay, fn) { this.timers.push({ t: delay, fn }); }
+
+  // Boss special attacks, each on its own cooldown.
+  bossAbilities(u, dt) {
+    if (!u.def.abil) return;
+    if (!u.abCd) u.abCd = u.def.abil.map((k, i) => BOSS_ABILITIES[k].every * (0.5 + 0.15 * i));
+    if (u.guard > 0) u.guard -= dt;
+    u.def.abil.forEach((k, i) => {
+      u.abCd[i] -= dt;
+      if (u.abCd[i] > 0) return;
+      const targets = this.units.filter((o) => o.team === 'player' && !o.def.static && o.hp > 0);
+      if (!targets.length) { u.abCd[i] = 1; return; }
+      const A = BOSS_ABILITIES[k];
+      u.abCd[i] = A.every * (u.enraged ? 0.75 : 1);
+      this.floaters.push({ x: u.x, y: u.y - 70 - i * 16, text: A.name, t: 0 });
+      this.castBoss(u, k, A, targets);
+    });
+  }
+
+  // Damage everything of the player's within a radius of a point (walls and towers included).
+  areaHit(x, y, r, dmg, from) {
+    this.fx.push({ k: 'ring', x, y: y - 6, t: 0, life: 0.35, color: '#ff8060' });
+    this.shake = Math.max(this.shake, 0.5);
+    this.emit('hit', 'player');
+    for (const o of this.units) {
+      if (o.team !== 'player' || o.hp <= 0) continue;
+      if (Math.hypot(o.x - x, (o.y - y) * 1.6) <= r + o.def.radius) { o.hp -= dmg; o.flash = 0.15; for (let i = 0; i < 3; i++) this.spark(o.x, o.y - 12, '#ffb090'); }
+    }
+  }
+
+  castBoss(u, k, A, targets) {
+    const pick = () => targets[Math.floor(this.rng() * targets.length)];
+    if (k === 'slam') {
+      const x = u.x - 46, y = u.y;
+      this.fx.push({ k: 'tele', x, y, r: A.radius, t: 0, life: A.windup });
+      this.later(A.windup, () => { if (u.hp > 0) this.areaHit(x, y, A.radius, u.dmg * A.dmgMul, u); });
+    } else if (k === 'leap') {
+      const t = pick(), x = t.x + 24, y = t.y;
+      this.fx.push({ k: 'tele', x, y, r: A.radius, t: 0, life: A.windup });
+      this.later(A.windup, () => {
+        if (u.hp <= 0) return;
+        u.x = Math.min(FIELD_W - 30, x); u.y = clamp(y, LANE_MIN_Y, LANE_MAX_Y);
+        this.areaHit(u.x, u.y, A.radius, u.dmg * A.dmgMul, u);
+      });
+    } else if (k === 'smite') {
+      for (let i = 0; i < A.targets; i++) {
+        const t = pick(), x = t.x, y = t.y;
+        this.fx.push({ k: 'tele', x, y, r: A.radius, t: 0, life: A.windup });
+        this.later(A.windup, () => {
+          if (u.hp <= 0) return;
+          this.fx.push({ k: 'bolt', x, y, t: 0, life: 0.3, seed: x });
+          this.areaHit(x, y, A.radius, u.dmg * A.dmgMul, u);
+        });
+      }
+    } else if (k === 'volley') {
+      for (let i = 0; i < A.count; i++) {
+        this.later(i * 0.12, () => {
+          if (u.hp <= 0) return;
+          const live = this.units.filter((o) => o.team === 'player' && !o.def.static && o.hp > 0);
+          if (!live.length) return;
+          this.projectiles.push({ x: u.x - 10, y: u.y - 34, target: live[Math.floor(this.rng() * live.length)], dmg: u.dmg * A.dmgMul, speed: 320, src: u, splash: 0, magic: true });
+          this.emit('shoot', 'enemy');
+        });
+      }
+    } else if (k === 'guard') {
+      u.guard = A.duration;
+      this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.5, color: '#a0d0ff' });
+    } else if (k === 'curse') {
+      for (const o of targets) o.status.slow = { t: A.duration };
+      this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.7, color: '#b080e0' });
+      this.shake = Math.max(this.shake, 0.3);
+    }
+  }
 
   // Walls, towers and traps stand ready before the first wave.
   setupDefences() {
@@ -155,6 +230,8 @@ export class Battle {
     this.spellCd = Math.max(0, this.spellCd - dt);
     this.shake = Math.max(0, this.shake - dt * 1.6);
     for (const c of this.corpses) c.t += dt;
+    for (const tm of this.timers) { tm.t -= dt; if (tm.t <= 0) tm.fn(); }
+    this.timers = this.timers.filter((tm) => tm.t > 0);
     this.corpses = this.corpses.filter((c) => c.t < 0.7);
 
     // The necromancer raises each unit type on its own cooldown.
@@ -312,6 +389,7 @@ export class Battle {
         this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.6, color: '#ff5040' });
         this.floaters.push({ x: u.x, y: u.y - 60, text: 'ENRAGED', t: 0 });
       }
+      if (!this.result) this.bossAbilities(u, dt);
       if (u.def.summon && this.alive('enemy') < 30) {
         u.sumCd -= dt;
         if (u.sumCd <= 0) {
@@ -510,6 +588,7 @@ export class Battle {
       if (src.sp.frost) target.status.slow = { t: 3 };
     }
     if (target.sp && target.sp.shield) dmg *= 0.75;
+    if (target.guard > 0) dmg *= 0.3;
     const gm = this.gm;
     if (src && src.team === 'player' && !src.def.static) {
       if (gm.crit && this.rng() < gm.crit) { dmg *= 2; this.floaters.push({ x: target.x, y: target.y - 38, text: 'crit!', t: 0 }); }
