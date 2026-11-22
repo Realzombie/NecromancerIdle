@@ -1,8 +1,9 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
+  PERKS, PERK_KEYS, perk, perkCost, essenceGain, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
 } from './data.js';
-import { Battle, zoneUnlocked } from './sim.js';
+import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
 import { draw, drawIdle, iconCanvas } from './render.js';
 import { loadSave, writeSave, resetSave } from './save.js';
@@ -25,18 +26,19 @@ function fitUi() { app.style.setProperty('--u', app.clientHeight / 540 + 'px'); 
 window.addEventListener('resize', fitUi);
 fitUi();
 
-const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-result'];
+const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-rebirth', 'screen-result'];
 function show(id) {
   for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
   $('hud').classList.toggle('hidden', id !== null);
+  $('btn-spell').classList.toggle('hidden', id !== null);
 }
 
 // ---- Offline souls: based on the highest zone cleared, capped. Never advances zones. ----
 function claimOffline() {
   if (battle || save.bestZone < 1) return;
-  const secs = Math.min((Date.now() - save.lastSeen) / 1000, TUNING.offlineCapHours * 3600);
+  const secs = Math.min((Date.now() - save.lastSeen) / 1000, offlineCapHours(save) * 3600);
   if (secs < TUNING.offlineMinSeconds) return;
-  const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp));
+  const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp) * (1 + 0.25 * perk(save, 'restless')));
   save.souls += gained;
   writeSave(save);
   const h = Math.floor(secs / 3600), mnt = Math.floor((secs % 3600) / 60);
@@ -48,6 +50,7 @@ function setBanks() {
   $('home-champ').textContent = save.champSouls;
   for (const el of document.querySelectorAll('.b-souls')) el.textContent = Math.floor(save.souls);
   for (const el of document.querySelectorAll('.b-champ')) el.textContent = save.champSouls;
+  for (const el of document.querySelectorAll('.b-ess')) el.textContent = save.essence || 0;
 }
 
 // Is there anything worth buying in the tree right now?
@@ -67,14 +70,17 @@ function treeAvailable() {
 // ---- Home ----
 function renderHome() {
   setBanks();
-  $('home-rank').textContent = NECRO_TIERS[necroTier(save)].name;
+  $('home-rank').textContent = NECRO_TIERS[necroTier(save)].name + (save.rebirths ? ' (Reborn x' + save.rebirths + ')' : '');
+  const gain = essenceGain(save);
+  $('rebirth-badge').textContent = '+' + gain;
+  $('rebirth-badge').classList.toggle('hidden', !canRebirth(save));
   $('home-power').textContent = playerRating(save);
   $('home-note').textContent = homeNote;
   const n = treeAvailable();
   $('tree-badge').textContent = n;
   $('tree-badge').classList.toggle('hidden', n === 0);
   const next = ZONES.find((z) => !save.cleared[z.id]);
-  $('home-hint').textContent = next ? `Next target: ${next.name}` : 'Every zone in the Greenmarch is yours. More to come.';
+  $('home-hint').textContent = next ? `Next target: ${next.name}` : 'Every zone is yours. Rebirth to grow stronger.';
 }
 
 function goHome() {
@@ -127,6 +133,54 @@ function renderMap() {
     box.appendChild(el);
   }
 }
+
+// ---- Rebirth ----
+let rebirthArmed = null;
+function disarmRebirth() { clearTimeout(rebirthArmed); rebirthArmed = null; renderRebirth(); }
+function renderRebirth() {
+  setBanks();
+  const ok = canRebirth(save);
+  const gain = essenceGain(save);
+  $('rb-text').innerHTML =
+    '<div>Rebirths so far: <b>' + (save.rebirths || 0) + '</b></div>' +
+    (ok
+      ? '<div>Rebirthing now pays <b>&#9672; ' + gain + '</b> essence.</div><div>You lose your souls, champion souls, skill tree and cleared zones, and keep your perks and essence.</div>'
+      : '<div>Clear zone ' + REBIRTH_MIN_ZONE + ' to unlock Rebirth.</div><div>Essence is earned from the zones you have cleared and the upgrades you hold.</div>');
+  const go = $('btn-rebirth-go');
+  go.disabled = !ok;
+  go.classList.toggle('armed', !!rebirthArmed);
+  go.textContent = rebirthArmed ? 'Tap again to rebirth' : 'Rebirth';
+  const box = $('perks');
+  box.innerHTML = '';
+  for (const key of PERK_KEYS) {
+    const P = PERKS[key];
+    const lvl = perk(save, key);
+    const maxed = lvl >= P.max;
+    const cost = perkCost(key, lvl);
+    const can = !maxed && (save.essence || 0) >= cost;
+    const el = document.createElement('button');
+    el.className = 'perk' + (can ? ' can' : '') + (maxed ? ' maxed' : '');
+    el.disabled = !can;
+    el.appendChild(iconCanvas(P.icon));
+    el.insertAdjacentHTML('beforeend',
+      '<div class="pname">' + P.name + '</div><div class="plvl">' + lvl + '/' + P.max + '</div>' +
+      '<div class="peff">' + P.effect(lvl) + (maxed ? '' : '<br>Next: ' + P.effect(lvl + 1)) + '</div>' +
+      '<div class="pcost">' + (maxed ? 'MAX' : '<span class="ico3">&#9672;</span> ' + cost) + '</div>');
+    el.onclick = () => { if (buyPerk(save, key)) { play('buy'); writeSave(save); renderRebirth(); } };
+    box.appendChild(el);
+  }
+}
+$('btn-rebirth-go').onclick = () => {
+  if (!canRebirth(save)) return;
+  if (!rebirthArmed) { rebirthArmed = setTimeout(disarmRebirth, 4000); renderRebirth(); return; }
+  clearTimeout(rebirthArmed); rebirthArmed = null;
+  const gain = rebirth(save);
+  writeSave(save);
+  play('win');
+  homeNote = 'You rise again, reborn. +' + gain + ' essence.';
+  goHome();
+};
+$('btn-rebirth').onclick = () => { rebirthArmed = null; renderRebirth(); show('screen-rebirth'); };
 
 // ---- Battle ----
 function startBattle(zoneId) {
@@ -202,6 +256,14 @@ $('btn-speed').onclick = () => {
   $('btn-speed').textContent = speed + 'x';
 };
 
+const spellBtn = $('btn-spell');
+spellBtn.onclick = () => { if (battle && battle.castSpell()) play('raise'); };
+function paintSpell() {
+  const ready = battle.spellReady();
+  spellBtn.classList.toggle('ready', ready);
+  $('spell-cd').style.width = ready ? '0' : (100 * (1 - battle.spellCd / spellCooldown(save))) + '%';
+}
+
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
@@ -218,6 +280,7 @@ function frame(now) {
     $('hud-souls').textContent = Math.floor(battle.earned);
     $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
+    paintSpell();
   } else {
     idleTime += dt;
     drawIdle(g, idleTime, tier);

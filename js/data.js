@@ -37,6 +37,15 @@ export const UNITS = {
   inquisitor:{ name: 'The Inquisitor',    hp: 3200, dmg: 40, atk: 1.1, speed: 28, range: 34, radius: 17, drop: 700,  sprite: 'inquisitor', team: 'enemy', boss: true },
   templar:  { name: 'Templar Lord',       hp: 5000, dmg: 55, atk: 1.2, speed: 26, range: 36, radius: 18, drop: 1000, sprite: 'templar',  team: 'enemy', boss: true },
   archbishop:{ name: 'The Archbishop',    hp: 6500, dmg: 65, atk: 1.3, speed: 26, range: 150, radius: 17, drop: 1500, sprite: 'archbishop', team: 'enemy', boss: true, heal: { amt: 120, every: 4, range: 220 } },
+  // Region 3: the Heroes' Reach.
+  berserker:{ name: 'Berserker',          hp: 260, dmg: 28, atk: 0.8, speed: 52, range: 26,  radius: 11, drop: 70,  sprite: 'berserker', team: 'enemy' },
+  archmage: { name: 'Archmage',           hp: 120, dmg: 36, atk: 2.0, speed: 30, range: 190, radius: 9,  drop: 80,  sprite: 'archmage', team: 'enemy', splash: 55 },
+  assassin: { name: 'Assassin',           hp: 150, dmg: 40, atk: 0.7, speed: 70, range: 22,  radius: 9,  drop: 75,  sprite: 'assassin', team: 'enemy', dodge: 0.35 },
+  sentinel: { name: 'Sentinel',           hp: 900, dmg: 48, atk: 1.5, speed: 24, range: 32,  radius: 15, drop: 160, sprite: 'sentinel', team: 'enemy' },
+  herodawn: { name: 'Hero of the Dawn',   hp: 14000, dmg: 110, atk: 1.1, speed: 32, range: 38, radius: 18, drop: 4000, sprite: 'herodawn', team: 'enemy', boss: true },
+  supreme:  { name: 'Archmage Supreme',   hp: 10000, dmg: 120, atk: 2.0, speed: 26, range: 200, radius: 17, drop: 5200, sprite: 'supreme', team: 'enemy', boss: true, splash: 70 },
+  slayer:   { name: 'The Dragonslayer',   hp: 20000, dmg: 160, atk: 1.2, speed: 28, range: 40, radius: 20, drop: 7000, sprite: 'slayer', team: 'enemy', boss: true },
+  herokind: { name: 'The Hero King',      hp: 30000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, heal: { amt: 300, every: 5, range: 240 } },
   avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true },
 };
 
@@ -77,12 +86,23 @@ export const ZONES = [
     compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
   { id: 8, region: 2, name: 'The Holy Citadel', blurb: 'The last bastion of the faithful.', waves: 10, scale: 1.33, rating: 780, boss: 'avenger',
     compose: (n) => [...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
+
+  // Region 3
+  { id: 9, region: 3, name: 'Frostbitten Pass', blurb: 'Berserkers charge out of the blizzard.', waves: 7, scale: 1.52, rating: 800, boss: 'herodawn',
+    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('crossbow', 2), ...rep('cleric', 1)] },
+  { id: 10, region: 3, name: "Wizard's Tower", blurb: 'Archmages rain ruin from the battlements.', waves: 7, scale: 1.5, rating: 900, boss: 'supreme',
+    compose: (n) => [...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
+  { id: 11, region: 3, name: "Dragon's Rest", blurb: 'Assassins slip through the dark, and sentinels bar the way.', waves: 8, scale: 1.32, rating: 950, boss: 'slayer',
+    compose: (n) => [...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
+  { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.3, rating: 1060, boss: 'herokind',
+    compose: (n) => [...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
 ];
 
 // Regions group zones on the map and set the look of the battlefield (see THEMES in render.js).
 export const REGIONS = [
   { id: 1, name: 'The Greenmarch', theme: 'graveyard', zones: [1, 2, 3, 4] },
   { id: 2, name: 'The Crusader Reach', theme: 'holy', zones: [5, 6, 7, 8] },
+  { id: 3, name: "The Heroes' Reach", theme: 'frost', zones: [9, 10, 11, 12] },
 ];
 
 // ---- Skill tree ----
@@ -159,7 +179,12 @@ export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === '
 export function owned(save, unit) {
   return UNITS[unit].unlockCost === 0 || (save.nodes['unit_' + unit] || 0) > 0;
 }
-export function level(save, stat, unit) { return save.nodes[stat + '_' + unit] || 0; }
+// Prepared Dead (a rebirth perk) lifts every owned unit's HP and damage chains to a minimum level.
+export function level(save, stat, unit) {
+  const base = save.nodes[stat + '_' + unit] || 0;
+  if ((stat === 'hp' || stat === 'dmg') && owned(save, unit)) return Math.max(base, perk(save, 'head'));
+  return base;
+}
 export function statCost(stat, unit, lvl) {
   const tierJump = stat === 'rise' ? 1 : Math.pow(TIER.jump, Math.floor(lvl / TIER.levels));
   return Math.ceil(STATS[stat].base * UNITS[unit].costMul * Math.pow(STATS[stat].growth, lvl) * tierJump);
@@ -206,10 +231,46 @@ export const NECRO_TIERS = [
 ];
 
 export function necroTier(save) {
-  const p = totalLevels(save);
+  const p = totalLevels(save) + 8 * (save.rebirths || 0);
   let tier = 0;
   NECRO_TIERS.forEach((t, i) => { if (p >= t.min) tier = i; });
   return tier;
 }
 
 export function zoneById(id) { return ZONES.find((z) => z.id === id); }
+
+// ---- Rebirth ----
+// Ascending wipes the run (souls, upgrades, cleared zones) and pays out Essence, spent on permanent perks
+// that change how every future run starts.
+export const REBIRTH_MIN_ZONE = 3;       // best zone you must have cleared this run
+export const PERKS = {
+  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 6,  growth: 1.5, max: 8,  effect: (l) => 'Start with ' + (TUNING.startZombies + l) + ' zombies' },
+  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.55, max: 12, effect: (l) => '+' + l * 15 + '% souls from kills' },
+  quick:    { name: 'Quickening',      icon: 'icon_raise', base: 10, growth: 1.6, max: 10, effect: (l) => '-' + l * 4 + '% raise cooldowns' },
+  head:     { name: 'Prepared Dead',   icon: 'icon_hp',  base: 12, growth: 1.8, max: 6,  effect: (l) => 'Units start with +' + l + ' level of HP and damage' },
+  pact:     { name: 'Eternal Pact',    icon: 'skeleton', base: 15, growth: 1.9, max: 6,  effect: (l) => 'Keep ' + l + ' unit unlock' + (l === 1 ? '' : 's') },
+  conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
+  restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4,  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
+  echo:     { name: "Champion's Echo", icon: 'icon_fire', base: 15, growth: 1.7, max: 5,  effect: (l) => '+' + l * 10 + '% champion soul chance on replays' },
+  ritual:   { name: 'Dark Ritual',     icon: 'icon_burst', base: 10, growth: 1.6, max: 6, effect: (l) => 'Raise Dead brings ' + (3 + l) + ' minions, ' + Math.round(45 * Math.pow(0.9, l)) + 's cooldown' },
+};
+export const PERK_KEYS = Object.keys(PERKS);
+// Unit unlocks that Eternal Pact keeps, in the order they are kept.
+export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abomination'];
+
+export function perk(save, key) { return (save.perks && save.perks[key]) || 0; }
+export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow(PERKS[key].growth, lvl)); }
+
+export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)); }
+export function raiseMul(save) { return 1 - 0.04 * perk(save, 'quick'); }
+export function offlineCapHours(save) { return TUNING.offlineCapHours + 4 * perk(save, 'restless'); }
+export function spellCooldown(save) { return 45 * Math.pow(0.9, perk(save, 'ritual')); }
+export function spellCount(save) { return 3 + perk(save, 'ritual'); }
+
+// Essence you would earn by rebirthing now.
+export function essenceGain(save) {
+  let e = 0;
+  for (const id of Object.keys(save.cleared)) if (save.cleared[id]) e += 3 * Math.pow(Number(id), 1.35);
+  return Math.floor(e) + Math.floor(totalLevels(save) / 12);
+}
+export function canRebirth(save) { return save.bestZone >= REBIRTH_MIN_ZONE; }

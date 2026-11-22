@@ -158,3 +158,31 @@ button.big:disabled { opacity: 0.4; cursor: default; }
 .tab { background: #120d1c; border: 1px solid var(--edge); border-radius: 999px; color: var(--text); font: inherit; font-size: 0.8em; padding: 0.3em 1em; cursor: pointer; }
 .tab.on { background: var(--accent); color: #12200c; border-color: var(--accent); font-weight: 700; }
 .tab.locked { opacity: 0.45; cursor: default; }
+
+/* ---- Rebirth and spell ---- */
+.ico3 { color: #e070e0; }
+.bank.essence { color: #f0b0f0; }
+button.big.rebirth { background: #a050b0; color: #fff0ff; box-shadow: 0 4px 0 #62307a; }
+button.big.rebirth:active { box-shadow: 0 2px 0 #62307a; }
+button.big.rebirth:disabled { opacity: 0.45; }
+.rebirth-body { flex: 1; display: grid; grid-template-columns: 30% 1fr; gap: 0.7em; min-height: 0; }
+.rb-info { display: flex; flex-direction: column; gap: 0.6em; justify-content: center; text-align: left; font-size: 0.85em; background: linear-gradient(180deg, #2f2442, #1c1428); border: 2px solid var(--edge); border-radius: 0.7em; padding: 0.8em; }
+.rb-info b { color: #f0b0f0; }
+.rb-info .big { font-size: 1em; background: #a050b0; color: #fff0ff; box-shadow: 0 4px 0 #62307a; }
+.rb-info .big.armed { background: var(--warn); box-shadow: 0 4px 0 #7a2a38; }
+.perks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em; align-content: start; }
+.perk { display: flex; flex-direction: column; align-items: center; gap: 0.15em; padding: 0.45em 0.4em; text-align: center; color: var(--text); font: inherit; font-size: 0.7em; cursor: default;
+  background: linear-gradient(180deg, #2f2442, #1c1428); border: 2px solid var(--edge); border-radius: 0.6em; box-shadow: inset 0 0 0 2px #120d1c, 0 3px 0 #0a0710; }
+.perk canvas { height: calc(var(--u) * 30); width: auto; max-width: calc(var(--u) * 40); image-rendering: pixelated; }
+.perk .pname { font-weight: 700; font-size: 1.1em; color: #f0e8ff; }
+.perk .plvl { color: var(--gold); }
+.perk .peff { opacity: 0.85; min-height: 2.2em; }
+.perk .pcost { padding: 0.2em 0.8em; border-radius: 999px; background: #120d1c; border: 1px solid var(--edge); font-weight: 700; }
+.perk.can { border-color: #e070e0; cursor: pointer; animation: glow 1.8s ease-in-out infinite; }
+.perk.can .pcost { background: #e070e0; color: #2a102a; border-color: #e070e0; }
+.perk.maxed { border-color: var(--gold); }
+.spell { position: absolute; left: calc(var(--u) * 130); bottom: calc(var(--u) * 10); z-index: 20; overflow: hidden; padding: 0.5em 1.1em; border-radius: 999px; border: 2px solid var(--accent); background: rgba(20, 16, 28, 0.9); color: var(--text); font: inherit; font-size: 0.85em; font-weight: 700; cursor: pointer; }
+.spell span { position: relative; z-index: 1; }
+.spell i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(143, 209, 106, 0.35); }
+.spell.ready { background: var(--accent); color: #12200c; animation: glow 1.4s ease-in-out infinite; }
+.spell.ready i { display: none; }

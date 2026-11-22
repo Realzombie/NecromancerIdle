@@ -100,6 +100,26 @@ const SPRITES = {
   templar:  { scale: 7, grid: BIG_GRID, palette: { S: '#d0a888', H: '#c8c8d8', h: '#7a7a8a', T: '#d8d8e8', P: '#5a1a1a', E: '#202020', W: '#e8e8f0', M: '#a02828' } },
   archbishop: { scale: 7, grid: BIG_GRID, palette: { S: '#e8c8a0', H: '#f0e8c0', h: '#c8a040', T: '#f0f0f8', P: '#c8a040', E: '#4060c0', W: '#ffe080', M: '#c8a040' } },
   avenger:  { scale: 8, grid: BIG_GRID, palette: { S: '#f0d8b8', H: '#fff0a0', h: '#e0c050', T: '#fff8e0', P: '#d0b040', E: '#ffffff', W: '#ffffff', M: '#ffe060' } },
+  berserker: { scale: 5, grid: BIG_GRID, palette: { S: '#d8a070', H: '#6a3a1a', h: '#8a4a2a', T: '#b04020', P: '#3a2a1a', E: '#202020', W: '#d0d0d8', M: '#6a4a2a' } },
+  sentinel: { scale: 7, grid: BIG_GRID, palette: { S: '#d0b090', H: '#9ab0c8', h: '#6a8098', T: '#7a90b0', P: '#3a4a60', E: '#202020', W: '#e0f0ff', M: '#4a5a78' } },
+  herodawn: { scale: 8, grid: BIG_GRID, palette: { S: '#f0d0b0', H: '#e8c040', h: '#b08a20', T: '#f0f0ff', P: '#a07020', E: '#2060c0', W: '#ffffff', M: '#e8c040' } },
+  slayer:   { scale: 8, grid: BIG_GRID, palette: { S: '#c8a080', H: '#5a6a7a', h: '#3a4a5a', T: '#4a5a6a', P: '#2a3040', E: '#ff6020', W: '#c8e0ff', M: '#3a4a5a' } },
+  herokind: { scale: 9, grid: BIG_GRID, palette: { S: '#f0d0b0', H: '#ffd040', h: '#d09020', T: '#c02030', P: '#7a1020', E: '#2040c0', W: '#fff0c0', M: '#ffd040' } },
+  archmage: {
+    scale: 5,
+    palette: { K: '#e0b890', H: '#3a50a0', T: '#4a60c0', P: '#2a3a80', E: '#202020', O: '#80c0ff' },
+    grid: ['..HHHH.O', '.HHHHHHO', '..KKKK.O', '.KEKKEK.', '..KKKK..', '.TTTTTT.', 'KTTTTTT.', '.TTTTTT.', '.TTTTTT.', '.PP..PP.'],
+  },
+  supreme: {
+    scale: 8,
+    palette: { K: '#e0b890', H: '#201060', T: '#5030a0', P: '#301870', E: '#ffe040', O: '#c080ff' },
+    grid: ['..HHHH.O', '.HHHHHHO', '..KKKK.O', '.KEKKEK.', '..KKKK..', '.TTTTTT.', 'KTTTTTT.', '.TTTTTT.', '.TTTTTT.', '.PP..PP.'],
+  },
+  assassin: {
+    scale: 4,
+    palette: { S: '#d8b890', H: '#202030', T: '#303045', P: '#202030', E: '#ff4040' },
+    grid: ['..HHHH..', '.HHHHHH.', '..SSSS..', '.SESSES.', '..SSSS..', '.TTTTTT.', 'STTTTTTS', '.TTTTTT.', '.PP..PP.', '.PP..PP.'],
+  },
   crossbow: {
     scale: 4,
     palette: { K: '#e0b890', H: '#6a6a78', T: '#4a5a7a', P: '#3a3a48', E: '#202020', O: '#9a8a6a' },
@@ -400,6 +420,8 @@ const theme = (regionId) => (REGIONS.find((r) => r.id === regionId) || REGIONS[0
 const THEMES = {
   graveyard: { skyTop: '#1a1030', skyBot: '#46305f', stars: true, orb: '#d8d0b0', orbCut: '#2a1c42', hills: '#1d1430', castle: '#150e20', windows: '#e8c860', tree: '#17101f',
     groundA: '#2c3a2a', groundB: '#243021', groundC: '#26331f', path: 'rgba(70,58,48,0.35)', tuft: '#3a5236', fog: 'rgba(200,190,230,0.05)', bats: true },
+  frost: { skyTop: '#0e1a38', skyBot: '#8ab0d8', stars: true, orb: '#e8f0ff', orbCut: '#1a2a52', hills: '#6a80a8', castle: '#2a3858', windows: '#a0d0ff', tree: '#1c2a40',
+    groundA: '#c8d8e8', groundB: '#a8bcd0', groundC: '#b8cadc', path: 'rgba(120,150,185,0.35)', tuft: '#e8f0f8', fog: 'rgba(220,235,255,0.1)', bats: false },
   holy: { skyTop: '#27367a', skyBot: '#f3b07c', stars: false, orb: '#fff0b0', orbCut: null, hills: '#6a5a8a', castle: '#3a3052', windows: '#fff0a0', tree: '#2a3020',
     groundA: '#5a7248', groundB: '#4a6238', groundC: '#52693f', path: 'rgba(210,200,176,0.4)', tuft: '#7a9c5a', fog: 'rgba(255,232,205,0.08)', bats: false },
 };

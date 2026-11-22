@@ -2,6 +2,7 @@
 import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
+  PERKS, PACT_ORDER, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
 } from './data.js';
 
 let nextId = 1;
@@ -33,7 +34,9 @@ export class Battle {
     this.earned = 0;           // souls banked when the attempt ends
     this.payout = 0;
     this.champDrop = 0;        // champion souls gained from the boss
-    for (let i = 0; i < TUNING.startZombies; i++) this.spawn('zombie', 300 + i * 40);
+    this.spellCd = 10;         // Raise Dead spell cooldown (seconds left)
+    const startZombies = TUNING.startZombies + perk(save, 'horde');
+    for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
     for (const t of this.raiseTypes()) this.raiseTimers[t] = this.raiseInterval(t) * 0.5;
   }
 
@@ -90,7 +93,20 @@ export class Battle {
 
   raiseTypes() { return PLAYER_UNITS.filter((t) => owned(this.save, t)); }
 
-  raiseInterval(type) { return UNITS[type].raise * statMods(this.save, type).cooldown; }
+  raiseInterval(type) { return UNITS[type].raise * statMods(this.save, type).cooldown * raiseMul(this.save); }
+
+  // The Raise Dead spell: a free burst of minions on a long cooldown.
+  spellReady() { return !this.result && this.spellCd <= 0; }
+  castSpell() {
+    if (!this.spellReady()) return false;
+    this.spellCd = spellCooldown(this.save);
+    const pool = this.raiseTypes().filter((t) => !UNITS[t].heavy);
+    for (let i = 0; i < spellCount(this.save); i++) this.spawn(pool[Math.floor(this.rng() * pool.length)], NECRO_X + 60 + i * 10);
+    this.cast = 0.8;
+    this.fx.push({ k: 'ring', x: NECRO_X + 20, y: 420, t: 0, life: 0.6, color: '#8fd16a' });
+    this.emit('raise');
+    return true;
+  }
 
   raiseProgress(type) {
     return clamp((this.raiseTimers[type] || 0) / this.raiseInterval(type), 0, 1);
@@ -100,6 +116,7 @@ export class Battle {
     if (this.result) return;
     this.time += dt;
     this.cast = Math.max(0, this.cast - dt);
+    this.spellCd = Math.max(0, this.spellCd - dt);
 
     // The necromancer raises each unit type on its own cooldown.
     for (const type of this.raiseTypes()) {
@@ -185,9 +202,10 @@ export class Battle {
       this.emit('die', u.team);
       if (u.sp && u.sp.burst) this.sporeBurst(u);
       if (u.team === 'enemy') {
-        this.earned += u.def.drop;
+        const drop = u.def.drop * soulMul(this.save);
+        this.earned += drop;
         this.kills++;
-        this.floaters.push({ x: u.x, y: u.y - 30, text: '+' + u.def.drop, t: 0 });
+        this.floaters.push({ x: u.x, y: u.y - 30, text: '+' + Math.round(drop), t: 0 });
       }
     }
     this.units = this.units.filter((u) => u.hp > 0);
@@ -327,7 +345,7 @@ export class Battle {
       const first = !s.cleared[this.zoneId];
       s.cleared[this.zoneId] = true;
       s.bestZone = Math.max(s.bestZone, this.zoneId);
-      if (first || this.rng() < TUNING.repeatSoulChance) { this.champDrop = 1; s.champSouls += 1; }
+      if (first || this.rng() < TUNING.repeatSoulChance + 0.1 * perk(this.save, 'echo')) { this.champDrop = 1; s.champSouls += 1; }
       this.firstClear = first;
     }
     this.payout = Math.floor(this.earned * (result === 'clear' ? 1 : TUNING.failPayout));
@@ -409,4 +427,34 @@ export function buyStat(save, stat, unit) {
   save.souls -= cost;
   save.nodes[stat + '_' + unit] = lvl + 1;
   return true;
+}
+
+// ---- Rebirth ----
+export function buyPerk(save, key) {
+  const lvl = perk(save, key);
+  if (lvl >= PERKS[key].max) return false;
+  const cost = perkCost(key, lvl);
+  if (save.essence < cost) return false;
+  save.essence -= cost;
+  save.perks[key] = lvl + 1;
+  return true;
+}
+
+// Wipe the run, pay out essence and set up the next run as the perks dictate.
+export function rebirth(save) {
+  if (!canRebirth(save)) return 0;
+  const gain = essenceGain(save);
+  const kept = PACT_ORDER.slice(0, perk(save, 'pact')).filter((u) => (save.nodes['unit_' + u] || 0) > 0);
+  save.essence += gain;
+  save.rebirths = (save.rebirths || 0) + 1;
+  save.bestEver = Math.max(save.bestEver || 0, save.bestZone);
+  save.souls = 0;
+  save.champSouls = 0;
+  save.nodes = {};
+  for (const u of kept) save.nodes['unit_' + u] = 1;
+  save.cleared = {};
+  const conquered = perk(save, 'conquest');
+  for (let z = 1; z <= conquered; z++) save.cleared[z] = true;
+  save.bestZone = conquered;
+  return gain;
 }
