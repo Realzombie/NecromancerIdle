@@ -63,8 +63,8 @@ const PAL = THEME.map((t) => ({ lo: hexRgb(t.lo), hi: hexRgb(t.hi) }));
 
 // ---- Rivers, lakes and roads ----
 const RIVERS = [
-  { pts: [[500, 60], [480, 120], [535, 175], [495, 235], [540, 295], [515, 372]], r: 0 },
-  { pts: [[1300, 60], [1270, 120], [1315, 185], [1275, 250], [1310, 372]], r: 1 },
+  { pts: [[500, 88], [480, 128], [535, 175], [495, 235], [540, 295], [515, 372]], r: 0 },
+  { pts: [[1300, 88], [1270, 128], [1315, 185], [1275, 250], [1310, 372]], r: 1 },
 ];
 const LAKES = [{ x: 2330, y: 238, rx: 74, ry: 26, kind: 'ice' }, { x: 3110, y: 240, rx: 60, ry: 22, kind: 'ichor' }];
 const ROADS = IDS.slice(1).map((id, i) => {
@@ -86,6 +86,7 @@ function riverSamples(rv) {          // dense points along a river's smoothed ce
 const nearRiver = (x, y, d) => RIVERS.some((rv) => riverSamples(rv).some(([rx, ry]) => Math.hypot(rx - x, ry - y) < d));
 const inLake = (x, y, k = 1) => LAKES.some((l) => ((x - l.x) / (l.rx * k)) ** 2 + ((y - l.y) / (l.ry * k)) ** 2 < 1);
 
+const nearLandmark = (x, y, d) => LANDMARKS.some((l) => Math.hypot(l.x - x, (l.y - 14 - y) * 1.4) < d);
 function nearPath(x, y, pad = 0) {
   for (const id of IDS) { const [nx, ny] = NODES[id]; if (Math.hypot(x - nx, (y - ny) * 1.3) < 84 + pad) return true; }
   for (const r of ROADS) for (let k = 0; k <= 16; k++) { const p = roadPt(r, k / 16); if (Math.hypot(x - p.x, y - p.y) < 30 + pad) return true; }
@@ -277,26 +278,7 @@ function gravestone(g, x, y, R) {
   else { g.fillStyle = '#0a0710'; g.fillRect(x - 1, y - 14, 4, 15); g.fillRect(x - 5, y - 10, 12, 4); g.fillStyle = '#8a889c'; g.fillRect(x, y - 13, 2, 13); g.fillRect(x - 4, y - 9, 10, 2); }
 }
 
-function buildTerrain(save) {
-  const c = document.createElement('canvas');
-  c.width = WW; c.height = H;
-  const g = c.getContext('2d');
-  g.drawImage(buildGround(), 0, 0);
-  const R = rng(5);
-  for (let r = 0; r < 4; r++) peaks(g, r, rng(30 + r));
-  drawRivers(g);
-  // Wheat fields and orchards along the Crusader Reach, gravestones in the Graveyard Fields
-  for (let i = 0; i < 16; i++) {
-    const x = REGION_X[1] + 30 + R() * 960, y = 120 + R() * 200;
-    if (nearPath(x, y, 14) || nearRiver(x, y, 40)) continue;
-    wheatField(g, x, y, 30 + R() * 26, 14 + R() * 10, R);
-  }
-  for (let i = 0; i < 90; i++) {
-    const x = R() * REGION_X[1], y = 110 + R() * 230;
-    if (nearPath(x, y, 6) || nearRiver(x, y, 26)) continue;
-    if (R() < 0.45) gravestone(g, x, y, R);
-  }
-  drawRoads(g, save);
+function drawScorch(g, save) {
   // Conquered lands: scorched earth with a noisy edge, glowing ley cracks, ash and craters
   for (const id of IDS) {
     if (!save.cleared[id]) continue;
@@ -322,13 +304,37 @@ function buildTerrain(save) {
     for (let k = 0; k < 40; k++) { g.fillStyle = Rs() < 0.5 ? '#3a2e44' : '#5a3a70'; g.fillRect(x + (Rs() - 0.5) * 190, y + 8 + (Rs() - 0.5) * 70, 3, 2); }
     for (let k = 0; k < 4; k++) { const px = x + (Rs() - 0.5) * 150, py = y + 18 + Rs() * 24; g.fillStyle = '#0a0710'; g.beginPath(); g.ellipse(px, py, 9, 3.5, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = '#1e1426'; g.beginPath(); g.ellipse(px, py + 0.5, 7, 2.5, 0, 0, Math.PI * 2); g.fill(); }
   }
+}
+
+function buildTerrain(save) {
+  const c = document.createElement('canvas');
+  c.width = WW; c.height = H;
+  const g = c.getContext('2d');
+  g.drawImage(buildGround(), 0, 0);
+  const R = rng(5);
+  drawScorch(g, save);
+  drawRivers(g);
+  // Wheat fields and orchards along the Crusader Reach, gravestones in the Graveyard Fields
+  for (let i = 0; i < 16; i++) {
+    const x = REGION_X[1] + 30 + R() * 960, y = 120 + R() * 200;
+    if (nearPath(x, y, 14) || nearRiver(x, y, 40) || nearLandmark(x, y, 70)) continue;
+    if (IDS.some((id) => save.cleared[id] && Math.hypot(x + 30 - NODES[id][0], (y - NODES[id][1]) * 2.2) < 150)) continue;   // no crops on scorched earth
+    wheatField(g, x, y, 30 + R() * 26, 14 + R() * 10, R);
+  }
+  for (let i = 0; i < 90; i++) {
+    const x = R() * REGION_X[1], y = 110 + R() * 230;
+    if (nearPath(x, y, 6) || nearRiver(x, y, 26)) continue;
+    if (R() < 0.45) gravestone(g, x, y, R);
+  }
+  drawRoads(g, save);
+  for (let r = 0; r < 4; r++) peaks(g, r, rng(30 + r));
   // Trees, drawn back to front so they overlap properly. Near a conquered zone they are dead.
   const list = [];
   for (let i = 0; i < 1500; i++) {
     const x = R() * WW, y = 78 + R() * (H - 70), r = regionOf(x);
     const dens = fbm(x * 0.012, y * 0.02, 77, 3);
     if (dens < 0.5 && R() > 0.05) continue;
-    if (nearPath(x, y) || nearRiver(x, y, 24) || inLake(x, y, 1.25)) continue;
+    if (nearPath(x, y) || nearRiver(x, y, 24) || inLake(x, y, 1.25) || nearLandmark(x, y, 46)) continue;
     let dead = r === 3;
     for (const id of IDS) if (save.cleared[id] && Math.hypot(x - NODES[id][0], (y - NODES[id][1]) * 1.9) < 130) dead = true;
     const kind = dead ? 'dead' : r === 0 ? 'oak' : r === 1 ? 'orchard' : 'pine';
@@ -522,7 +528,7 @@ function camp(g, x, y, t) {
 const sprites = {};
 const spr = (n) => sprites[n] || (sprites[n] = iconCanvas(n));
 const LANDMARKS = [
-  { x: 1000, y: 262, draw: windmill }, { x: 1270, y: 255, draw: camp }, { x: 1560, y: 120, draw: windmill },
+  { x: 1000, y: 262, draw: windmill }, { x: 1195, y: 292, draw: camp }, { x: 1560, y: 120, draw: windmill },
 ];
 
 // ---- The map controller ----
@@ -589,6 +595,7 @@ export function createWorldMap({ save, startBattle, play }) {
       for (let i = 0; i < 14; i++) {
         const u = ((t * 0.07 + i / 14) % 1) * (s.length - 1), k = Math.floor(u), p = s[k], q = s[Math.min(s.length - 1, k + 1)];
         const px = lerp(p[0], q[0], u - k) + Math.sin(t * 2 + i) * 3, py = lerp(p[1], q[1], u - k);
+        if (py < 96) continue;
         g.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.12 * Math.sin(t * 3 + i * 2)) + ')'; g.fillRect(px - 3, py, 6, 1);
       }
     }
