@@ -1,4 +1,4 @@
-// The skill web: a pannable, zoomable map. Tap the hub to open the unit branches, tap a unit to open its upgrades.
+// The skill web: a pannable, zoomable map. Every owned summon shows all its upgrades; tap any node to read it and buy it.
 import {
   UNITS, STATS, TIER, TIER_NAMES, SPECIALS, SPECIAL_KEYS, PLAYER_UNITS, NECRO_TIERS,
   owned, level, statCost, statEffect, tiersDone, hasSpecial, specialReady, lookOf, necroTier, playerRating,
@@ -7,24 +7,21 @@ import {
 import { buyUnit, buyStat, buySpecial } from './sim.js';
 import { iconCanvas, lookCanvas } from './render.js';
 
-// Units sit evenly around the hub; only one unit's branches are open at a time.
-const pol = (r, deg) => [Math.cos((deg * Math.PI) / 180) * r, Math.sin((deg * Math.PI) / 180) * r];
 
 export function createWeb({ save, play, onChange }) {
   const root = document.getElementById('web');
   const world = document.getElementById('web-world');
   const panel = document.getElementById('web-panel');
-  const open = new Set(['hub', 'zombie']);
-  let selected = null;
+    let selected = null;
   let view = { x: 0, y: 0, s: 0.75 };
   let centered = false;
   let dragged = false;
 
   const applyView = () => { world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`; };
   function recenter() {
-    view.s = 0.62;
+    view.s = 0.5;
     view.x = root.clientWidth / 2;
-    view.y = root.clientHeight - 150;
+    view.y = root.clientHeight * 0.3;
     applyView();
   }
   function zoom(f, cx = root.clientWidth / 2, cy = root.clientHeight / 2) {
@@ -36,45 +33,56 @@ export function createWeb({ save, play, onChange }) {
   }
 
   // ---- Layout ----
-  // The necromancer sits at the bottom. Two roots (zombie and skeleton) lead up to the summons they unlock.
-  // Only one summon's upgrades are open at a time, and a chain only shows the next step once you have started the one before.
+  // Every owned summon shows all of its upgrades at once, in its own pod, so nothing overlaps:
+  //   the summon at the top, then a row of [HP | Rise Faster | Damage], with each chain running straight down its column
+  //   and the special abilities in the middle column below. Summons chain outwards from the necromancer (left for the
+  //   zombie line, right for the skeleton line); Plague Bearer and Death Knight hang above their parents.
+  const COL = 180, ROW = 150, GAP = 60, UP_GAP = 330;
+  const LAYOUT = {
+    zombie: { from: 'hub', dir: -1 }, skeleton: { from: 'hub', dir: 1 },
+    hound: { from: 'zombie', dir: -1 }, abomination: { from: 'hound', dir: -1 }, gargoyle: { from: 'abomination', dir: -1 },
+    archer: { from: 'skeleton', dir: 1 }, mage: { from: 'archer', dir: 1 }, ghost: { from: 'mage', dir: 1 }, gravepriest: { from: 'ghost', dir: 1 },
+    plaguebearer: { from: 'zombie', up: true }, deathknight: { from: 'skeleton', up: true },
+  };
   function build() {
     const nodes = [], links = [];
     const add = (n) => { nodes.push(n); return n; };
     const hub = add({ id: 'hub', x: 0, y: 0, kind: 'hub' });
-    if (!open.has('hub')) return { nodes, links };
     links.push([hub, add({ id: 'unlock:spell', x: 0, y: 150, kind: 'unlock' })]);
-    const un = {};
-    for (const u of PLAYER_UNITS) {
-      if (!unitVisible(save, u)) continue;
-      const [x, y] = UNIT_TREE[u].pos;
+    const halfW = (u) => (u === 'hub' ? 48 : owned(save, u) ? COL + 55 : 56);
+    const un = { hub };
+    for (const u of Object.keys(LAYOUT)) {
+      if (!PLAYER_UNITS.includes(u) || !unitVisible(save, u)) continue;
+      const L = LAYOUT[u], p = un[L.from];
+      if (!p) continue;
+      const x = L.up ? p.x : p.x + L.dir * (halfW(L.from) + GAP + halfW(u));
+      const y = L.up ? p.y - UP_GAP : p.y;
       un[u] = add({ id: 'unit:' + u, x, y, kind: 'unit', unit: u });
+      links.push([p, un[u]]);
     }
-    for (const u of PLAYER_UNITS) {
-      if (!un[u]) continue;
-      const p = UNIT_TREE[u].parent;
-      links.push([p && un[p] ? un[p] : hub, un[u]]);
-    }
-    for (const u of PLAYER_UNITS) {
-      if (!un[u] || !owned(save, u) || !open.has(u)) continue;
-      const { x, y } = un[u];
-      links.push([un[u], add({ id: 'rise:' + u, x, y: y + 112, kind: 'stat', stat: 'rise', unit: u, tier: 0 })]);
+    for (const u of Object.keys(un)) {
+      if (u === 'hub' || !owned(save, u)) continue;
+      const { x, y } = un[u], sg = LAYOUT[u].up ? -1 : 1;
+      links.push([un[u], add({ id: 'rise:' + u, x, y: y + sg * ROW, kind: 'stat', stat: 'rise', unit: u, tier: 0 })]);
+      const first = {};
       for (const [stat, dir] of [['hp', -1], ['dmg', 1]]) {
         const L = level(save, stat, u);
-        const chain = [];
         let prev = un[u];
         for (let k = 0; k < TIER.count; k++) {
           if (k > 0 && L < (k - 1) * TIER.levels + 1) break;   // the next step appears once the one before has a point in it
-          const n = add({ id: stat + ':' + u + ':' + k, x: x + dir * 112 * (k + 1), y, kind: 'stat', stat, unit: u, tier: k });
+          const n = add({ id: stat + ':' + u + ':' + k, x: x + dir * COL, y: y + sg * ROW * (k + 1), kind: 'stat', stat, unit: u, tier: k });
           links.push([prev, n]);
-          chain.push(n);
+          if (k === 0) first[stat] = n;
           prev = n;
         }
-        if (L < 1) continue;
+      }
+      let slot = 0;
+      for (const stat of ['hp', 'dmg']) {
+        if (level(save, stat, u) < 1) continue;
         for (const key of SPECIAL_KEYS) {
           const sp = SPECIALS[key];
           if (sp.unit !== u || sp.needs.stat !== stat) continue;
-          links.push([chain[0], add({ id: 'sp:' + key, x: chain[0].x, y: y - 112, kind: 'special', key, unit: u })]);
+          links.push([first[stat], add({ id: 'sp:' + key, x, y: y + sg * ROW * (2 + slot++), kind: 'special', key, unit: u })]);
         }
       }
     }
@@ -87,7 +95,7 @@ export function createWeb({ save, play, onChange }) {
     if (n.kind === 'hub') {
       const tier = necroTier(save);
       return { icon: iconCanvas('necro' + tier), label: NECRO_TIERS[tier].name, badge: `Power ${playerRating(save)}`, state: 'hub',
-        title: NECRO_TIERS[tier].name, lines: [`Power ${playerRating(save)}. Your rank and look grow with the gear you wear.`, open.has('hub') ? 'Tap to fold the web.' : 'Tap to open the web.'] };
+        title: NECRO_TIERS[tier].name, lines: [`Power ${playerRating(save)}. Your rank and look grow with the gear you wear.`] };
     }
     if (n.kind === 'unlock') {
       const have = spellUnlocked(save), can = !have && save.souls >= SPELL_UNLOCK_COST;
@@ -104,8 +112,8 @@ export function createWeb({ save, play, onChange }) {
       const canBuy = !have && !gated && save.champSouls >= def.unlockCost;
       return {
         icon: have ? lookCanvas(n.unit, lookOf(save, n.unit)) : iconCanvas(def.sprite), label: def.name,
-        badge: have ? (open.has(n.unit) ? 'open' : 'tap') : gated ? `${gate.have}/${gate.need} lvls` : `♛ ${def.unlockCost}`, state: have ? 'owned' : (canBuy ? 'avail' : gated ? 'locked' : 'ready'),
-        title: def.name, lines: [def.blurb, have ? (open.has(n.unit) ? 'Tap to fold its upgrades.' : 'Tap to open its upgrades.') : gated ? `Spend ${gate.need - gate.have} more upgrade level${gate.need - gate.have > 1 ? 's' : ''} on ${UNIT_TREE[n.unit].gate.units.map((u) => UNITS[u].name + 's').join(' and ')} to unlock it.` : `Unlock with ${def.unlockCost} champion soul${def.unlockCost > 1 ? 's' : ''}.`],
+        badge: have ? 'owned' : gated ? `${gate.have}/${gate.need} lvls` : `♛ ${def.unlockCost}`, state: have ? 'owned' : (canBuy ? 'avail' : gated ? 'locked' : 'ready'),
+        title: def.name, lines: [def.blurb, have ? 'Its upgrades are shown around it.' : gated ? `Spend ${gate.need - gate.have} more upgrade level${gate.need - gate.have > 1 ? 's' : ''} on ${UNIT_TREE[n.unit].gate.units.map((u) => UNITS[u].name + 's').join(' and ')} to unlock it.` : `Unlock with ${def.unlockCost} champion soul${def.unlockCost > 1 ? 's' : ''}.`],
         buy: have || gated ? null : { label: `Unlock ♛ ${def.unlockCost}`, enabled: canBuy, fn: () => buyUnit(save, n.unit) },
       };
     }
@@ -193,16 +201,9 @@ export function createWeb({ save, play, onChange }) {
 
   function pick(n) {
     play('click');
-    if (n.kind === 'hub') toggle('hub');
-    else if (n.kind === 'unit' && owned(save, n.unit)) {
-      const was = open.has(n.unit);
-      for (const u of PLAYER_UNITS) open.delete(u);
-      if (!was) open.add(n.unit);
-    }
     selected = n.id;
     render();
   }
-  function toggle(key) { if (open.has(key)) open.delete(key); else open.add(key); }
 
   function renderPanel(info) {
     panel.classList.toggle('hidden', !info);
