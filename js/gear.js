@@ -35,7 +35,7 @@ export const GEAR_FX = {
   martyr: { name: 'Martyr',   desc: 'Your dying minions explode, hurting nearby enemies.' },
   frenzy: { name: 'Frenzy',   desc: 'Minions below half health attack 30% faster.' },
   reaper: { name: 'Reaper',   desc: 'Kills have a 12% chance to raise a free zombie.' },
-  bulwark:{ name: 'Bulwark',  desc: 'Bone walls have double health.' },
+  bulwark:{ name: 'Bulwark',  desc: 'Your summons take 10% less damage.' },
 };
 const FX_KEYS = Object.keys(GEAR_FX);
 

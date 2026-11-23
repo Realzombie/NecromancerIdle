@@ -764,7 +764,8 @@ function drawUnit(g, u, t, rar) {
 
 // A buried mine: dark casing, a blinking red light once it is armed.
 function drawMine(g, m, t) {
-  const x = Math.round(m.x), y = Math.round(m.y);
+  g.save(); g.translate(Math.round(m.x), Math.round(m.y)); g.scale(1.35, 1.35);
+  const x = 0, y = 0;
   const armed = m.arm <= 0, blink = armed ? (Math.sin(m.pulse * 9) > 0.2) : (Math.sin(m.pulse * 25) > 0);
   g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(x, y + 2, 13, 5, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = '#0a0710'; g.fillRect(x - 9, y - 7, 18, 10);
@@ -773,6 +774,7 @@ function drawMine(g, m, t) {
   g.fillStyle = '#8a8298'; for (const dx of [-7, 5]) g.fillRect(x + dx, y - 8, 2, 3);
   g.fillStyle = blink ? '#ff4040' : '#601818'; g.fillRect(x - 2, y - 9, 4, 4);
   if (blink && armed) { g.fillStyle = 'rgba(255,60,60,0.25)'; g.beginPath(); g.ellipse(x, y - 3, 20, 9, 0, 0, Math.PI * 2); g.fill(); }
+  g.restore();
 }
 
 // Falling corpse: topples over, sinks and fades.
