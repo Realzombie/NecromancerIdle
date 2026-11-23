@@ -2,8 +2,8 @@
 import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
-  PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldown, spellCount, essenceGain, canRebirth,
-  bestiaryBonus, BOSS_ABILITIES, DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
+  PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
+  gateMet, bestiaryBonus, BOSS_ABILITIES, DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
 
@@ -36,7 +36,7 @@ export class Battle {
     this.earned = 0;           // souls banked when the attempt ends
     this.payout = 0;
     this.champDrop = 0;        // champion souls gained from the boss
-    this.spellCd = 10;         // Raise Dead spell cooldown (seconds left)
+    this.spellCds = {};        // Raise Dead cooldown left for each summon type (seconds)
     this.gm = gearMods(save);
     this.bb = bestiaryBonus(save);
     this.newFinds = [];       // enemy kinds defeated for the first time this attempt
@@ -48,7 +48,7 @@ export class Battle {
     this.setupDefences();
     const startZombies = TUNING.startZombies + perk(save, 'horde');
     for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
-    for (const t of this.raiseTypes()) this.raiseTimers[t] = this.raiseInterval(t) * 0.5;
+    for (const t of this.raiseTypes()) { this.raiseTimers[t] = this.raiseInterval(t) * 0.5; this.spellCds[t] = 10; }
   }
 
   get totalWaves() { return this.zone.waves; }
@@ -209,13 +209,12 @@ export class Battle {
 
   raiseInterval(type) { return UNITS[type].raise * statMods(this.save, type).cooldown * raiseMul(this.save); }
 
-  // The Raise Dead spell: a free burst of minions on a long cooldown.
-  spellReady() { return !this.result && this.spellCd <= 0; }
-  castSpell() {
-    if (!this.spellReady()) return false;
-    this.spellCd = spellCooldown(this.save);
-    const pool = this.raiseTypes().filter((t) => !UNITS[t].heavy);
-    for (let i = 0; i < spellCount(this.save); i++) this.spawn(pool[Math.floor(this.rng() * pool.length)], NECRO_X + 60 + i * 10);
+  // Raise Dead: a free burst of one summon type on a long cooldown (needs the unlock from the skill web).
+  spellReady(type) { return !this.result && spellUnlocked(this.save) && (this.spellCds[type] ?? 10) <= 0; }
+  castSpell(type) {
+    if (!this.spellReady(type)) return false;
+    this.spellCds[type] = spellCooldownFor(this.save, type);
+    for (let i = 0; i < spellCountFor(this.save, type); i++) this.spawn(type, NECRO_X + 60 + i * 10);
     this.cast = 0.8;
     this.shake = Math.max(this.shake, 0.35);
     this.fx.push({ k: 'ring', x: NECRO_X + 20, y: 420, t: 0, life: 0.6, color: '#8fd16a' });
@@ -231,7 +230,7 @@ export class Battle {
     if (this.result) return;
     this.time += dt;
     this.cast = Math.max(0, this.cast - dt);
-    this.spellCd = Math.max(0, this.spellCd - dt);
+    for (const k of Object.keys(this.spellCds)) this.spellCds[k] = Math.max(0, this.spellCds[k] - dt);
     this.shake = Math.max(0, this.shake - dt * 1.6);
     for (const c of this.corpses) c.t += dt;
     for (const tm of this.timers) { tm.t -= dt; if (tm.t <= 0) tm.fn(); }
@@ -556,13 +555,13 @@ export class Battle {
         s.essence = (s.essence || 0) + this.endless.essence;
         s.champSouls += this.endless.champ;
       }
-      this.drops = rollDrops(s, this.rng, 12 + Math.floor(waves / 5), { cleared: false, count: Math.floor(waves / 4), first: false });
+      this.drops = rollDrops(s, this.rng, 12 + Math.floor(waves / 5), { cleared: false, count: Math.floor(waves / 8), first: false });
     } else {
       this.drops = rollDrops(s, this.rng, this.zoneId, { cleared: result === 'clear', first: !!this.firstClear });
     }
-    // Each elite killed has a 40% chance to carry a piece of gear.
+    // Each elite killed has a 12% chance to carry a piece of gear.
     const bonus = [];
-    for (let i = 0; i < Math.min(4, this.eliteKills || 0); i++) if (this.rng() < 0.4) bonus.push(...rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }));
+    for (let i = 0; i < Math.min(3, this.eliteKills || 0); i++) if (this.rng() < 0.12) bonus.push(...rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }));
     this.drops.push(...bonus);
     for (const it of this.drops) equipIfBetter(s, it);
   }
@@ -643,7 +642,7 @@ export function zoneUnlocked(save, zoneId) { return zoneId === 1 || !!save.clear
 
 export function buyUnit(save, unit) {
   const def = UNITS[unit];
-  if (owned(save, unit) || save.champSouls < def.unlockCost) return false;
+  if (owned(save, unit) || save.champSouls < def.unlockCost || !gateMet(save, unit)) return false;
   save.champSouls -= def.unlockCost;
   save.nodes['unit_' + unit] = 1;
   return true;

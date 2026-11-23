@@ -301,3 +301,23 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 .bcard .bn { font-weight: 700; font-size: 1.15em; color: #f0e8ff; }
 .bcard.boss .bn { color: var(--gold); }
 .bcard .bs { opacity: 0.85; } .bcard .bz { opacity: 0.6; } .bcard .ba { color: #ffb0b8; } .bcard .bg { color: var(--accent); }
+
+/* ---- Rotate hint (portrait phones) ---- */
+.rotate { display: none; position: fixed; inset: 0; z-index: 100; background: #14101c; color: var(--accent); align-items: center; justify-content: center; text-align: center; font-size: 5vw; font-weight: 700; padding: 1em; }
+@media (orientation: portrait) and (max-width: 900px) { .rotate { display: flex; } }
+
+/* ---- Raise Dead bar: one button per summon ---- */
+.spell-bar { position: absolute; left: calc(var(--u) * 100); bottom: calc(var(--u) * 10); z-index: 20; display: flex; gap: calc(var(--u) * 6); flex-wrap: wrap; max-width: 62%; }
+.spellbtn { position: relative; overflow: hidden; width: calc(var(--u) * 44); height: calc(var(--u) * 44); padding: 0; border-radius: 0.6em; border: 2px solid var(--edge); background: rgba(20, 16, 28, 0.9); cursor: pointer; display: grid; place-items: center; }
+.spellbtn canvas { max-width: 70%; max-height: 70%; width: auto; height: auto; image-rendering: pixelated; position: relative; z-index: 1; }
+.spellbtn i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0, 0, 0, 0.6); z-index: 2; }
+.spellbtn.ready { border-color: var(--accent); animation: glow 1.4s ease-in-out infinite; }
+
+.arm-slots { grid-template-columns: repeat(4, 1fr); }
+
+/* ---- World map ---- */
+.map-view { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: pan-y; cursor: grab; border-radius: 0.6em; border: 2px solid var(--edge); background: #1a1326; }
+.map-view:active { cursor: grabbing; }
+.map-view canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.map-view .web-panel { right: 8px; }
+.map-view .zrate.ok { color: var(--accent); } .map-view .zrate.hard { color: #e8c060; } .map-view .zrate.wall { color: var(--warn); }

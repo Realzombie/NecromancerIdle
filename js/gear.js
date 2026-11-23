@@ -3,14 +3,15 @@
 
 export const RARITIES = [
   { id: 'common',    name: 'Common',    color: '#b8b0c8', mult: 1,   extras: 0, dust: 2,  weight: 60 },
-  { id: 'magic',     name: 'Magic',     color: '#5aa8ff', mult: 1.3, extras: 1, dust: 5,  weight: 27 },
-  { id: 'rare',      name: 'Rare',      color: '#f0d050', mult: 1.7, extras: 2, dust: 12, weight: 10 },
-  { id: 'epic',      name: 'Epic',      color: '#c070f0', mult: 2.2, extras: 3, dust: 30, weight: 2.6 },
-  { id: 'legendary', name: 'Legendary', color: '#ff9030', mult: 2.8, extras: 3, dust: 80, weight: 0.4 },
+  { id: 'magic',     name: 'Magic',     color: '#5aa8ff', mult: 1.25, extras: 1, dust: 5,  weight: 27 },
+  { id: 'rare',      name: 'Rare',      color: '#f0d050', mult: 1.55, extras: 2, dust: 12, weight: 10 },
+  { id: 'epic',      name: 'Epic',      color: '#c070f0', mult: 1.95, extras: 3, dust: 30, weight: 2.6 },
+  { id: 'legendary', name: 'Legendary', color: '#ff9030', mult: 2.5, extras: 3, dust: 80, weight: 0.4 },
 ];
 
-export const SLOTS = ['weapon', 'armour', 'charm'];
-export const SLOT_NAMES = { weapon: 'Weapon', armour: 'Armour', charm: 'Charm' };
+// Necromancer's gear: a staff, robes, a tome and a familiar (a crawling hand). Slot keys stay as they were in older saves.
+export const SLOTS = ['weapon', 'armour', 'charm', 'familiar'];
+export const SLOT_NAMES = { weapon: 'Staff', armour: 'Robes', charm: 'Tome', familiar: 'Familiar' };
 
 // Stat keys. Values are fractions (0.1 = +10%) before rarity, item level and upgrades are applied.
 export const STAT_DEFS = {
@@ -26,8 +27,8 @@ export const STAT_DEFS = {
 const pct = (v) => Math.round(v * 1000) / 10 + '%';
 
 // Main stat each slot always rolls, and the pool its extra rolls come from.
-export const SLOT_MAIN = { weapon: 'dmg', armour: 'hp', charm: 'souls' };
-const EXTRA_POOL = { weapon: ['crit', 'lifesteal', 'rise', 'spell', 'hp'], armour: ['thorns', 'rise', 'souls', 'dmg', 'spell'], charm: ['rise', 'spell', 'dmg', 'hp', 'crit', 'lifesteal', 'thorns'] };
+export const SLOT_MAIN = { weapon: 'dmg', armour: 'hp', charm: 'souls', familiar: 'rise' };
+const EXTRA_POOL = { weapon: ['crit', 'lifesteal', 'rise', 'spell', 'hp'], armour: ['thorns', 'rise', 'souls', 'dmg', 'spell'], charm: ['rise', 'spell', 'dmg', 'hp', 'crit', 'lifesteal', 'thorns'], familiar: ['spell', 'crit', 'lifesteal', 'thorns', 'souls', 'dmg', 'hp'] };
 
 // Special effects on Epic (sometimes) and Legendary (always) items.
 export const GEAR_FX = {
@@ -39,10 +40,15 @@ export const GEAR_FX = {
 const FX_KEYS = Object.keys(GEAR_FX);
 
 const BASES = {
-  weapon: ['Rusty Shiv', 'Grave Scythe', 'Soulreaper', 'Lich Staff'],
-  armour: ['Tattered Shroud', 'Bone Plate', 'Wraith Mantle', 'Void Plate'],
-  charm:  ['Bone Charm', 'Skull Amulet', 'Soul Phylactery', 'Death Sigil'],
+  weapon:   ['Gnarled Stick', 'Bone Staff', 'Soul Staff', 'Lich Scepter'],
+  armour:   ['Tattered Shroud', 'Grave Robes', 'Wraith Mantle', 'Void Vestments'],
+  charm:    ['Mouldy Journal', 'Book of Bones', 'Grimoire of Souls', 'The Necronomicon'],
+  familiar: ['Severed Hand', 'Skeletal Hand', 'Crawling Claw', 'Ghostly Hand'],
 };
+// Gear is meant to feel earned: the best rarity a zone can drop climbs slowly, and the power stays with your summons.
+export const rarityCap = (zone) => (zone <= 2 ? 0 : zone <= 4 ? 1 : zone <= 6 ? 2 : zone <= 9 ? 3 : 4);
+const CAP_ODDS = [[100], [72, 28], [58, 30, 12], [46, 30, 17, 7], [40, 30, 20, 8, 2]];
+const GEAR_POWER = 0.75;
 const PREFIX = {
   common: [''],
   magic: ['Sturdy', 'Keen', 'Gilded', 'Sombre'],
@@ -52,7 +58,7 @@ const PREFIX = {
 };
 export const MAX_UP = 10;
 export const MAX_ITEMS = 60;
-export const PITY_AT = 7;          // drops without a Rare before one is guaranteed
+export const PITY_AT = 10;         // drops below the zone's best rarity before one is guaranteed
 
 export const rarityIndex = (id) => RARITIES.findIndex((r) => r.id === id);
 export const rarityOf = (item) => RARITIES[rarityIndex(item.rarity)];
@@ -82,11 +88,11 @@ export function makeItem(save, rng, zone, rarityIdx, slot) {
   slot = slot || pick(rng, SLOTS);
   const scale = 1 + 0.1 * (zone - 1);
   const roll = () => 0.8 + rng() * 0.4;
-  const stats = [{ k: SLOT_MAIN[slot], v: STAT_DEFS[SLOT_MAIN[slot]].base * R.mult * scale * roll() }];
+  const stats = [{ k: SLOT_MAIN[slot], v: STAT_DEFS[SLOT_MAIN[slot]].base * R.mult * scale * roll() * GEAR_POWER }];
   const pool = EXTRA_POOL[slot].filter((k) => k !== SLOT_MAIN[slot]);
   for (let i = 0; i < R.extras && pool.length; i++) {
     const k = pool.splice(Math.floor(rng() * pool.length), 1)[0];
-    stats.push({ k, v: STAT_DEFS[k].base * R.mult * scale * roll() * 0.6 });
+    stats.push({ k, v: STAT_DEFS[k].base * R.mult * scale * roll() * 0.6 * GEAR_POWER });
   }
   let fx = null;
   if (rarityIdx === 4 || (rarityIdx === 3 && rng() < 0.4)) fx = pick(rng, FX_KEYS);
@@ -108,7 +114,7 @@ export function rerollExtras(item, rng) {
   item.stats = [main];
   for (let i = 0; i < R.extras && pool.length; i++) {
     const k = pool.splice(Math.floor(rng() * pool.length), 1)[0];
-    item.stats.push({ k, v: STAT_DEFS[k].base * R.mult * scale * (0.8 + rng() * 0.4) * 0.6 });
+    item.stats.push({ k, v: STAT_DEFS[k].base * R.mult * scale * (0.8 + rng() * 0.4) * 0.6 * GEAR_POWER });
   }
 }
 
@@ -129,6 +135,16 @@ export function gearMods(save) {
   m.lifesteal = Math.min(0.25, m.lifesteal);
   m.thorns = Math.min(0.5, m.thorns);
   return m;
+}
+
+export function wornItem(save, slot) {
+  return (save.gear || []).find((g) => g.id === (save.equipped || {})[slot]) || null;
+}
+// Sum of (rarity + 1) over the worn pieces: drives the necromancer's rank.
+export function gearScore(save) {
+  let n = 0;
+  for (const slot of SLOTS) { const it = wornItem(save, slot); if (it) n += rarityIndex(it.rarity) + 1; }
+  return n;
 }
 
 export function itemPower(item) {
@@ -219,23 +235,30 @@ export function equipIfBetter(save, item) {
 }
 
 // Gear found at the end of an attempt. Returns the list of new items.
-export function rollDrops(save, rng, zone, { cleared, boss, first, count: forced }) {
+// Drops are rare: a clear has a 40% chance of one piece, a defeat 5%, and the first clear of a zone always drops one at the
+// best rarity that zone allows. What can drop is capped by the zone (see rarityCap).
+function rollIdx(rng, cap) {
+  let t = rng() * 100;
+  const odds = CAP_ODDS[cap];
+  for (let i = 0; i < odds.length; i++) { t -= odds[i]; if (t <= 0) return i; }
+  return 0;
+}
+export function rollDrops(save, rng, zone, { cleared, first, count: forced }) {
   const out = [];
+  const cap = rarityCap(zone);
+  const top = Math.min(cap, 3);        // pity never forces a Legendary
   save.pity = save.pity || 0;
-  let count = 0;
-  if (cleared) count = 1 + (rng() < 0.35 ? 1 : 0) + (rng() < 0.12 ? 1 : 0);
-  else if (rng() < 0.2) count = 1;
+  let count = cleared ? (rng() < 0.4 ? 1 : 0) : (rng() < 0.05 ? 1 : 0);
   if (forced !== undefined) count = forced;
   for (let i = 0; i < count; i++) {
-    let idx = rollRarity(rng, zone, false, 0);
+    let idx = rollIdx(rng, cap);
     if (!cleared && forced === undefined) idx = Math.min(idx, 1);
-    if (save.pity >= PITY_AT && idx < 2) idx = 2;
-    save.pity = idx >= 2 ? 0 : save.pity + 1;
+    if (cap >= 1 && save.pity >= PITY_AT) idx = Math.max(idx, top);
+    save.pity = cap >= 1 && idx >= top ? 0 : save.pity + 1;
     out.push(makeItem(save, rng, zone, idx));
   }
-  // The first kill of a boss always drops something good.
   if (cleared && first) {
-    const idx = Math.max(2, rollRarity(rng, zone, true, 2));
+    const idx = cap === 4 ? (zone >= 12 ? 4 : 3) : cap;
     save.pity = 0;
     out.push(makeItem(save, rng, zone, idx));
   }

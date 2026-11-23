@@ -1,6 +1,6 @@
 // Checks the gear rules: node tools/geartest.mjs
 import { defaultSave } from '../js/save.js';
-import { rollDrops, equip, salvage, upgradeItem, rerollItem, gearMods, makeItem, addItem, MAX_ITEMS, PITY_AT, RARITIES } from '../js/gear.js';
+import { rollDrops, rarityCap, equip, salvage, upgradeItem, rerollItem, gearMods, makeItem, addItem, MAX_ITEMS, PITY_AT, RARITIES } from '../js/gear.js';
 import { checkAchievements } from '../js/records.js';
 
 let fails = 0;
@@ -13,17 +13,23 @@ let seed = 7; const rng = () => (seed = (seed * 16807) % 2147483647) / 214748364
 // Pity: never more than PITY_AT failed-attempt drops in a row without a Rare.
 let sinceRare = 0, worst = 0;
 for (let i = 0; i < 400; i++) {
-  for (const it of rollDrops(save, rng, 1, { cleared: false, count: 1 })) {
-    if (RARITIES.findIndex((r) => r.id === it.rarity) >= 2) sinceRare = 0; else worst = Math.max(worst, ++sinceRare);
+  for (const it of rollDrops(save, rng, 8, { cleared: false, count: 1 })) {
+    if (RARITIES.findIndex((r) => r.id === it.rarity) >= 3) sinceRare = 0; else worst = Math.max(worst, ++sinceRare);
   }
 }
 ok(worst <= PITY_AT, 'pity counter keeps the dry streak at ' + PITY_AT + ' or less (got ' + worst + ')');
+// Early zones cannot drop better than their cap.
+const early = defaultSave();
+let over = 0;
+for (let i = 0; i < 300; i++) for (const it of rollDrops(early, rng, 2, { cleared: true, count: 1 })) if (RARITIES.findIndex((r) => r.id === it.rarity) > rarityCap(2)) over++;
+ok(over === 0, 'zone 2 only drops Common gear');
 ok(save.gear.length <= MAX_ITEMS, 'the bag never exceeds its limit');
 
 // First clear of a boss drops a Rare or better.
 const fresh = defaultSave();
-const drops = rollDrops(fresh, rng, 3, { cleared: true, first: true });
-ok(drops.some((d) => ['rare', 'epic', 'legendary'].includes(d.rarity)), 'first clear drops a Rare+');
+const drops = rollDrops(fresh, rng, 6, { cleared: true, first: true });
+ok(drops.some((d) => d.rarity === 'rare'), 'first clear of zone 6 drops a Rare');
+ok(rollDrops(defaultSave(), rng, 12, { cleared: true, first: true }).some((d) => d.rarity === 'legendary'), 'first clear of zone 12 drops a Legendary');
 
 // Equip, mods, salvage, upgrade.
 const s2 = defaultSave();

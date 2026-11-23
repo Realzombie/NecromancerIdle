@@ -2,13 +2,12 @@
 import {
   UNITS, STATS, TIER, TIER_NAMES, SPECIALS, SPECIAL_KEYS, PLAYER_UNITS, NECRO_TIERS,
   owned, level, statCost, statEffect, tiersDone, hasSpecial, specialReady, lookOf, necroTier, playerRating,
+  UNIT_TREE, gateProgress, gateMet, unitVisible, spellUnlocked, SPELL_UNLOCK_COST,
 } from './data.js';
 import { buyUnit, buyStat, buySpecial } from './sim.js';
 import { iconCanvas, lookCanvas } from './render.js';
 
 // Units sit evenly around the hub; only one unit's branches are open at a time.
-const RING = ['zombie', 'skeleton', 'archer', 'mage', 'ghost', 'abomination', 'hound', 'deathknight', 'plaguebearer', 'gravepriest', 'gargoyle'];
-const ANGLE = Object.fromEntries(RING.map((u, i) => [u, 180 + (i * 360) / RING.length]));
 const pol = (r, deg) => [Math.cos((deg * Math.PI) / 180) * r, Math.sin((deg * Math.PI) / 180) * r];
 
 export function createWeb({ save, play, onChange }) {
@@ -23,9 +22,9 @@ export function createWeb({ save, play, onChange }) {
 
   const applyView = () => { world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`; };
   function recenter() {
-    view.s = 0.75;
+    view.s = 0.62;
     view.x = root.clientWidth / 2;
-    view.y = root.clientHeight / 2 - 30;
+    view.y = root.clientHeight - 150;
     applyView();
   }
   function zoom(f, cx = root.clientWidth / 2, cy = root.clientHeight / 2) {
@@ -37,34 +36,45 @@ export function createWeb({ save, play, onChange }) {
   }
 
   // ---- Layout ----
+  // The necromancer sits at the bottom. Two roots (zombie and skeleton) lead up to the summons they unlock.
+  // Only one summon's upgrades are open at a time, and a chain only shows the next step once you have started the one before.
   function build() {
     const nodes = [], links = [];
     const add = (n) => { nodes.push(n); return n; };
     const hub = add({ id: 'hub', x: 0, y: 0, kind: 'hub' });
     if (!open.has('hub')) return { nodes, links };
+    links.push([hub, add({ id: 'unlock:spell', x: 0, y: 150, kind: 'unlock' })]);
+    const un = {};
     for (const u of PLAYER_UNITS) {
-      const [x, y] = pol(270, ANGLE[u]);
-      const un = add({ id: 'unit:' + u, x, y, kind: 'unit', unit: u });
-      links.push([hub, un]);
-      if (!owned(save, u) || !open.has(u)) continue;
-      const [rx, ry] = pol(120, ANGLE[u]);
-      links.push([un, add({ id: 'rise:' + u, x: x + rx, y: y + ry, kind: 'stat', stat: 'rise', unit: u, tier: 0 })]);
-      for (const [stat, off] of [['hp', -60], ['dmg', 60]]) {
-        const dir = ANGLE[u] + off;
+      if (!unitVisible(save, u)) continue;
+      const [x, y] = UNIT_TREE[u].pos;
+      un[u] = add({ id: 'unit:' + u, x, y, kind: 'unit', unit: u });
+    }
+    for (const u of PLAYER_UNITS) {
+      if (!un[u]) continue;
+      const p = UNIT_TREE[u].parent;
+      links.push([p && un[p] ? un[p] : hub, un[u]]);
+    }
+    for (const u of PLAYER_UNITS) {
+      if (!un[u] || !owned(save, u) || !open.has(u)) continue;
+      const { x, y } = un[u];
+      links.push([un[u], add({ id: 'rise:' + u, x, y: y + 112, kind: 'stat', stat: 'rise', unit: u, tier: 0 })]);
+      for (const [stat, dir] of [['hp', -1], ['dmg', 1]]) {
+        const L = level(save, stat, u);
         const chain = [];
-        let prev = un;
+        let prev = un[u];
         for (let k = 0; k < TIER.count; k++) {
-          const [dx, dy] = pol(135 * (k + 1), dir);
-          const n = add({ id: `${stat}:${u}:${k}`, x: x + dx, y: y + dy, kind: 'stat', stat, unit: u, tier: k });
+          if (k > 0 && L < (k - 1) * TIER.levels + 1) break;   // the next step appears once the one before has a point in it
+          const n = add({ id: stat + ':' + u + ':' + k, x: x + dir * 112 * (k + 1), y, kind: 'stat', stat, unit: u, tier: k });
           links.push([prev, n]);
           chain.push(n);
           prev = n;
         }
+        if (L < 1) continue;
         for (const key of SPECIAL_KEYS) {
           const sp = SPECIALS[key];
           if (sp.unit !== u || sp.needs.stat !== stat) continue;
-          const [sx, sy] = pol(125, dir + (off < 0 ? -70 : 70));
-          links.push([chain[0], add({ id: 'sp:' + key, x: chain[0].x + sx, y: chain[0].y + sy, kind: 'special', key, unit: u })]);
+          links.push([chain[0], add({ id: 'sp:' + key, x: chain[0].x, y: y - 112, kind: 'special', key, unit: u })]);
         }
       }
     }
@@ -77,17 +87,26 @@ export function createWeb({ save, play, onChange }) {
     if (n.kind === 'hub') {
       const tier = necroTier(save);
       return { icon: iconCanvas('necro' + tier), label: NECRO_TIERS[tier].name, badge: `Power ${playerRating(save)}`, state: 'hub',
-        title: NECRO_TIERS[tier].name, lines: [`Power ${playerRating(save)}. Your rank grows as you buy upgrades.`, open.has('hub') ? 'Tap to fold the web.' : 'Tap to open the web.'] };
+        title: NECRO_TIERS[tier].name, lines: [`Power ${playerRating(save)}. Your rank and look grow with the gear you wear.`, open.has('hub') ? 'Tap to fold the web.' : 'Tap to open the web.'] };
+    }
+    if (n.kind === 'unlock') {
+      const have = spellUnlocked(save), can = !have && save.souls >= SPELL_UNLOCK_COST;
+      return {
+        icon: iconCanvas('icon_raise'), label: 'Raise Dead', badge: have ? 'owned' : '☠ ' + SPELL_UNLOCK_COST, state: have ? 'maxed' : can ? 'avail' : 'ready',
+        title: 'Raise Dead', lines: ['A button for every summon you own: tap it in battle to raise a free burst of that summon, then wait for it to recharge.', have ? 'Unlocked.' : 'Teach the necromancer to call the dead on demand.'],
+        buy: have ? null : { label: 'Unlock ☠ ' + SPELL_UNLOCK_COST, enabled: can, fn: () => { if (save.souls < SPELL_UNLOCK_COST) return false; save.souls -= SPELL_UNLOCK_COST; save.nodes.unlock_spell = 1; return true; } },
+      };
     }
     if (n.kind === 'unit') {
       const def = UNITS[n.unit];
       const have = owned(save, n.unit);
-      const canBuy = !have && save.champSouls >= def.unlockCost;
+      const gate = gateProgress(save, n.unit), gated = !have && !gateMet(save, n.unit);
+      const canBuy = !have && !gated && save.champSouls >= def.unlockCost;
       return {
         icon: have ? lookCanvas(n.unit, lookOf(save, n.unit)) : iconCanvas(def.sprite), label: def.name,
-        badge: have ? (open.has(n.unit) ? 'open' : 'tap') : `♛ ${def.unlockCost}`, state: have ? 'owned' : (canBuy ? 'avail' : 'locked'),
-        title: def.name, lines: [def.blurb, have ? (open.has(n.unit) ? 'Tap to fold its upgrades.' : 'Tap to open its upgrades.') : `Unlock with ${def.unlockCost} champion soul${def.unlockCost > 1 ? 's' : ''}.`],
-        buy: have ? null : { label: `Unlock ♛ ${def.unlockCost}`, enabled: canBuy, fn: () => buyUnit(save, n.unit) },
+        badge: have ? (open.has(n.unit) ? 'open' : 'tap') : gated ? `${gate.have}/${gate.need} lvls` : `♛ ${def.unlockCost}`, state: have ? 'owned' : (canBuy ? 'avail' : gated ? 'locked' : 'ready'),
+        title: def.name, lines: [def.blurb, have ? (open.has(n.unit) ? 'Tap to fold its upgrades.' : 'Tap to open its upgrades.') : gated ? `Spend ${gate.need - gate.have} more upgrade level${gate.need - gate.have > 1 ? 's' : ''} on ${UNIT_TREE[n.unit].gate.units.map((u) => UNITS[u].name + 's').join(' and ')} to unlock it.` : `Unlock with ${def.unlockCost} champion soul${def.unlockCost > 1 ? 's' : ''}.`],
+        buy: have || gated ? null : { label: `Unlock ♛ ${def.unlockCost}`, enabled: canBuy, fn: () => buyUnit(save, n.unit) },
       };
     }
     if (n.kind === 'special') {

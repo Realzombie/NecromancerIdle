@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div class="rotate"><div>Turn your phone sideways to play</div></div>
 <div id="app">
   <canvas id="field" width="960" height="540"></canvas>
 
@@ -53,11 +54,13 @@
   <div id="screen-map" class="screen page hidden">
     <div class="page-top">
       <button class="back" data-back>&larr; Back</button>
-      <h2 id="map-title">The Greenmarch</h2>
+      <h2 id="map-title">World Map</h2>
       <div class="banks"><div class="bank"><span class="ico">&#9760;</span> <b class="b-souls">0</b></div></div>
     </div>
-    <div id="region-tabs" class="tabs"></div>
-    <div id="zones" class="zones"></div>
+    <div id="map-view" class="map-view">
+      <canvas id="map-canvas" width="640" height="360"></canvas>
+      <div id="map-panel" class="web-panel hidden"></div>
+    </div>
   </div>
 
   <div id="screen-tree" class="screen page hidden">
@@ -76,7 +79,7 @@
     </div>
   </div>
 
-  <button id="btn-spell" class="spell hidden"><span>Raise Dead</span><i id="spell-cd"></i></button>
+  <div id="spell-bar" class="spell-bar hidden"></div>
 
   <div id="screen-armoury" class="screen page hidden">
     <div class="page-top">

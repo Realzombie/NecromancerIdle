@@ -1,11 +1,12 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
-  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldown,
+  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldownFor, spellUnlocked, lookOf,
 } from './data.js';
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
-import { draw, drawIdle, drawVictory, iconCanvas } from './render.js';
+import { createWorldMap } from './worldmap.js';
+import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas } from './render.js';
 import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
 import { createArmoury } from './armoury.js';
@@ -22,6 +23,9 @@ const save = loadSave();
 let battle = null;
 let victory = null;   // celebration state while a cleared zone plays its animation
 let speed = 1;
+try { const sv = Number(localStorage.getItem('necro_speed')); if ([1, 2, 4].includes(sv)) speed = sv; } catch (e) { /* ignore */ }
+const spellBar = $('spell-bar');
+let spellBtns = [];
 let idleTime = 0;
 let homeNote = '';
 let lastFirstClear = false;
@@ -35,10 +39,12 @@ window.addEventListener('resize', fitUi);
 fitUi();
 
 const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-armoury', 'screen-rebirth', 'screen-result'];
+let worldMap = null;
 function show(id) {
+  if (worldMap && id !== 'screen-map') worldMap.stop();
   for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
   $('hud').classList.toggle('hidden', id !== null);
-  $('btn-spell').classList.toggle('hidden', id !== null);
+  spellBar.classList.toggle('hidden', id !== null || !spellBtns.length);
 }
 
 // ---- Offline souls: based on the highest zone cleared, capped. Never advances zones. ----
@@ -103,55 +109,6 @@ function goHome() {
   show('screen-home');
 }
 
-// ---- Zone map ----
-let mapRegion = 1;
-function renderMap() {
-  setBanks();
-  // Region tabs: a region opens once the zone before it is cleared.
-  const tabs = $('region-tabs');
-  tabs.innerHTML = '';
-  for (const r of REGIONS) {
-    const isOpen = zoneUnlocked(save, r.zones[0]);
-    const t = document.createElement('button');
-    t.className = 'tab' + (r.id === mapRegion ? ' on' : '') + (isOpen ? '' : ' locked');
-    t.textContent = isOpen ? r.name : r.name + ' (locked)';
-    t.disabled = !isOpen;
-    t.onclick = () => { mapRegion = r.id; renderMap(); };
-    tabs.appendChild(t);
-  }
-  const region = REGIONS.find((r) => r.id === mapRegion);
-  $('map-title').textContent = region.name;
-  const box = $('zones');
-  box.innerHTML = '';
-  const mine = playerRating(save);
-  const wm = worldMul(save);
-  for (const zid of region.zones) {
-    const z = zoneById(zid);
-    const unlocked = zoneUnlocked(save, z.id);
-    const cleared = !!save.cleared[z.id];
-    const boss = z.boss && UNITS[z.boss];
-    const need = Math.round(z.rating * wm.rating);
-    const diff = mine >= need ? 'ok' : mine >= need * 0.7 ? 'hard' : 'wall';
-    const el = document.createElement('div');
-    el.className = 'zone' + (cleared ? ' cleared' : '') + (unlocked ? '' : ' locked');
-    el.innerHTML =
-      `<div class="znum">${cleared ? '&#10003;' : z.id}</div>` +
-      `<div class="zname">${z.name}</div>` +
-      `<div class="zblurb">${unlocked ? z.blurb : 'Locked: clear the previous zone'}</div>` +
-      (z.endless
-        ? `<div class="zrate ok">Best: wave ${save.bestEndless || 0}</div><div class="zboss">No boss, no end. New record waves pay essence, gear and a champion soul every 10 waves.</div>`
-        : `<div class="zrate ${unlocked ? diff : ''}">Rating ${need} <small>(you ${mine})</small></div>` +
-          `<div class="zboss">Boss: ${boss.name}<br><small class="zabil">${bossAbilityNames(boss).join(' &middot; ')}</small><br><span class="ico2">&#9819;</span> ${cleared ? 'Champion soul (25% chance)' : 'Champion soul'}</div>`);
-    const b = document.createElement('button');
-    b.className = 'big';
-    b.textContent = z.endless ? 'Enter' : cleared ? 'Replay' : 'Fight';
-    b.disabled = !unlocked;
-    b.onclick = () => startBattle(z.id);
-    el.appendChild(b);
-    box.appendChild(el);
-  }
-}
-
 // ---- Rebirth ----
 let rebirthArmed = null;
 function disarmRebirth() { clearTimeout(rebirthArmed); rebirthArmed = null; renderRebirth(); }
@@ -213,9 +170,9 @@ function startBattle(zoneId) {
   victory = null;
   battle = new Battle(save, zoneId);
   lastFirstClear = false;
-  speed = 1;
-  $('btn-speed').textContent = '1x';
+  $('btn-speed').textContent = speed + 'x';
   $('hud-zone').textContent = zoneById(zoneId).name;
+  buildSpellBar();
   show(null);
 }
 
@@ -296,6 +253,7 @@ function setAuto(on) {
 // ---- Sound ----
 // Browsers only allow audio after a tap, so the first touch unlocks it.
 window.addEventListener('pointerdown', unlock);
+window.addEventListener('pointerdown', () => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* ignore */ } }, { once: true });
 window.addEventListener('keydown', unlock);
 // A click blip for ordinary buttons (tree nodes play their own buy sound).
 document.addEventListener('click', (e) => {
@@ -334,10 +292,11 @@ resetBtn.onclick = () => {
 };
 
 const web = createWeb({ save, play, onChange: afterChange });
+worldMap = createWorldMap({ save, startBattle: (id) => startBattle(id), play });
 const armoury = createArmoury({ save, play, onChange: afterChange });
 
 // ---- Wiring ----
-$('btn-map').onclick = () => { renderMap(); show('screen-map'); };
+$('btn-map').onclick = () => { setBanks(); show('screen-map'); worldMap.show(); };
 $('btn-tree').onclick = () => { setBanks(); show('screen-tree'); web.render(); };
 $('btn-arm').onclick = () => { setBanks(); armoury.render(); show('screen-armoury'); };
 $('btn-retry').onclick = () => { clearTimeout(autoTimer); startBattle(lastZone); };
@@ -375,14 +334,32 @@ canvas.addEventListener('pointerdown', () => { if (victory && victory.t > 1.2) {
 $('btn-speed').onclick = () => {
   speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
   $('btn-speed').textContent = speed + 'x';
+  try { localStorage.setItem('necro_speed', String(speed)); } catch (e) { /* ignore */ }
 };
 
-const spellBtn = $('btn-spell');
-spellBtn.onclick = () => { if (battle && battle.castSpell()) play('raise'); };
-function paintSpell() {
-  const ready = battle.spellReady();
-  spellBtn.classList.toggle('ready', ready);
-  $('spell-cd').style.width = ready ? '0' : (100 * (1 - battle.spellCd / spellCooldown(save))) + '%';
+// Raise Dead: one button per summon, only once the unlock is bought in the skill web.
+function buildSpellBar() {
+  spellBar.innerHTML = '';
+  spellBtns = [];
+  if (!spellUnlocked(save)) return;
+  for (const type of battle.raiseTypes()) {
+    const b = document.createElement('button');
+    b.className = 'spellbtn';
+    b.title = 'Raise ' + UNITS[type].name + 's';
+    b.appendChild(lookCanvas(type, lookOf(save, type)));
+    const cd = document.createElement('i');
+    b.appendChild(cd);
+    b.onclick = () => { if (battle && battle.castSpell(type)) play('raise'); };
+    spellBar.appendChild(b);
+    spellBtns.push({ type, b, cd });
+  }
+}
+function paintSpells() {
+  for (const s of spellBtns) {
+    const ready = battle.spellReady(s.type);
+    s.b.classList.toggle('ready', ready);
+    s.cd.style.height = ready ? '0' : (100 * (battle.spellCds[s.type] || 0)) / spellCooldownFor(save, s.type) + '%';
+  }
 }
 
 let last = performance.now();
@@ -397,7 +374,7 @@ function frame(now) {
       drainSounds(battle);
       if (battle.result === 'clear') {
         victory = { t: 0, parts: [] };
-        $('btn-spell').classList.add('hidden');
+        spellBar.classList.add('hidden');
       } else if (battle.result) endBattle();
     }
     if (victory) battle.time += dt;
@@ -411,10 +388,10 @@ function frame(now) {
     $('hud-souls').textContent = Math.floor(battle.earned);
     $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : battle.zone.endless ? `Wave ${battle.wave}` : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
-    paintSpell();
+    paintSpells();
   } else {
     idleTime += dt;
-    drawIdle(g, idleTime, tier);
+    drawIdle(g, idleTime, tier, save);
   }
   requestAnimationFrame(frame);
 }

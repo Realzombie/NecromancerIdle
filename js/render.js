@@ -2,7 +2,7 @@
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
 import { ATTACK_TIME } from './sim.js';
 import { LOOKS } from './looks.js';
-import { RARITIES, SLOTS, rarityIndex } from './gear.js';
+import { RARITIES, SLOTS, rarityIndex, wornItem } from './gear.js';
 
 // Palette letters: . = transparent
 const NECRO_GRID = [
@@ -51,14 +51,17 @@ const SPRITES = {
     grid: ['..B..B..B.', '..B..B..B.', '.BB.BB.BB.', '.BB.BB.BB.', 'SSSSSSSSSS', 'SsSsSsSsSs'] },
   icon_tower: { scale: 4, palette: { S: '#8a8498', s: '#6a6478', E: '#8fd16a', G: '#4a8a52' },
     grid: ['.G.GG.G.', '.GGGGGG.', '..SSSS..', '..SEES..', '..SSSS..', '.SSSSSS.', '..SssS..', '.SSSSSS.', 'SSSSSSSS'] },
-  gear_weapon: { scale: 4, palette: { B: '#e8e0f0', W: '#9a6a30', G: '#c8a040' },
-    grid: ['........BB', '.......BBB', '......BBB.', '.....BBB..', '.B..BBB...', '.GBBBB....', '..GGB.....', '.WWG......', 'WW........'] },
-  gear_armour: { scale: 4, palette: { A: '#b0a8c8', a: '#8a82a8', G: '#c8a040' },
-    grid: ['.AA....AA.', 'AAAA..AAAA', 'AAAAAAAAAA', '.AAAAAAAA.', '.AAAGGAAA.', '.AAAGGAAA.', '.aAAAAAAa.', '..aAAAAa..'] },
-  gear_charm: { scale: 4, palette: { C: '#b0a8c8', G: '#8fd16a', H: '#e0ffd0' },
-    grid: ['.C......C.', '..C....C..', '...C..C...', '....CC....', '...GGGG...', '..GGHHGG..', '..GGHGGG..', '...GGGG...'] },
+  gear_weapon: { scale: 4, palette: { G: '#c8a040', O: '#8fd16a', W: '#7a5a30' },
+    grid: ['....GG....', '...GOOG...', '...GOOG...', '....GG....', '....WW....', '....WW....', '....WW....', '....WW....', '....WW....', '....WW....'] },
+  gear_armour: { scale: 4, palette: { R: '#7a5ab8', r: '#a888e8' },
+    grid: ['..RRRRRR..', '.RRrRRrRR.', 'RRRRRRRRRR', 'RRRrrrrRRR', '.RRRrrRRR.', '.RRRRRRRR.', '.RRRRRRRR.', 'RRRRRRRRRR'] },
+  gear_charm: { scale: 4, palette: { C: '#5a3a7a', P: '#e8e0c8', G: '#c8a040', E: '#8fd16a' },
+    grid: ['.CCCCCCCC.', 'CCCCCCCCCC', 'CCCGEEGCCC', 'CCCEEEECCC', 'CCCGEEGCCC', 'CCCCCCCCCC', '.PPPPPPPP.'] },
+  gear_familiar: { scale: 4, palette: { F: '#d8d0b0', B: '#a09878' },
+    grid: ['.F.F.F.F..', '.F.F.F.F..', '.FFFFFFFFF', '.FFFFFFFFF', '..FFFFFFF.', '..FFFFFF..', '...FFFF...', '....BB....'] },
   icon_dust: { scale: 4, palette: { D: '#e8e0c8', d: '#b8b09a' },
     grid: ['....D.....', '...DDD....', '..DDdDD...', '.DDDDDDD..', 'DdDDdDDdD.'] },
+  necro4: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#4a1020', h: '#8a2a40', R: '#3a0c18', r: '#7a2038', E: '#ffd060', T: '#7a5a30', O: '#ff8030' } },
   zombie: {
     scale: 4,
     palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848' },
@@ -579,6 +582,51 @@ function drawFog(g, t) {
 }
 
 // ---- The necromancer ----
+let GEAR_SAVE = {};   // whose gear to draw on the necromancer (set by draw and drawIdle)
+
+// A floating spell book beside the necromancer. Better rarities glow and shimmer.
+function drawTome(g, cx, cy, t, r) {
+  const col = ['#6a5a7a', '#3a5a9a', '#8a6a20', '#6a2a8a', '#a04010'][r];
+  const glow = RARITIES[r].color;
+  g.save(); g.translate(Math.round(cx), Math.round(cy)); g.rotate(Math.sin(t * 1.8) * 0.08);
+  if (r >= 1) {
+    g.globalAlpha = 0.18 + 0.1 * Math.sin(t * 3); g.fillStyle = glow;
+    g.beginPath(); g.arc(0, 0, 19 + r * 2, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+  }
+  g.fillStyle = '#0a0710'; g.fillRect(-13, -11, 26, 21);
+  g.fillStyle = col; g.fillRect(-12, -10, 24, 19);
+  g.fillStyle = '#e8e0c8'; g.fillRect(-11, 6, 22, 2);
+  g.fillStyle = glow; g.fillRect(-4, -5, 8, 8);
+  g.fillStyle = '#0a0710'; g.fillRect(-1, -3, 2, 4);
+  if (r >= 3) { g.globalAlpha = 0.5 + 0.4 * Math.sin(t * 5); g.fillStyle = glow; g.fillRect(-10, -8, 3, 2); g.fillRect(7, -8, 3, 2); g.fillRect(-10, 3, 3, 2); g.fillRect(7, 3, 3, 2); g.globalAlpha = 1; }
+  g.restore();
+  if (r === 4) for (let i = 0; i < 3; i++) {
+    const a = t * 2 + i * 2.1;
+    g.fillStyle = glow; g.globalAlpha = 0.8; g.fillRect(cx + Math.cos(a) * 20, cy + Math.sin(a) * 14, 2, 2); g.globalAlpha = 1;
+  }
+}
+
+// A little hand that scuttles about on its fingertips beside the necromancer, like Thing.
+function drawFamiliar(g, x, base, t, r) {
+  const col = ['#d8d0b0', '#a8c8ff', '#f0d890', '#d8a0ff', '#b8ffd0'][r];
+  const cyc = t * 0.5, px = x + 74 + Math.sin(cyc) * 36, dir = Math.cos(cyc) >= 0 ? 1 : -1;
+  const hop = Math.abs(Math.sin(t * 7)) * 4;
+  g.save(); g.translate(Math.round(px), Math.round(base + 16 - hop)); g.scale(dir, 1);
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(0, hop + 2, 9, 3, 0, 0, Math.PI * 2); g.fill();
+  if (r >= 2) { g.globalAlpha = 0.2 + 0.1 * Math.sin(t * 4); g.fillStyle = col; g.beginPath(); g.arc(0, -8, 15, 0, Math.PI * 2); g.fill(); }
+  g.globalAlpha = r === 4 ? 0.8 : 1;
+  const paint = (c, o) => {
+    g.fillStyle = c;
+    g.fillRect(-6 - o, -13 - o, 12 + o * 2, 8 + o * 2);                 // palm
+    g.fillRect(-10 - o, -10 - o, 4 + o * 2, 3 + o * 2);                 // thumb
+    g.fillRect(5 - o, -9 - o, 6 + o * 2, 3 + o * 2);                    // wrist
+    for (let i = 0; i < 4; i++) { const lift = Math.max(0, Math.sin(t * 14 + i * 1.6)) * 3; g.fillRect(-6 + i * 3.4 - o, -5 - o, 2 + o * 2, 7 - lift + o * 2); }
+  };
+  paint('#0a0710', 1); paint(col, 0);
+  if (r >= 2) { g.fillStyle = '#ffe080'; g.fillRect(-3, -3, 2, 2); }   // a ring on one finger
+  g.restore();
+}
+
 function drawNecro(g, t, tier, battle) {
   const x = NECRO_X + 6, base = 432;
   // Stone platform
@@ -600,28 +648,33 @@ function drawNecro(g, t, tier, battle) {
     grad.addColorStop(0, `rgba(143,209,106,${0.28 + cast * 0.5})`); grad.addColorStop(1, 'rgba(143,209,106,0)');
     g.fillStyle = grad; g.fillRect(x - r, base - 40 - r, r * 2, r * 2);
   }
-  const s = sprite('necro' + tier);
+  // The necromancer looks like the gear he wears: robes change his body, the staff his orb, plus a floating tome,
+  // a scuttling hand (the familiar) and, for Legendary pieces, orbiting skulls.
+  const robe = wornItem(GEAR_SAVE, 'armour'), staff = wornItem(GEAR_SAVE, 'weapon'), tome = wornItem(GEAR_SAVE, 'charm'), fam = wornItem(GEAR_SAVE, 'familiar');
+  const ri = (it) => (it ? rarityIndex(it.rarity) : -1);
+  const s = sprite(['necro0', 'necro0', 'necro1', 'necro2', 'necro4', 'necro3'][ri(robe) + 1]);
   const bob = Math.sin(t * 2) * 1.5;
   g.drawImage(s.img, Math.round(x - s.w / 2 - 4), Math.round(base - s.h + bob));
   // Staff orb pulse
   const ox = x - s.w / 2 - 4 + 8 * 6, oy = base - s.h + bob + 6;
-  g.fillStyle = tier === 0 ? '#9a9a70' : '#b8f090';
+  g.fillStyle = staff ? RARITIES[ri(staff)].color : '#9a9a70';
   g.globalAlpha = 0.35 + 0.25 * Math.sin(t * 4) + cast;
-  g.beginPath(); g.arc(ox, oy, 9 + cast * 10, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(ox, oy, 8 + Math.max(0, ri(staff)) * 2 + cast * 10, 0, Math.PI * 2); g.fill();
   g.globalAlpha = 1;
-  if (tier >= 2) { // bone crown
-    g.fillStyle = '#e8e0c8';
-    const cx = x - s.w / 2 - 4 + 12, cy = base - s.h + bob + 6;
-    for (let i = 0; i < 4; i++) g.fillRect(cx + i * 9, cy - 8 - (i % 2) * 5, 4, 10);
+  if (ri(staff) >= 2) { // a skull on top of the staff
+    g.fillStyle = '#e8e8d8'; g.fillRect(ox - 4, oy - 19, 8, 7); g.fillRect(ox - 3, oy - 12, 6, 3);
+    g.fillStyle = '#101010'; g.fillRect(ox - 3, oy - 17, 2, 2); g.fillRect(ox + 1, oy - 17, 2, 2);
   }
-  if (tier >= 3) { // orbiting skulls
+  if (tome) drawTome(g, x + 56, base - 66 + Math.sin(t * 1.8) * 4, t, ri(tome));
+  if ([robe, staff, tome, fam].some((it) => ri(it) === 4)) { // legendary: orbiting skulls
     for (let i = 0; i < 3; i++) {
-      const a = t * 1.4 + (i * Math.PI * 2) / 3;
-      const sx = x + Math.cos(a) * 34, sy = base - 44 + Math.sin(a) * 12;
+      const a2 = t * 1.4 + (i * Math.PI * 2) / 3;
+      const sx = x + Math.cos(a2) * 34, sy = base - 44 + Math.sin(a2) * 12;
       g.fillStyle = '#e8e8d8'; g.fillRect(sx - 4, sy - 4, 8, 7); g.fillRect(sx - 3, sy + 3, 6, 3);
       g.fillStyle = '#101010'; g.fillRect(sx - 3, sy - 2, 2, 2); g.fillRect(sx + 1, sy - 2, 2, 2);
     }
   }
+  if (fam) drawFamiliar(g, x, base, t, ri(fam));
   // Raise cooldown bars under the platform
   if (battle) {
     battle.raiseTypes().forEach((type, i) => {
@@ -787,6 +840,7 @@ function drawVignette(g) {
 }
 
 export function draw(g, battle, tier = 0) {
+  GEAR_SAVE = battle.save;
   const sh = battle.shake || 0;
   g.save();
   if (sh > 0) g.translate((Math.random() - 0.5) * sh * 7, (Math.random() - 0.5) * sh * 7);
@@ -869,7 +923,8 @@ function drawScene(g, battle, tier = 0) {
   }
 }
 
-export function drawIdle(g, t, tier = 0) {
+export function drawIdle(g, t, tier = 0, save = {}) {
+  GEAR_SAVE = save;
   TH = THEMES.graveyard;
   drawBackground(g, t);
   drawNecro(g, t, tier, null);

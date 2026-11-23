@@ -1,5 +1,5 @@
 // All tunable game numbers live here.
-import { gearMods } from './gear.js';
+import { gearMods, gearScore } from './gear.js';
 export const GATE_X = 78;          // enemies reaching this x end the attempt
 export const NECRO_X = 44;         // where the necromancer stands
 export const FIELD_W = 960;        // logical battlefield size
@@ -84,7 +84,7 @@ export const TUNING = {
   statPerLevel: 0.2,         // HP and damage bonus per level
   wavePause: 3,
   spawnGap: 0.35,
-  aggroRange: 260,           // player units only engage enemies this close; otherwise they mill about
+  aggroRange: 800,           // once enemies are on the field, every unit within this range charges them; with none, the horde mills about mid-field
   separation: 1.25,          // personal space as a fraction of combined radius (below 1 they overlap)
   repeatSoulChance: 0.25,    // chance of a champion soul from a boss you have already beaten
   offlineSoulsPerMin: 2,     // x (highest zone cleared)^offlineExp
@@ -293,7 +293,7 @@ export function lookOf(save, unit) {
 
 export function totalLevels(save) {
   let n = 0;
-  for (const [k, v] of Object.entries(save.nodes)) if (!k.startsWith('def_')) n += v;
+  for (const [k, v] of Object.entries(save.nodes)) if (!k.startsWith('def_') && !k.startsWith('unlock_')) n += v;
   return n;
 }
 
@@ -307,16 +307,16 @@ export function playerRating(save) {
   return Math.round(10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + gear + defs);
 }
 
-// The necromancer's look follows total levels (gear will add to this later).
+// The necromancer's rank and look come from the gear he wears (see gearScore).
 export const NECRO_TIERS = [
   { min: 0,  name: 'Grave Robber' },
-  { min: 4,  name: 'Hexer' },
-  { min: 10, name: 'Bone Lord' },
-  { min: 20, name: 'Lich' },
+  { min: 3,  name: 'Hexer' },
+  { min: 8,  name: 'Bone Lord' },
+  { min: 13, name: 'Lich' },
 ];
 
 export function necroTier(save) {
-  const p = totalLevels(save) + 8 * (save.rebirths || 0);
+  const p = gearScore(save);
   let tier = 0;
   NECRO_TIERS.forEach((t, i) => { if (p >= t.min) tier = i; });
   return tier;
@@ -384,8 +384,11 @@ export function firstZoneOf(type) {
 export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)) * (1 + gearMods(save).souls) * (1 + bestiaryBonus(save).souls); }
 export function raiseMul(save) { return Math.max(0.2, 1 - 0.04 * perk(save, 'quick') - gearMods(save).rise); }
 export function offlineCapHours(save) { return TUNING.offlineCapHours + 4 * perk(save, 'restless'); }
-export function spellCooldown(save) { return 45 * Math.pow(0.9, perk(save, 'ritual')) * (1 - gearMods(save).spell); }
-export function spellCount(save) { return 3 + perk(save, 'ritual'); }
+// Raise Dead: an unlock bought in the skill web. Once unlocked, every summon you own gets its own button.
+export const SPELL_UNLOCK_COST = 300;
+export function spellUnlocked(save) { return (save.nodes.unlock_spell || 0) > 0; }
+export function spellCooldownFor(save, type) { return 40 * (UNITS[type].heavy ? 1.6 : 1) * Math.pow(0.9, perk(save, 'ritual')) * (1 - gearMods(save).spell); }
+export function spellCountFor(save, type) { return UNITS[type].heavy ? 1 + Math.floor(perk(save, 'ritual') / 3) : 3 + perk(save, 'ritual'); }
 
 // Essence you would earn by rebirthing now.
 export function essenceGain(save) {
@@ -399,4 +402,34 @@ export function canRebirth(save) { return save.bestZone >= REBIRTH_MIN_ZONE; }
 export function worldMul(save) {
   const r = save.rebirths || 0;
   return { hp: Math.pow(2.2, r), dmg: Math.pow(1.5, r), rating: Math.pow(1.8, r) };
+}
+
+// ---- Unit tree ----
+// Summons lead on from one another. Each is unlocked with champion souls AND once enough upgrade levels have been
+// spent on the summons that lead to it (gate). pos is where it sits in the skill web, with the necromancer at 0,0.
+export const UNIT_TREE = {
+  zombie:       { parent: null,           pos: [-330, -170], gate: null },
+  skeleton:     { parent: null,           pos: [330, -170],  gate: null },
+  hound:        { parent: 'zombie',       pos: [-640, -500], gate: { units: ['zombie'], levels: 8 } },
+  plaguebearer: { parent: 'zombie',       pos: [-220, -500], gate: { units: ['zombie'], levels: 20 } },
+  abomination:  { parent: 'hound',        pos: [-640, -830], gate: { units: ['zombie', 'hound'], levels: 30 } },
+  gargoyle:     { parent: 'abomination',  pos: [-220, -830], gate: { units: ['zombie', 'hound', 'abomination'], levels: 55 } },
+  archer:       { parent: 'skeleton',     pos: [640, -500],  gate: { units: ['skeleton'], levels: 8 } },
+  deathknight:  { parent: 'skeleton',     pos: [220, -500],  gate: { units: ['skeleton'], levels: 20 } },
+  mage:         { parent: 'archer',       pos: [640, -830],  gate: { units: ['skeleton', 'archer'], levels: 30 } },
+  ghost:        { parent: 'mage',         pos: [220, -830],  gate: { units: ['skeleton', 'archer', 'mage'], levels: 45 } },
+  gravepriest:  { parent: 'ghost',        pos: [220, -1160], gate: { units: ['archer', 'mage', 'ghost'], levels: 50 } },
+};
+export function unitLevels(save, unit) { return level(save, 'hp', unit) + level(save, 'dmg', unit) + level(save, 'rise', unit); }
+// { have, need } levels spent on the summons leading to this one (need 0 = no gate).
+export function gateProgress(save, unit) {
+  const g = UNIT_TREE[unit].gate;
+  if (!g) return { have: 0, need: 0 };
+  return { have: g.units.reduce((a, u) => a + (owned(save, u) ? unitLevels(save, u) : 0), 0), need: g.levels };
+}
+export function gateMet(save, unit) { const p = gateProgress(save, unit); return p.have >= p.need; }
+// A summon is shown in the web when it is owned or the one leading to it is.
+export function unitVisible(save, unit) {
+  const p = UNIT_TREE[unit].parent;
+  return owned(save, unit) || !p || owned(save, p);
 }

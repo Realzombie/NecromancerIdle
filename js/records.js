@@ -16,8 +16,8 @@ export const ACHIEVEMENTS = [
   { id: 'zone4',    name: 'Gatekeeper',       desc: 'Conquer the Greenmarch (zone 4)', prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 4],  reward: { dust: 25 } },
   { id: 'zone8',    name: 'Crusade Crusher',  desc: 'Conquer the Crusader Reach (zone 8)', prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 8],  reward: { champ: 1 } },
   { id: 'zone12',   name: 'Hero Slayer',      desc: "Conquer the Heroes' Reach (zone 12)", prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 12], reward: { essence: 10 } },
-  { id: 'gear10',   name: 'Scavenger',        desc: 'Find 10 pieces of gear',         prog: (s) => [st(s, 'gearFound'), 10],   reward: { dust: 15 } },
-  { id: 'gear50',   name: 'Hoarder',          desc: 'Find 50 pieces of gear',         prog: (s) => [st(s, 'gearFound'), 50],   reward: { dust: 60 } },
+  { id: 'gear10',   name: 'Scavenger',        desc: 'Find 5 pieces of gear',          prog: (s) => [st(s, 'gearFound'), 5],   reward: { dust: 15 } },
+  { id: 'gear50',   name: 'Hoarder',          desc: 'Find 20 pieces of gear',         prog: (s) => [st(s, 'gearFound'), 20],   reward: { dust: 60 } },
   { id: 'epic',     name: 'Purple Haze',      desc: 'Find an Epic item',              prog: (s) => [st(s, 'epics'), 1],        reward: { dust: 40 } },
   { id: 'legend',   name: 'Legend Hunter',    desc: 'Find a Legendary item',          prog: (s) => [st(s, 'legendaries'), 1],  reward: { champ: 1 } },
   { id: 'upgrade5', name: 'Reforged',         desc: 'Upgrade an item to +5',          prog: (s) => [Math.max(0, ...(s.gear || []).map((g) => g.up)), 5],  reward: { dust: 30 } },
@@ -63,7 +63,7 @@ const BOUNTY_TYPES = {
   battles: { text: (n) => `Fight ${n} battles`,                      goal: () => 4,             gain: () => 1 },
   wins:    { text: (n) => `Clear a zone ${n} times`,                 goal: () => 2,             gain: (r) => (r.won ? 1 : 0) },
   elites:  { text: (n) => `Slay ${n} elite enemies`,                 goal: () => 3,             gain: (r) => r.elites },
-  gear:    { text: (n) => `Find ${n} pieces of gear`,                goal: () => 4,             gain: (r) => r.gear },
+  gear:    { text: (n) => `Find ${n} pieces of gear`,                goal: () => 2,             gain: (r) => r.gear },
   endless: { text: (n) => `Survive ${n} Endless Crypt waves`,        goal: () => 15,            gain: (r) => r.endlessWaves, needs: (s) => s.cleared && s.cleared[12] },
 };
 export const bountyText = (b) => BOUNTY_TYPES[b.type].text(b.goal);
