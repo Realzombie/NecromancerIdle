@@ -1,8 +1,7 @@
 // Headless balance check: node tools/simtest.mjs [zonesToPlay]
 // A simple player: buys units when it can, then the cheapest stat upgrade, and retries each zone until it clears it.
-import { Battle, buyUnit, buyStat, buySpecial, buyDefence } from '../js/sim.js';
+import { Battle, buyUnit, buyStat, buySpecial } from '../js/sim.js';
 import { defaultSave } from '../js/save.js';
-import { DEFENCE_KEYS, defLevel, defCost, defUnlocked, DEFENCES } from '../js/data.js';
 import { ZONES, UNITS, STATS, SPECIALS, SPECIAL_KEYS, PLAYER_UNITS, owned, level, statCost, playerRating, totalLevels, specialReady, hasSpecial } from '../js/data.js';
 
 const save = defaultSave();
@@ -22,15 +21,8 @@ function spend() {
         if (save.souls >= c && (!best || c < best.c)) best = { u, s, c };
       }
     }
-    // Defences compete with stats on cost (set NODEF=1 to leave them out).
-    if (!process.env.NODEF) for (const k of DEFENCE_KEYS) {
-      const l = defLevel(save, k);
-      if (!defUnlocked(save, k) || l >= DEFENCES[k].max) continue;
-      const c = defCost(k, l);
-      if (save.souls >= c && (!best || c < best.c)) best = { def: k, c };
-    }
     if (!best) return;
-    if (best.def) buyDefence(save, best.def); else buyStat(save, best.s, best.u);
+    buyStat(save, best.s, best.u);
   }
 }
 

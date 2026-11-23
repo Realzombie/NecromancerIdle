@@ -24,11 +24,10 @@ export const UNITS = {
   gravepriest:  { name: 'Grave Priest',   hp: 45,  dmg: 3,  atk: 1.4, speed: 32, range: 120, radius: 9,  raise: 30, rally: [220, 360], sprite: 'gravepriest', team: 'player', unlockCost: 3, costMul: 2.4, heal: { amt: 14, every: 2.4, range: 170 }, blurb: 'Mends the wounded among your horde.' },
   gargoyle:     { name: 'Gargoyle',       hp: 150, dmg: 9,  atk: 1.3, speed: 34, range: 24,  radius: 12, raise: 34, rally: [420, 600], sprite: 'gargoyle', team: 'player', unlockCost: 4, costMul: 3.2, armor: 0.2, blurb: 'Living stone. Shrugs off a fifth of every blow.' },
 
-  // Static defences (see DEFENCES). They never move and are not raised by the necromancer.
-  wall:     { name: 'Bone Wall',       hp: 120, dmg: 0, atk: 9, speed: 0, range: 0, radius: 9, sprite: 'wall', team: 'player', static: true, wall: true },
-  tower:    { name: 'Graveyard Tower', hp: 160, dmg: 12, atk: 1.3, speed: 0, range: 230, radius: 12, sprite: 'tower', team: 'player', static: true, tower: true },
 
   // Enemies. drop = souls banked per kill.
+  // The War Banner is a field hazard: a standing banner that buffs the enemies around it (see hazardsFor).
+  warbanner:{ name: 'War Banner', hp: 150, dmg: 0, atk: 9, speed: 0, range: 0, radius: 10, drop: 0, sprite: 'banner', team: 'enemy', static: true, wall: true, banner: { r: 210, dmg: 1.35 } },
   peasant:  { name: 'Peasant',            hp: 20,  dmg: 3,  atk: 1.2, speed: 35, range: 22,  radius: 10, drop: 3,   sprite: 'peasant',  team: 'enemy' },
   militia:  { name: 'Militia Spearman',   hp: 38,  dmg: 5,  atk: 1.1, speed: 36, range: 28,  radius: 10, drop: 6,   sprite: 'militia',  team: 'enemy' },
   slinger:  { name: 'Slinger',            hp: 16,  dmg: 5,  atk: 1.4, speed: 32, range: 150, radius: 9,  drop: 6,   sprite: 'slinger',  team: 'enemy' },
@@ -225,36 +224,25 @@ export function statEffect(stat, lvl, unit) {
 
 export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'player' && !UNITS[k].static);
 
-// ---- Defences ----
-// Bought with souls on the Armoury screen. Each has levels; they stand ready at the start of every attempt.
-// A zone must be cleared first (needs). Rebirth wipes them unless Fortified Start keeps some.
-export const DEFENCES = {
-  wall:  { name: 'Bone Walls',      icon: 'wall',  needs: 1, max: 8, base: 60,  growth: 1.5,
-           effect: (l) => l ? Math.min(4, 1 + Math.floor((l - 1) / 2)) + ' walls, ' + wallHp(l) + ' HP each' : 'Block and slow the enemy front line.' },
-  trap:  { name: 'Spike Traps',     icon: 'trap',  needs: 2, max: 8, base: 90,  growth: 1.55,
-           effect: (l) => l ? Math.min(3, 1 + Math.floor((l - 1) / 3)) + ' traps, ' + trapFlat(l) + ' + ' + (trapPct(l) * 100).toFixed(0) + '% max HP per trigger' : 'Damage enemies as they march over them.' },
-  tower: { name: 'Graveyard Towers', icon: 'tower', needs: 3, max: 8, base: 180, growth: 1.6,
-           effect: (l) => l ? (l >= 5 ? 2 : 1) + (l >= 5 ? ' towers, ' : ' tower, ') + towerDmg(l) + ' damage per shot' : 'Shoot enemies from behind the line.' },
-};
-export const DEFENCE_KEYS = Object.keys(DEFENCES);
-export const wallHp = (l) => Math.round(120 * Math.pow(1.45, l - 1));
-export const wallCount = (l) => (l ? Math.min(4, 1 + Math.floor((l - 1) / 2)) : 0);
-export const trapFlat = (l) => 6 * l;
-export const trapPct = (l) => Math.min(0.08, 0.01 * l);
-export const trapCount = (l) => (l ? Math.min(3, 1 + Math.floor((l - 1) / 3)) : 0);
-export const towerDmg = (l) => Math.round(12 * Math.pow(1.4, l - 1));
-export const towerHp = (l) => Math.round(160 * Math.pow(1.35, l - 1));
-export const towerCount = (l) => (l ? (l >= 5 ? 2 : 1) : 0);
-
-// Level of a defence: bought levels, or the free start given by the Fortified Start perk.
-export function defLevel(save, key) {
-  const bought = save.nodes['def_' + key] || 0;
-  const f = perk(save, 'fort');
-  const free = key === 'tower' ? Math.max(0, f - 1) : f;
-  return Math.max(bought, free);
+// ---- Field hazards ----
+// Mines are laid between the lines at the start of each wave and blow up under your horde (zone 2 onwards).
+// War banners appear from zone 3 on every third wave and buff the enemies near them until cut down.
+export function hazardsFor(zone, wave) {
+  const id = zone.id;
+  if (zone.endless) {
+    return { mines: Math.min(12, 3 + Math.floor(wave / 4)), mineFlat: 10 + wave * 2, minePct: 0.2, banners: wave % 2 === 0 ? Math.min(3, 1 + Math.floor(wave / 12)) : 0 };
+  }
+  const mines = id < 2 ? 0 : wave < 2 ? 0 : Math.min(9, 1 + Math.floor((id - 1) / 1.5) + (wave > 4 ? 1 : 0));
+  const banners = id < 3 || wave < 3 || wave % 3 !== 0 ? 0 : 1 + (id >= 7 ? 1 : 0) + (id >= 11 ? 1 : 0);
+  return { mines, mineFlat: 4 + 3 * id, minePct: Math.min(0.3, 0.1 + 0.015 * id), banners };
 }
-export function defCost(key, lvl) { return Math.ceil(DEFENCES[key].base * Math.pow(DEFENCES[key].growth, lvl)); }
-export function defUnlocked(save, key) { return save.bestZone >= DEFENCES[key].needs; }
+export function hazardText(zone) {
+  const parts = [];
+  const h = hazardsFor(zone, 8);
+  if (h.mines) parts.push('Mines');
+  if (zone.endless || zone.id >= 3) parts.push('War banners');
+  return parts;
+}
 
 export function owned(save, unit) {
   return UNITS[unit].unlockCost === 0 || (save.nodes['unit_' + unit] || 0) > 0;
@@ -303,8 +291,7 @@ export function playerRating(save) {
   const specials = SPECIAL_KEYS.filter((k) => hasSpecial(save, k)).length;
   const gm = gearMods(save);
   const gear = (gm.dmg + gm.hp) * 50 + (gm.rise + gm.souls + gm.crit + gm.lifesteal + gm.thorns + gm.spell) * 30 + Object.keys(gm.fx).length * 10;
-  const defs = DEFENCE_KEYS.reduce((a, k) => a + defLevel(save, k) * 3, 0);
-  return Math.round(10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + gear + defs);
+  return Math.round(10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + gear);
 }
 
 // The necromancer's rank and look come from the gear he wears (see gearScore).
@@ -337,7 +324,6 @@ export const PERKS = {
   conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
   restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4,  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
   echo:     { name: "Champion's Echo", icon: 'icon_fire', base: 15, growth: 1.7, max: 5,  effect: (l) => '+' + l * 10 + '% champion soul chance on replays' },
-  fort:     { name: 'Fortified Start', icon: 'icon_shield', base: 14, growth: 1.7, max: 5, effect: (l) => l ? 'Walls and traps start at level ' + l + (l > 1 ? ', towers at ' + (l - 1) : '') : 'No free defences' },
   ritual:   { name: 'Dark Ritual',     icon: 'icon_burst', base: 10, growth: 1.6, max: 6, effect: (l) => 'Raise Dead brings ' + (3 + l) + ' minions, ' + Math.round(45 * Math.pow(0.9, l)) + 's cooldown' },
 };
 export const PERK_KEYS = Object.keys(PERKS);
@@ -350,7 +336,7 @@ export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow
 // ---- Bestiary ----
 // Finding things pays tiny permanent bonuses: each enemy kind defeated adds a little to souls (bosses more), and each
 // summon ever unlocked adds a little health and damage. Progress lives in save.seen and survives rebirth.
-export const ENEMY_KEYS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'enemy');
+export const ENEMY_KEYS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'enemy' && !UNITS[k].static);
 export const BESTIARY_ENEMY = 0.0015, BESTIARY_BOSS = 0.004, BESTIARY_ALLY = 0.004;
 
 // Make sure everything you already own or cleared is recorded (covers older saves too).

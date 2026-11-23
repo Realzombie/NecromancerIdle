@@ -1,5 +1,5 @@
 // Achievements: milestones that pay a reward once. Progress is read from save.stats and the rest of the save.
-import { PLAYER_UNITS, DEFENCE_KEYS, ENEMY_KEYS, owned, defLevel } from './data.js';
+import { PLAYER_UNITS, ENEMY_KEYS, owned } from './data.js';
 
 const st = (s, k) => (s.stats && s.stats[k]) || 0;
 
@@ -21,7 +21,6 @@ export const ACHIEVEMENTS = [
   { id: 'epic',     name: 'Purple Haze',      desc: 'Find an Epic item',              prog: (s) => [st(s, 'epics'), 1],        reward: { dust: 40 } },
   { id: 'legend',   name: 'Legend Hunter',    desc: 'Find a Legendary item',          prog: (s) => [st(s, 'legendaries'), 1],  reward: { champ: 1 } },
   { id: 'upgrade5', name: 'Reforged',         desc: 'Upgrade an item to +5',          prog: (s) => [Math.max(0, ...(s.gear || []).map((g) => g.up)), 5],  reward: { dust: 30 } },
-  { id: 'fort',     name: 'Fortress',         desc: 'Own a wall, a trap and a tower', prog: (s) => [DEFENCE_KEYS.filter((k) => defLevel(s, k) > 0).length, 3], reward: { dust: 25 } },
   { id: 'roster',   name: 'Full Roster',      desc: 'Own every summon',          prog: (s) => [PLAYER_UNITS.filter((u) => owned(s, u)).length, PLAYER_UNITS.length], reward: { champ: 1 } },
   { id: 'nat10',    name: 'Naturalist',       desc: 'Defeat 10 kinds of enemy',       prog: (s) => [Object.values(s.seen || {}).filter((e) => e.kills > 0).length, 10], reward: { dust: 25 } },
   { id: 'natall',   name: 'Zoologist',        desc: 'Defeat every kind of enemy',     prog: (s) => [Object.values(s.seen || {}).filter((e) => e.kills > 0).length, ENEMY_KEYS.length], reward: { champ: 1 } },

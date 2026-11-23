@@ -1,7 +1,7 @@
 // How far does a fully upgraded horde get in the Endless Crypt?  node tools/endlesstest.mjs [rebirths]
 import { Battle } from '../js/sim.js';
 import { defaultSave } from '../js/save.js';
-import { PLAYER_UNITS, STATS, DEFENCES, DEFENCE_KEYS, ZONES } from '../js/data.js';
+import { PLAYER_UNITS, STATS, ZONES } from '../js/data.js';
 
 const save = defaultSave();
 const frac = Number(process.argv[3]) || 1;     // fraction of the max upgrade levels to give
@@ -10,7 +10,6 @@ for (const u of PLAYER_UNITS) {
   save.nodes['unit_' + u] = 1;
   for (const s of Object.keys(STATS)) save.nodes[s + '_' + u] = Math.round(STATS[s].max * frac);
 }
-for (const k of DEFENCE_KEYS) save.nodes['def_' + k] = Math.round(DEFENCES[k].max * frac);
 for (let z = 1; z <= 12; z++) save.cleared[z] = true;
 save.bestZone = 12;
 const sp = (await import('../js/data.js')).SPECIAL_KEYS;

@@ -94,6 +94,7 @@ const SOUNDS = {
   trap: () => {
     noise({ dur: 0.12, vol: 0.1, f0: 2500, f1: 600, q: 1.2, kind: 'bandpass' });
     tone({ type: 'square', f0: 180, f1: 90, dur: 0.1, vol: 0.06 });
+    tone({ type: 'sine', f0: 130, f1: 40, dur: 0.28, vol: 0.14 });
   },
   drop: () => [660, 880, 1320].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.07, delay: i * 0.07 })),
   ach: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.26, vol: 0.07, delay: i * 0.09 })),

@@ -1,9 +1,8 @@
-// The Armoury screen: gear, defences and records (achievements). Builds HTML into #arm-body.
+// The Armoury screen: gear, records and the bestiary (achievements). Builds HTML into #arm-body.
 import {
-  DEFENCES, DEFENCE_KEYS, defLevel, defCost, defUnlocked, UNITS, PLAYER_UNITS, ENEMY_KEYS, SPECIALS, SPECIAL_KEYS, syncBestiary, bestiaryBonus,
+  UNITS, PLAYER_UNITS, ENEMY_KEYS, SPECIALS, SPECIAL_KEYS, syncBestiary, bestiaryBonus,
   bossAbilityNames, firstZoneOf, lookOf,
 } from './data.js';
-import { buyDefence } from './sim.js';
 import {
   RARITIES, SLOTS, SLOT_NAMES, STAT_DEFS, GEAR_FX, MAX_UP, MAX_ITEMS, rarityIndex, rarityOf, statValue, itemPower,
   upgradeCost, rerollCost, salvageValue, equip, unequip, salvage, salvageBelow, upgradeItem, rerollItem,
@@ -126,32 +125,6 @@ export function createArmoury({ save, play, onChange }) {
     root.className = 'arm-body gear';
   }
 
-  function renderDefences(root) {
-    root.className = 'arm-body defs';
-    for (const key of DEFENCE_KEYS) {
-      const D = DEFENCES[key];
-      const lvl = defLevel(save, key);
-      const unlocked = defUnlocked(save, key);
-      const maxed = lvl >= D.max;
-      const cost = defCost(key, lvl);
-      const can = unlocked && !maxed && save.souls >= cost;
-      const el = document.createElement('button');
-      el.className = 'dcard' + (can ? ' can' : '') + (maxed ? ' maxed' : '') + (unlocked ? '' : ' locked');
-      el.disabled = !can;
-      el.appendChild(iconCanvas('icon_' + key));
-      el.insertAdjacentHTML('beforeend',
-        `<div class="dname">${D.name}</div><div class="dlvl">${unlocked ? 'Level ' + lvl + '/' + D.max : 'Locked'}</div>` +
-        `<div class="deff">${unlocked ? D.effect(lvl) : 'Clear zone ' + D.needs + ' to unlock.'}${unlocked && !maxed && lvl ? '<br><i>Next: ' + D.effect(lvl + 1) + '</i>' : ''}</div>` +
-        `<div class="dcost">${!unlocked ? '' : maxed ? 'MAX' : '<span class="ico">&#9760;</span> ' + cost}</div>`);
-      el.onclick = () => { if (buyDefence(save, key)) { play('buy'); done(); } };
-      root.appendChild(el);
-    }
-    const note = document.createElement('div');
-    note.className = 'dnote';
-    note.textContent = 'Defences stand ready at the start of every attempt. Walls soak damage, traps hurt whatever marches over them, and towers shoot from the back. Rebirth resets them unless you have Fortified Start.';
-    root.appendChild(note);
-  }
-
   function renderRecords(root) {
     root.className = 'arm-body recs';
     const s = save.stats || {};
@@ -245,7 +218,6 @@ export function createArmoury({ save, play, onChange }) {
     const root = $('arm-body');
     root.innerHTML = '';
     if (tab === 'gear') renderGear(root);
-    else if (tab === 'defences') renderDefences(root);
     else if (tab === 'bestiary') renderBestiary(root);
     else renderRecords(root);
   }

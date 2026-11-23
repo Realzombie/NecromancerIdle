@@ -3,7 +3,7 @@ import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
   PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
-  gateMet, bestiaryBonus, BOSS_ABILITIES, DEFENCES, defLevel, defCost, defUnlocked, wallHp, wallCount, trapFlat, trapPct, trapCount, towerDmg, towerHp, towerCount,
+  gateMet, bestiaryBonus, BOSS_ABILITIES, hazardsFor,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
 
@@ -41,11 +41,10 @@ export class Battle {
     this.bb = bestiaryBonus(save);
     this.newFinds = [];       // enemy kinds defeated for the first time this attempt
     save.seen = save.seen || {};
-    this.traps = [];
+    this.mines = [];           // field hazards laid by the enemy (see layMines)
     this.timers = [];          // delayed effects such as boss attack wind-ups
     this.corpses = [];         // dying units, kept briefly so the renderer can show them fall
     this.shake = 0;            // screen shake strength (visual only)
-    this.setupDefences();
     const startZombies = TUNING.startZombies + perk(save, 'horde');
     for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
     for (const t of this.raiseTypes()) { this.raiseTimers[t] = this.raiseInterval(t) * 0.5; this.spellCds[t] = 10; }
@@ -127,22 +126,55 @@ export class Battle {
     }
   }
 
-  // Walls, towers and traps stand ready before the first wave.
-  setupDefences() {
-    const lane = (i, n) => LANE_TOP + 8 + (n === 1 ? 0.5 : i / (n - 1)) * (LANE_BOTTOM - LANE_TOP - 16);
-    const wl = defLevel(this.save, 'wall');
-    for (let i = 0, n = wallCount(wl); i < n; i++) {
-      const u = this.spawn('wall', 350, lane(i, n));
-      u.hp = u.maxHp = wallHp(wl) * (this.gm.fx.bulwark ? 2 : 1);
+  // ---- Field hazards ----
+  // Mines are laid between the lines as each wave starts and blow up under the horde. War banners rally the
+  // enemy: every enemy near one hits harder, moves faster and attacks faster until the banner is cut down.
+  layMines() {
+    const H = hazardsFor(this.zone, this.wave);
+    for (let i = 0; i < H.mines; i++) {
+      if (this.mines.length >= 16) break;
+      this.mines.push({ x: this.rand(330, 800), y: this.rand(LANE_TOP + 6, LANE_BOTTOM - 6), arm: 1 + i * 0.1, pulse: this.rand(0, 3), flat: H.mineFlat, pct: H.minePct, boom: 0 });
     }
-    const tl = defLevel(this.save, 'tower');
-    for (let i = 0, n = towerCount(tl); i < n; i++) {
-      const u = this.spawn('tower', 190, lane(i, n));
-      u.hp = u.maxHp = towerHp(tl);
-      u.dmg = towerDmg(tl);
+    for (let i = 0; i < H.banners; i++) {
+      const u = this.spawn('warbanner', FIELD_W - 110 - i * 70, LANE_TOP + (LANE_BOTTOM - LANE_TOP) * (H.banners === 1 ? 0.5 : (i + 0.5) / H.banners), true);
+      this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.6, color: '#e05060' });
     }
-    const pl = defLevel(this.save, 'trap');
-    for (let i = 0, n = trapCount(pl); i < n; i++) this.traps.push({ x: 500 + i * 90, cd: 0, pop: 0, flat: trapFlat(pl), pct: trapPct(pl) });
+    if (H.banners) this.floaters.push({ x: FIELD_W - 150, y: 330, text: 'war banner!', t: 0 });
+  }
+
+  updateHazards(dt) {
+    const banners = this.units.filter((u) => u.def.banner && u.hp > 0);
+    for (const u of this.units) {
+      u.buffed = 0;
+      if (u.team !== 'enemy' || u.def.static) continue;
+      for (const b of banners) if (Math.abs(b.x - u.x) < b.def.banner.r && Math.abs(b.y - u.y) < 90) { u.buffed = b.def.banner.dmg; break; }
+    }
+    for (const m of this.mines) {
+      m.arm -= dt; m.pulse += dt;
+      if (m.boom > 0 || m.arm > 0) continue;
+      for (const u of this.units) {
+        if (u.team !== 'player' || u.def.static || u.def.ghostly || u.hp <= 0) continue;
+        if (Math.hypot(u.x - m.x, (u.y - m.y) * 1.6) <= 18 + u.def.radius * 0.6) { m.boom = 1; break; }
+      }
+    }
+    for (const m of this.mines) {
+      if (m.boom !== 1) continue;
+      m.boom = 2;
+      this.fx.push({ k: 'ring', x: m.x, y: m.y - 4, t: 0, life: 0.45, color: '#ffb040' });
+      this.fx.push({ k: 'ring', x: m.x, y: m.y - 4, t: 0, life: 0.25, color: '#fff0c0' });
+      this.shake = Math.max(this.shake, 0.4);
+      this.emit('trap');
+      for (let i = 0; i < 10; i++) this.spark(m.x, m.y - 6, i % 2 ? '#ffb040' : '#ff6030');
+      for (const o of this.units) {
+        if (o.team !== 'player' || o.def.static || o.def.ghostly || o.hp <= 0) continue;
+        if (Math.hypot(o.x - m.x, (o.y - m.y) * 1.6) > 52 + o.def.radius) continue;
+        const soft = o.def.heavy ? 0.4 : 1;
+        const d = (m.flat + m.pct * o.maxHp) * soft;
+        o.hp -= d; o.flash = 0.2;
+        this.floaters.push({ x: o.x, y: o.y - 30, text: '-' + Math.round(d), t: 0 });
+      }
+    }
+    this.mines = this.mines.filter((m) => m.boom !== 2);
   }
 
   emit(n, team) { if (this.events.length < 120) this.events.push({ n, team }); }
@@ -258,6 +290,7 @@ export class Battle {
         this.spawnTimer = TUNING.spawnGap;
       }
     } else if (this.alive('enemy') === 0) {
+      if (this.units.some((u) => u.def.banner)) { for (const u of this.units) if (u.def.banner) { u.hp = 0; u.retreat = true; } }
       this.pause -= dt;
       if (this.pause <= 0) {
         if (this.wave >= this.totalWaves) {
@@ -265,11 +298,13 @@ export class Battle {
           this.bossSpawned = true;
           this.emit('boss');
           this.spawn(this.zone.boss, FIELD_W - 30);
+          this.layMines();
           this.pause = TUNING.wavePause;
           return;
         }
         this.wave++;
         this.emit('wave');
+        this.layMines();
         // Shuffle so mixed waves arrive in a random order.
         this.spawnQueue = this.zone.compose(this.wave).sort(() => this.rng() - 0.5);
         this.spawnTimer = 0;
@@ -314,23 +349,7 @@ export class Battle {
       }
     }
 
-    // Spike traps spring when an enemy walks over them.
-    for (const tr of this.traps) {
-      tr.cd -= dt; tr.pop = Math.max(0, tr.pop - dt);
-      if (tr.cd > 0) continue;
-      let hot = false;
-      for (const o of this.units) if (o.team === 'enemy' && o.hp > 0 && Math.abs(o.x - tr.x) < 34 + o.def.radius * 0.5) { hot = true; break; }
-      if (!hot) continue;
-      tr.cd = 1.4; tr.pop = 0.35;
-      this.shake = Math.max(this.shake, 0.25);
-      this.emit('trap');
-      for (const o of this.units) {
-        if (o.team !== 'enemy' || o.hp <= 0 || Math.abs(o.x - tr.x) > 44 + o.def.radius * 0.5) continue;
-        o.hp -= tr.flat + tr.pct * o.maxHp * (o.def.boss ? 0.25 : 1);
-        o.flash = 0.12;
-        for (let i = 0; i < 4; i++) this.spark(o.x, o.y - 6, '#d8d0c0');
-      }
-    }
+    this.updateHazards(dt);
 
     // Deaths
     for (const u of this.units) {
@@ -342,7 +361,8 @@ export class Battle {
       if (u.def.boss) this.shake = 1;
       if (u.sp && u.sp.burst) this.sporeBurst(u);
       else if (u.team === 'player' && !u.def.static && this.gm.fx.martyr) this.sporeBurst(u, 1.5);
-      if (u.team === 'enemy') {
+      if (u.def.banner && !u.retreat) this.floaters.push({ x: u.x, y: u.y - 40, text: 'banner down', t: 0 });
+      if (u.team === 'enemy' && !u.def.static) {
         const se = this.save.seen[u.type] || (this.save.seen[u.type] = {});
         se.kills = (se.kills || 0) + 1;
         if (se.kills === 1) this.newFinds.push(u.type);
@@ -384,7 +404,7 @@ export class Battle {
     if (u.def.wall) return;   // walls only stand there and soak damage
     const slowed = !!u.status.slow;
     const frenzy = this.gm.fx.frenzy && u.team === 'player' && u.hp < u.maxHp * 0.5 ? 1.3 : 1;
-    u.cd -= dt * (slowed ? 0.6 : 1) * frenzy;
+    u.cd -= dt * (slowed ? 0.6 : 1) * frenzy * (u.buffed ? 1.2 : 1);
     u.moving = false;
 
     // Bosses enrage when badly hurt and some call reinforcements.
@@ -487,7 +507,7 @@ export class Battle {
       tx = -100; ty = u.y;
     }
 
-    const sp = u.def.speed * u.speedMul * (slowed ? 0.6 : 1);
+    const sp = u.def.speed * u.speedMul * (slowed ? 0.6 : 1) * (u.buffed ? 1.15 : 1);
     const dx = tx - u.x, dy = ty - u.y;
     if (Math.abs(dx) > 1) u.facing = Math.sign(dx);
     u.x += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt);
@@ -618,6 +638,8 @@ export class Battle {
       if (src.sp.fire) target.status.burn = { t: 3, dps: 0.4 * src.dmg };
       if (src.sp.frost) target.status.slow = { t: 3 };
     }
+    if (src && src.buffed) dmg *= src.buffed;
+    if (target.team === 'player' && this.gm.fx.bulwark) dmg *= 0.9;
     if (target.sp && target.sp.shield) dmg *= 0.75;
     if (target.guard > 0) dmg *= 0.3;
     if (target.def.armor) dmg *= 1 - target.def.armor;
@@ -653,17 +675,6 @@ export function buySpecial(save, key) {
   if (hasSpecial(save, key) || !specialReady(save, key) || save.souls < sp.cost) return false;
   save.souls -= sp.cost;
   save.nodes['sp_' + key] = 1;
-  return true;
-}
-
-export function buyDefence(save, key) {
-  const D = DEFENCES[key];
-  const cur = defLevel(save, key);
-  if (!defUnlocked(save, key) || cur >= D.max) return false;
-  const cost = defCost(key, cur);
-  if (save.souls < cost) return false;
-  save.souls -= cost;
-  save.nodes['def_' + key] = cur + 1;
   return true;
 }
 

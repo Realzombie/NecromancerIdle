@@ -41,10 +41,8 @@ const SPRITES = {
   necro1: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#3a2a5a', h: '#5a4a8a', R: '#2a2040', r: '#4a3a6a', E: '#8fd16a', T: '#7a5a30', O: '#8fd16a' } },
   necro2: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#2a1a4a', h: '#7a5ab8', R: '#241a3c', r: '#5a3a8a', E: '#8fd16a', T: '#c8a040', O: '#b8f090' } },
   necro3: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, S: '#e8e8d8', H: '#101010', h: '#303030', R: '#0a0a10', r: '#1a2a1a', E: '#b8f090', T: '#d8d0b0', O: '#b8f090' } },
-  wall: { scale: 4, palette: { B: '#e8e0c8', b: '#b8b09a', d: '#7a7260' },
-    grid: ['..B.B.B..', '.BBBBBBB.', '.BbBBbBB.', '.BBBBBBB.', '.BbBBBbB.', '.BBBBBBB.', '.bBBbBBb.', '.BBBBBBd.', 'dBBBBBBdd'] },
-  tower: { scale: 4, palette: { S: '#8a8498', s: '#6a6478', E: '#8fd16a', G: '#4a8a52' },
-    grid: ['.G.GG.G.', '.GGGGGG.', '..SSSS..', '..SEES..', '..SSSS..', '.SSSSSS.', '..SssS..', '..SSSS..', '..SssS..', '..SSSS..', '.SSSSSS.', '.SSssSS.', 'SSSSSSSS', 'SssSSssS'] },
+  banner: { scale: 4, palette: { P: '#6a4a2a', p: '#4a3018', R: '#c03048', r: '#7a1e2c', K: '#f0e8d0', Y: '#e8c050' },
+    grid: ['.Y........', '.PRRRRRRR.', '.PRRRRRRR.', '.PRRKKRRr.', '.PRKRRKRr.', '.PRRKKRRr.', '.PRRRRRrr.', '.PRRRrrr..', '.PR.Rr.r..', '.P..R.....', '.P........', '.P........', '.P........', '.P........', '.P........', '.P........', 'pPPp......'] },
   icon_wall: { scale: 4, palette: { B: '#e8e0c8', b: '#b8b09a', d: '#7a7260' },
     grid: ['..B.B.B..', '.BBBBBBB.', '.BbBBbBB.', '.BBBBBBB.', '.BbBBBbB.', '.BBBBBBB.', '.bBBbBBb.', 'dBBBBBBdd'] },
   icon_trap: { scale: 4, palette: { B: '#e8e0c8', S: '#6a6478', s: '#4a4458' },
@@ -709,6 +707,16 @@ function drawUnit(g, u, t, rar) {
     g.fillStyle = 'rgba(120,220,90,' + (0.1 + 0.04 * Math.sin(t * 3 + u.id)) + ')';
     g.beginPath(); g.ellipse(u.x, u.y - 4, ar, ar * 0.5, 0, 0, Math.PI * 2); g.fill();
   }
+  if (u.def.banner) {
+    const br = u.def.banner.r;
+    g.fillStyle = 'rgba(224,60,80,' + (0.07 + 0.03 * Math.sin(t * 3)) + ')';
+    g.beginPath(); g.ellipse(u.x, u.y - 2, br, br * 0.42, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(255,120,130,0.35)'; g.lineWidth = 2; g.setLineDash([8, 8]); g.lineDashOffset = -t * 14; g.stroke(); g.setLineDash([]);
+  }
+  if (u.buffed) {
+    g.strokeStyle = 'rgba(255,90,100,' + (0.5 + 0.25 * Math.sin(t * 8 + u.id)) + ')'; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.5, 7, 0, 0, Math.PI * 2); g.stroke();
+  }
   g.save();
   g.globalAlpha = (u.def.ghostly ? 0.75 : 1) * rise;
   g.translate(px, py);
@@ -752,6 +760,19 @@ function drawUnit(g, u, t, rar) {
     g.fillStyle = u.team === 'player' ? '#8fd16a' : '#d6596b';
     g.fillRect(px - w / 2, py - s.h - 8, w * Math.max(0, u.hp / u.maxHp), 4);
   }
+}
+
+// A buried mine: dark casing, a blinking red light once it is armed.
+function drawMine(g, m, t) {
+  const x = Math.round(m.x), y = Math.round(m.y);
+  const armed = m.arm <= 0, blink = armed ? (Math.sin(m.pulse * 9) > 0.2) : (Math.sin(m.pulse * 25) > 0);
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(x, y + 2, 13, 5, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#0a0710'; g.fillRect(x - 9, y - 7, 18, 10);
+  g.fillStyle = '#5a5268'; g.fillRect(x - 8, y - 6, 16, 7);
+  g.fillStyle = '#3a3448'; g.fillRect(x - 8, y - 1, 16, 2);
+  g.fillStyle = '#8a8298'; for (const dx of [-7, 5]) g.fillRect(x + dx, y - 8, 2, 3);
+  g.fillStyle = blink ? '#ff4040' : '#601818'; g.fillRect(x - 2, y - 9, 4, 4);
+  if (blink && armed) { g.fillStyle = 'rgba(255,60,60,0.25)'; g.beginPath(); g.ellipse(x, y - 3, 20, 9, 0, 0, Math.PI * 2); g.fill(); }
 }
 
 // Falling corpse: topples over, sinks and fades.
@@ -855,17 +876,7 @@ function drawScene(g, battle, tier = 0) {
   drawBackground(g, t);
   drawNecro(g, t, tier, battle);
   const sorted = [...battle.units].sort((a, b) => a.y - b.y);
-  // Spike traps lie across the lane; their spikes shoot up when sprung.
-  for (const tr of battle.traps || []) {
-    const k = tr.pop > 0 ? Math.sin((tr.pop / 0.35) * Math.PI) : 0;
-    for (let y = LANE_TOP_DRAW; y <= LANE_BOTTOM_DRAW; y += 16) {
-      g.fillStyle = '#0a0710'; g.fillRect(tr.x - 14, y, 28, 6);
-      g.fillStyle = '#5a5268'; g.fillRect(tr.x - 13, y + 1, 26, 3);
-      const h = 9 + 18 * k;
-      g.fillStyle = k > 0.05 ? '#fff4d8' : '#d0c8b0';
-      for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(tr.x + i * 5.5 - 3.5, y + 3); g.lineTo(tr.x + i * 5.5, y + 3 - h); g.lineTo(tr.x + i * 5.5 + 3.5, y + 3); g.fill(); }
-    }
-  }
+  for (const m of battle.mines || []) drawMine(g, m, t);
   const rar = topRarity(battle.save);
   for (const c of battle.corpses || []) drawCorpse(g, c);
   for (const u of sorted) drawUnit(g, u, t, rar);

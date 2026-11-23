@@ -1,5 +1,5 @@
 // Service worker: network-first so updates arrive on the next load, cache fallback so it works offline.
-const CACHE = 'necro-v21';
+const CACHE = 'necro-v22';
 const SHELL = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/main.js', 'js/data.js', 'js/sim.js', 'js/render.js', 'js/save.js', 'js/audio.js', 'js/web.js', 'js/looks.js', 'js/gear.js', 'js/armoury.js', 'js/records.js', 'js/worldmap.js'];
 
