@@ -433,3 +433,18 @@ window.__game = { setPaused, save, get battle() { return battle; }, startBattle,
   document.addEventListener('fullscreenchange', paintFull);
   paintFull();
 }
+
+// Keep the phone screen awake while the game is open (the lock is released whenever the page is hidden, so ask again on return)
+{
+  let lock = null;
+  const keepAwake = async () => {
+    try {
+      if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || (lock && !lock.released)) return;
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+    } catch (e) { /* not allowed right now (battery saver, no gesture yet): try again later */ }
+  };
+  document.addEventListener('visibilitychange', keepAwake);
+  window.addEventListener('pointerdown', keepAwake);
+  keepAwake();
+}
