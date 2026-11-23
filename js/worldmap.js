@@ -339,7 +339,7 @@ function buildTerrain(save) {
   // Region banners: a ribbon hung between two posts at the start of every region
   g.textAlign = 'center';
   REGIONS.forEach((reg, i) => {
-    const x = REGION_X[i] + 100, y = 106;
+    const x = i === 0 ? 100 : REGION_X[i] + 40, y = 88;
     g.font = 'bold 12px Georgia, serif';
     const w = Math.max(118, g.measureText(reg.name).width + 34);
     g.fillStyle = '#0a0710'; g.fillRect(x - w / 2 - 3, y - 10, 5, 36); g.fillRect(x + w / 2 - 2, y - 10, 5, 36);
@@ -522,7 +522,7 @@ function camp(g, x, y, t) {
 const sprites = {};
 const spr = (n) => sprites[n] || (sprites[n] = iconCanvas(n));
 const LANDMARKS = [
-  { x: 1060, y: 138, draw: windmill }, { x: 1270, y: 255, draw: camp }, { x: 1560, y: 120, draw: windmill },
+  { x: 1000, y: 262, draw: windmill }, { x: 1270, y: 255, draw: camp }, { x: 1560, y: 120, draw: windmill },
 ];
 
 // ---- The map controller ----
