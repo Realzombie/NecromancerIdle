@@ -424,3 +424,12 @@ if ('serviceWorker' in navigator) {
 
 // Test hook (used by automated checks).
 window.__game = { setPaused, save, get battle() { return battle; }, startBattle, endBattle, afterChange, toast, armoury };
+
+// Fullscreen button: shown on touch devices while not fullscreen (a reliable fallback if the install did not go fullscreen by itself)
+{
+  const fb = $('btn-full');
+  const paintFull = () => fb.classList.toggle('hidden', !touchDevice || !!document.fullscreenElement);
+  fb.onclick = () => { try { document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (e) { /* ignore */ } };
+  document.addEventListener('fullscreenchange', paintFull);
+  paintFull();
+}

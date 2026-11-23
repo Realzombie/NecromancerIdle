@@ -330,3 +330,5 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
   .map-view .zhaz { color: #e8a060; }
 }
 .zhaz { color: #e8a060; }
+
+.mute.full { right: calc(var(--u) * 102); }
