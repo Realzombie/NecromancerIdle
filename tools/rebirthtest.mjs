@@ -16,5 +16,5 @@ const g2 = rebirth(s);
 console.log('second gain', g2, 'kept nodes', JSON.stringify(s.nodes), 'cleared', JSON.stringify(s.cleared), 'bestZone', s.bestZone);
 console.log('zombie hp level floor', level(s, 'hp', 'zombie'));
 const b = new Battle(s, 1);
-console.log('starting zombies', b.alive('player', 'zombie'), 'spell ready', b.spellReady());
-b.spellCd = 0; console.log('cast', b.castSpell(), 'horde', b.alive('player'));
+console.log('starting zombies', b.alive('player', 'zombie'), 'spell ready (locked)', b.spellReady('zombie'));
+s.nodes.unlock_spell = 1; b.spellCds.zombie = 0; console.log('cast', b.castSpell('zombie'), 'horde', b.alive('player'));
