@@ -572,7 +572,7 @@ export function createWorldMap({ save, startBattle, play }) {
 
   function frame(now) {
     if (!running) return;
-    const t = (now - t0) / 1000;
+    const t = Math.max(0, now - t0) / 1000;
     const key = ZONES.map((z) => (save.cleared[z.id] ? 1 : 0)).join('');
     if (!terrain || key !== terrainKey) { terrain = buildTerrain(save); terrainKey = key; }
     scrollX += (targetX - scrollX) * 0.12;
