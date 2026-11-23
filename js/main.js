@@ -6,7 +6,8 @@ import {
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
 import { createWorldMap } from './worldmap.js';
-import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas } from './render.js';
+import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas, FIELD_H } from './render.js';
+import { FIELD_W } from './data.js';
 import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
 import { createArmoury } from './armoury.js';
@@ -34,6 +35,8 @@ let autoOn = false;
 let autoTimer = null;
 let paused = false;
 
+canvas.width = FIELD_W; canvas.height = FIELD_H;
+app.style.setProperty('--aspect', FIELD_W / FIELD_H);
 function fitUi() { app.style.setProperty('--u', app.clientHeight / 540 + 'px'); }
 window.addEventListener('resize', fitUi);
 fitUi();
@@ -253,7 +256,16 @@ function setAuto(on) {
 // ---- Sound ----
 // Browsers only allow audio after a tap, so the first touch unlocks it.
 window.addEventListener('pointerdown', unlock);
-window.addEventListener('pointerdown', () => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* ignore */ } }, { once: true });
+// On phones, go fullscreen on the first tap (and again after anything drops us out of it), then lock landscape
+const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+window.addEventListener('pointerdown', () => {
+  if (!touchDevice) return;
+  const el = document.documentElement;
+  try {
+    if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* ignore */ } }).catch(() => {});
+    else screen.orientation.lock('landscape').catch(() => {});
+  } catch (e) { /* ignore */ }
+});
 window.addEventListener('keydown', unlock);
 // A click blip for ordinary buttons (tree nodes play their own buy sound).
 document.addEventListener('click', (e) => {

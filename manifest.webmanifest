@@ -5,7 +5,8 @@
   "description": "A pixel-art necromancer incremental: grow a scrappy horde into an army.",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
   "background_color": "#14101c",
   "theme_color": "#14101c",
   "icons": [

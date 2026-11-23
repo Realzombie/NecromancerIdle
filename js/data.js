@@ -2,7 +2,10 @@
 import { gearMods, gearScore } from './gear.js';
 export const GATE_X = 78;          // enemies reaching this x end the attempt
 export const NECRO_X = 44;         // where the necromancer stands
-export const FIELD_W = 960;        // logical battlefield size
+// Logical battlefield size. Tall phones (about 20:9) get a wider field so the game fills the screen.
+const _q = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('wide')) : 0;   // ?wide=2.22 previews a tall phone
+const _wide = _q > 1 ? _q : typeof screen !== 'undefined' && typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches ? Math.max(screen.width, screen.height) / Math.min(screen.width, screen.height) : 16 / 9;
+export const FIELD_W = Math.round(Math.max(960, Math.min(1280, 540 * _wide)) / 8) * 8;
 export const FIELD_H = 540;
 export const LANE_TOP = 330;       // units are spread vertically between these
 export const LANE_BOTTOM = 440;
