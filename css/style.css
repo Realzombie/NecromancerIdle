@@ -272,7 +272,7 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 @keyframes toast { 0% { opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
 #hud .btn.auto.on { background: var(--accent); color: #12200c; border-color: var(--accent); }
 #hud .btn.auto { margin-left: auto; } #hud #btn-speed { margin-left: 0; }
-.mute.music { right: calc(var(--ix) + var(--u) * 46); }
+
 .zones .zone:only-child { grid-column: 2 / 4; }
 
 .savebar { display: flex; justify-content: center; gap: 0.6em; }
@@ -331,7 +331,17 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 }
 .zhaz { color: #e8a060; }
 
-.mute.full { right: calc(var(--ix) + var(--u) * 92); }
+
 
 /* Phones have rounded corners and notches: keep controls clear of them */
 @media (pointer: coarse) { #app { --ix: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px), calc(var(--u) * 30)); --iy: max(env(safe-area-inset-top, 0px), calc(var(--u) * 16)); } }
+
+/* Settings menu: one small gear in the corner that opens the sound, music and fullscreen buttons upwards */
+.mute.gear { width: calc(var(--u) * 32); height: calc(var(--u) * 32); opacity: 0.6; font-size: 1.1em; }
+#app.menu-open .mute.gear { opacity: 1; border-color: var(--accent); }
+.mute.item { display: none; }
+#app.menu-open .mute.item { display: block; }
+#app.menu-open .mute.item.hidden { display: none; }
+.mute.snd { bottom: calc(var(--iy) + var(--u) * 40); }
+.mute.music { bottom: calc(var(--iy) + var(--u) * 80); }
+.mute.full { bottom: calc(var(--iy) + var(--u) * 120); }

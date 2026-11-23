@@ -448,3 +448,10 @@ window.__game = { setPaused, save, get battle() { return battle; }, startBattle,
   window.addEventListener('pointerdown', keepAwake);
   keepAwake();
 }
+
+// Settings gear: toggles the little menu; tapping anywhere else closes it
+{
+  const gear = document.getElementById('btn-menu');
+  gear.onclick = (e) => { e.stopPropagation(); app.classList.toggle('menu-open'); };
+  window.addEventListener('pointerdown', (e) => { if (!e.target.closest || !e.target.closest('.mute')) app.classList.remove('menu-open'); });
+}
