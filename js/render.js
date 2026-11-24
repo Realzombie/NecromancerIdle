@@ -2,6 +2,7 @@
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
 import { artCanvas } from './art.js';
 import { ENEMY, enemyCanvas } from './enemyart.js';
+import { ICON_ART, iconArtCanvas } from './iconart.js';
 import { ATTACK_TIME } from './sim.js';
 import { LOOKS } from './looks.js';
 import { RARITIES, SLOTS, rarityIndex, wornItem } from './gear.js';
@@ -329,6 +330,7 @@ function silhouette(c, color) {
 
 function sprite(name) {
   if (cache[name]) return cache[name];
+  if (ICON_ART[name] && (ART_ON || /^(icon_|gear_)/.test(name))) { const ic = iconArtCanvas(name); return (cache[name] = makeSprite(ic, name === 'banner' ? 12 : ic.axPx)); }   // icons are always the new art; the banner follows the setting
   if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
   if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
   const s = SPRITES[name];
@@ -963,6 +965,13 @@ function drawUnit(g, u, t, rar) {
 
 // A jaw trap hidden in the grass: iron teeth around a pressure plate, with a rune that glows red once it is armed.
 function drawMine(g, m, t) {
+  if (ART_ON) {
+    const armed = m.arm <= 0, s = sprite(armed ? 'trap_armed' : 'trap_idle'), glow = armed ? 0.3 + 0.2 * Math.sin(m.pulse * 7) : 0.05 + 0.05 * Math.sin(m.pulse * 25);
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(Math.round(m.x), Math.round(m.y) + 2, 22, 7, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,50,50,' + glow + ')'; g.beginPath(); g.ellipse(Math.round(m.x), Math.round(m.y), 26, 9, 0, 0, Math.PI * 2); g.fill();
+    g.drawImage(s.img, Math.round(m.x - s.ax), Math.round(m.y - s.h + 6));
+    return;
+  }
   g.save(); g.translate(Math.round(m.x), Math.round(m.y)); g.scale(1.35, 1.35);
   const armed = m.arm <= 0, glow = armed ? 0.55 + 0.35 * Math.sin(m.pulse * 7) : 0.15 + 0.15 * Math.sin(m.pulse * 25);
   g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(0, 3, 15, 5.5, 0, 0, Math.PI * 2); g.fill();

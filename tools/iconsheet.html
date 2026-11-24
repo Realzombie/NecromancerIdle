@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Icons</title>
+<style>body{margin:0;background:#1a1426;color:#e8e0f0;font:11px system-ui}#s{display:flex;flex-wrap:wrap;gap:6px;padding:8px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:6px;text-align:center;min-width:70px}.c canvas{image-rendering:pixelated;display:block;margin:0 auto 4px}</style>
+<div id="s"></div>
+<script type="module">
+import { iconCanvas } from '../js/render.js';
+import { ICON_ART } from '../js/iconart.js';
+const S = Number(new URLSearchParams(location.search).get('s')) || 2;
+for (const k of Object.keys(ICON_ART)) {
+  const c = iconCanvas(k); c.style.width = c.width * S / 4 + 'px'; c.style.height = c.height * S / 4 + 'px';
+  const el = document.createElement('div'); el.className = 'c'; el.appendChild(c); el.insertAdjacentHTML('beforeend', k); document.getElementById('s').appendChild(el);
+}
+</script>
