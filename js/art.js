@@ -146,7 +146,7 @@ function archer({ hs = 0, ds = 0, flags = [] }) {
 }
 
 function hound({ hs = 0, ds = 0 }) {
-  const p = new Pix(31, 17, 4), skin = hs === 0 ? '#7f9476' : '#729a6a', far = mix(skin, '#5a7a5a', 0.18), bone = BONE;
+  const p = new Pix(30, 17, 4), skin = hs === 0 ? '#7f9476' : '#729a6a', far = mix(skin, '#5a7a5a', 0.18), bone = BONE;
   // a lean, long-legged zombie hound seen side-on: low back, deep chest, a neck, and a long muzzle with a black nose
   for (const x of [7, 17]) { p.R(x, 10, 2, 6, far); p.R(x - 1, 16, 4, 1, far); }              // far legs
   p.E(12, 8, 7.2, 3, skin);                                                                   // long body
@@ -156,18 +156,18 @@ function hound({ hs = 0, ds = 0 }) {
   p.L(3, 6, 0, 3, skin); p.L(3, 7, 0, 4, skin); p.px(0, 2, skin);                              // whip tail curling up
   p.P([[18, 7], [21, 2], [25, 3], [23, 10], [19, 11]], skin);                                  // thick neck
   p.E(25, 4, 2.9, 2.6, skin);                                                                 // head
-  p.R(26, 5, 5, 3, skin);                                                                     // long muzzle
+  p.R(26, 5, 3, 3, skin);                                                                     // muzzle
   p.P([[22, 2], [22, -3], [25, 1]], skin); p.P([[25, 1], [26, -3], [28, 2]], far);             // ears
-  p.R(30 - 1, 5, 1, 2, '#1a1020', true);                                                       // black nose
+  p.R(28, 5, 1, 2, '#1a1020', true);                                                          // black nose
   p.R(24, 3, 3, 2, '#e8401a', true); p.px(25, 3, '#ffe890', true); p.px(24, 2, '#2a3a2a', true); p.px(25, 2, '#2a3a2a', true); p.px(26, 2, '#2a3a2a', true);   // red eye under a scowling brow
-  p.R(26, 8, 4, 1, '#1a1020', true); p.px(27, 9, '#f4ecd0', true); p.px(29 - 1, 9, '#f4ecd0', true); p.px(26, 7, '#f4ecd0', true);   // snarling jaw with fangs
+  p.R(25, 7, 4, 1, '#1a1020', true); p.px(26, 8, '#f6f0dc', true); p.px(28, 8, '#f6f0dc', true);   // snarling mouth with two small fangs
   for (const x of [8, 10, 12]) p.R(x, 6, 1, 4, bone, true);                                    // ribs
   p.R(14, 6, 3, 2, '#c8b080'); p.px(15, 7, DARK, true); p.px(14, 6, DARK, true); p.px(16, 7, DARK, true);   // stitched patch
   if (hs >= 1) { p.R(19, 8, 4, 1, '#4a3a2a'); p.px(19, 7, '#d0d0e0', true); p.px(21, 7, '#d0d0e0', true); p.px(22, 7, '#d0d0e0', true); }
   if (hs >= 2) { p.R(8, 4, 8, 2, '#8a94aa'); p.px(9, 3, '#b8c0d0', true); p.px(12, 3, '#b8c0d0', true); p.px(15, 3, '#b8c0d0', true); }
   if (hs >= 3) { p.R(7, 7, 9, 2, '#d8b050'); p.R(23, 1, 4, 1, '#9aa4b8'); }
   if (ds >= 1) for (const x of [4, 7, 14, 17, 20]) p.px(x + 1, 17, bone, true);
-  if (ds >= 2) { p.px(28, 9, '#ffffff', true); p.px(27, 10, '#ffffff', true); p.px(26, 9, '#ffffff', true); }
+  if (ds >= 2) { p.px(26, 9, '#f6f0dc', true); p.px(28, 9, '#f6f0dc', true); }
   if (ds >= 3) for (const x of [9, 12, 15]) p.P([[x, 4], [x + 1, 1], [x + 2, 4]], '#f4f0e0', true);
   return p.finish();
 }
@@ -292,23 +292,28 @@ function gravepriest({ hs = 0, ds = 0 }) {
 }
 
 function gargoyle({ hs = 0, ds = 0 }) {
-  const p = new Pix(20, 17, 2), stone = ['#8a8a9a', '#7a8498', '#707a90', '#68708a'][hs];
-  p.P([[5, 3], [1, 0], [0, 7], [3, 11], [7, 10]], mix(stone, '#000000', 0.2)); p.P([[9, 3], [14, 0], [18, 5], [14, 11], [10, 10]], mix(stone, '#000000', 0.25));
-  p.E(8, 11, 4.4, 4.2, stone); p.E(10, 8, 3.4, 3.4, stone);
-  p.R(4, 14, 2, 3, stone); p.R(9, 14, 2, 3, stone); p.R(3, 16, 4, 1, mix(stone, '#000000', 0.2)); p.R(8, 16, 4, 1, mix(stone, '#000000', 0.2));
-  p.L(4, 14, 0, 16, stone); p.px(0, 15, stone);
-  p.L(11, 10, 15, 13, stone); p.R(14, 12, 3, 2, stone); for (const x of [14, 16]) p.px(x, 14, BONE, true);
-  p.E(11, 5, 3, 2.8, stone); p.R(12, 6, 4, 2, stone);
-  p.P([[9, 3], [7, -1], [10, 2]], '#d8d0b8'); p.P([[13, 3], [16, -1], [14, 2]], '#d8d0b8');
-  p.R(12, 4, 2, 1, '#ff4a3a', true); p.R(15, 4, 2, 1, '#ff4a3a', true);
-  p.R(13, 7, 4, 1, DARK, true); p.px(13, 8, '#f0e8d0', true); p.px(15, 8, '#f0e8d0', true);
-  p.px(7, 10, '#4a4a5a', true); p.px(8, 11, '#4a4a5a', true); p.px(10, 13, '#4a4a5a', true);
-  if (hs >= 1) { p.px(6, 9, '#4a7a4a', true); p.px(9, 6, '#4a7a4a', true); }
-  if (hs >= 2) { p.R(6, 9, 6, 2, '#9aa4b8'); p.R(7, 8, 2, 1, '#aab2c6'); }
-  if (hs >= 3) { p.R(5, 8, 7, 5, '#7a8aa8'); p.R(7, 8, 2, 5, '#d8b050'); p.R(11, 3, 4, 1, '#d8b050', true); }
-  if (ds >= 1) p.px(0, 13, '#d8d0b8', true);
-  if (ds >= 2) for (const x of [4, 6]) p.px(x, 3, '#d8d0b8', true);
-  if (ds >= 3) { p.R(16, 13, 3, 1, '#ffb040', true); p.px(18, 12, '#ffd060', true); }
+  const p = new Pix(24, 18, 3), stone = ['#8a8a9a', '#7a8498', '#707a90', '#68708a'][hs], bone = '#e0d8c0';
+  // a crouching stone gargoyle: folded wings, a hunched body, a clawed hand gripping the ground and a fanged snarl
+  p.P([[6, 3], [1, 0], [0, 8], [4, 12], [8, 11]], mix(stone, '#000000', 0.2));
+  p.P([[10, 3], [16, 0], [20, 6], [15, 12], [11, 11]], mix(stone, '#000000', 0.25));
+  p.E(9, 12, 4.8, 4.4, stone); p.E(11, 9, 3.6, 3.6, stone);
+  p.R(4, 16, 6, 2, mix(stone, '#000000', 0.15)); for (const x of [4, 6, 8]) p.px(x, 18, bone, true);     // hind foot and toe claws
+  p.L(5, 15, 0, 17, stone); p.px(0, 16, stone); p.px(0, 17, stone);                                      // stone tail
+  // the front arm reaches forward to the ground: a thick arm, a fist and three claws
+  p.R(12, 10, 3, 5, stone); p.R(13, 14, 7, 3, stone);
+  for (const x of [14, 16, 18]) { p.px(x, 17, bone, true); p.px(x, 18, bone, true); }                // three separate claws digging into the ground
+  // head: horns, scowling red eyes, a wide mouth with two fangs
+  p.E(13, 5, 3.4, 3, stone); p.R(14, 6, 5, 3, stone);
+  p.P([[10, 3], [8, -1], [12, 2]], bone); p.P([[14, 2], [17, -1], [16, 3]], bone);
+  p.R(13, 4, 2, 1, '#ff4a3a', true); p.R(16, 4, 2, 1, '#ff4a3a', true); p.R(13, 3, 5, 1, '#3a3a4a', true);
+  p.R(14, 7, 5, 1, DARK, true); p.px(15, 8, '#f6f0dc', true); p.px(15, 9, '#f6f0dc', true); p.px(18, 8, '#f6f0dc', true); p.px(18, 9, '#f6f0dc', true);
+  p.px(8, 10, '#4a4a5a', true); p.px(9, 11, '#4a4a5a', true); p.px(11, 13, '#4a4a5a', true);               // cracks
+  if (hs >= 1) { p.px(7, 9, '#4a7a4a', true); p.px(10, 6, '#4a7a4a', true); }
+  if (hs >= 2) { p.R(7, 9, 7, 2, '#9aa4b8'); p.R(8, 8, 2, 1, '#aab2c6'); }
+  if (hs >= 3) { p.R(6, 9, 8, 5, '#7a8aa8'); p.R(9, 9, 2, 5, '#d8b050'); p.R(13, 2, 4, 1, '#d8b050', true); }
+  if (ds >= 1) for (const x of [14, 16, 18]) p.px(x, 19, bone, true);                                         // longer claws
+  if (ds >= 2) { for (const x of [15, 16, 17]) p.px(x, 13, bone, true); for (const x of [5, 7]) p.px(x, 15, bone, true); }     // knuckle and heel spikes
+  if (ds >= 3) { p.L(7, 11, 10, 14, '#ff5a2a', true); p.L(9, 9, 9, 12, '#ff5a2a', true); p.px(8, 12, '#ffd070', true); p.px(9, 11, '#ffd070', true); p.px(16, 11, '#ff5a2a', true); p.px(15, 12, '#ffd070', true); }   // molten cracks glowing through the stone
   return p.finish();
 }
 
