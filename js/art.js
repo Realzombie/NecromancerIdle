@@ -338,7 +338,7 @@ export function necroPix(tier = 0) {
   p.E(9, 11, 6.4, 2.4, L.dark); p.E(9, 6.5, 5.6, 6, L.dark); p.E(9, 6, 4.4, 4.8, mix(L.dark, '#000000', 0.3), true);
   p.R(6, 4, 7, 6, L.bone); p.R(7, 3, 5, 1, L.bone); p.R(7, 10, 5, 1, mix(L.bone, '#6a6050', 0.3));
   p.R(6, 5, 3, 3, '#0a0610', true); p.R(10, 5, 3, 3, '#0a0610', true); p.px(7, 6, L.eye, true); p.px(8, 6, L.eye, true); p.px(11, 6, L.eye, true); p.px(12, 6, L.eye, true);
-  p.px(9, 8, '#0a0610', true); p.R(7, 10, 5, 1, '#0a0610', true); for (const x of [8, 10]) p.px(x, 10, L.bone, true);
+  p.px(9, 8, '#0a0610', true); for (const x of [7, 8, 9, 10, 11]) p.px(x, 10, x % 2 ? L.bone : '#0a0610', true); p.R(7, 11, 5, 1, '#0a0610', true);   // a toothy skull grin
   if (tier >= 2 && tier !== 3) { p.R(5, 1, 9, 1, L.trim, true); p.E(9, 0, 2, 1, L.trim, true); }
   if (tier === 3) { for (const [x, y] of [[3, 11], [15, 11]]) { p.E(x, y, 1.6, 1.4, L.bone); p.px(x - 1, y, '#0a0610', true); p.px(x + 1, y, '#0a0610', true); } for (const [x, y] of [[0, 20], [18, 18], [2, 15], [17, 22]]) { p.px(x, y, '#b8f090', true); p.px(x, y - 1, '#7aff6a', true); } }
   if (tier === 4) { for (const x of [3, 15]) p.R(x - 1, 10, 3, 2, L.trim, true); }
