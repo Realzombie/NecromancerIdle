@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>Enemy art</title>
+<style>body{margin:0;background:#1a1426;color:#e8e0f0;font:12px system-ui}#s{display:flex;flex-wrap:wrap;gap:8px;padding:8px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:4px 8px;text-align:center}.c canvas{image-rendering:pixelated;display:block;margin:0 auto}</style>
+<div id="s"></div>
+<script type="module">
+import { iconCanvas, setArtStyle } from '../js/render.js';
+import { UNITS } from '../js/data.js';
+const q = new URLSearchParams(location.search);
+const S = Number(q.get('s')) || 1, only = q.get('u');
+const mode = q.get('m');
+if (mode === 'old') setArtStyle(false);
+for (const k of Object.keys(UNITS)) {
+  const d = UNITS[k]; if (d.team !== 'enemy' || d.static) continue;
+  if (only && !only.split(',').includes(k)) continue;
+  const c = iconCanvas(d.sprite); c.style.width = c.width * S / 2 + 'px'; c.style.height = c.height * S / 2 + 'px';
+  const el = document.createElement('div'); el.className = 'c'; el.appendChild(c); el.insertAdjacentHTML('beforeend', '<div>' + d.name + '</div>');
+  document.getElementById('s').appendChild(el);
+}
+</script>

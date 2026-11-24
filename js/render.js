@@ -1,6 +1,7 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
 import { artCanvas } from './art.js';
+import { ENEMY, enemyCanvas } from './enemyart.js';
 import { ATTACK_TIME } from './sim.js';
 import { LOOKS } from './looks.js';
 import { RARITIES, SLOTS, rarityIndex, wornItem } from './gear.js';
@@ -328,6 +329,7 @@ function silhouette(c, color) {
 
 function sprite(name) {
   if (cache[name]) return cache[name];
+  if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
   if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
   const s = SPRITES[name];
   const w = Math.max(...s.grid.map((r) => r.length));

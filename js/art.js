@@ -8,7 +8,7 @@ export const mix = (c, d, t) => { const a = hex(c), b = hex(d); return toHex(a.m
 const lighter = (c) => mix(c, '#fff6e0', 0.26);
 const darker = (c) => mix(c, '#1a1028', 0.3);
 
-class Pix {
+export class Pix {
   constructor(w, h, pad = 0) { this.pad = pad; this.w = w; this.h = h + pad; this.c = new Array(this.w * this.h).fill(null); this.l = new Array(this.w * this.h).fill(0); this.layer = 0; this.flat = new Set(); }
   px(x, y, c, flat) {
     x = Math.round(x); y = Math.round(y) + this.pad;
@@ -72,7 +72,7 @@ class Pix {
   }
 }
 
-const BONE = '#e8e0c4', DARK = '#2a1c30', GLOW = '#9dff7a';
+export const BONE = '#e8e0c4', DARK = '#2a1c30', GLOW = '#9dff7a';
 
 function zombie({ hs = 0, ds = 0, flags = [] }) {
   const p = new Pix(13, 16), skin = hs === 0 ? '#8ea07e' : '#7fae68';
