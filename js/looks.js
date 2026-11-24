@@ -31,7 +31,29 @@ const ZOMBIE_ROTTEN = [
 ];
 
 // Classic flyers. The drake is drawn front-on (wings spread, skull on top, ribs and a tail) so it reads clearly at this size.
-export const BAT_GRID = ['W..........W', 'WW...PP...WW', 'WWW.PPPP.WWW', '.WWWPEPEWWW.', '..WWPPPPWW..', '...WWPFPW...', '....W..W....'];
+// The classic bat is built from its tiers: hs scales the whole bat up until the crown, ds lengthens its two parallel fangs.
+export function batGrid(hs = 0, ds = 0) {
+  const base = ['W...P..P...W', 'WW...PP...WW', 'WWW.PPPP.WWW', '.WWWPEPEWWW.', '..WWPPPPWW..', '...WPPPPW...'];
+  const s = [1, 1.34, 1.67, 1.67][Math.min(3, hs)];
+  const W = Math.round(12 * s), H = Math.round(base.length * s);
+  const rows = [];
+  for (let y = 0; y < H; y++) {
+    let r = '';
+    for (let x = 0; x < W; x++) r += base[Math.min(base.length - 1, Math.floor(y / s))][Math.min(11, Math.floor(x / s))];
+    rows.push(r);
+  }
+  const fl = Math.floor(5 * s), fr = Math.floor(7 * s);                          // the two fangs, hanging under the eyes
+  const fang = (cl, cr) => '.'.repeat(fl) + cl + '.'.repeat(fr - fl - 1) + cr + '.'.repeat(Math.max(0, W - fr - 1));
+  const len = 2 + ds;
+  for (let i = 0; i < len; i++) rows.push(fang(i === len - 1 && ds >= 3 ? 'R' : 'F', i === len - 1 && ds >= 3 ? 'R' : 'F'));
+  if (ds >= 3) rows.push(fang('R', '.'));                                         // a drip of blood
+  if (hs >= 3) {                                                                  // a gold crown on the head
+    const c0 = Math.floor(4.4 * s), pad = (str) => '.'.repeat(c0) + str + '.'.repeat(Math.max(0, W - c0 - str.length));
+    rows.unshift(pad('GGGG')); rows.unshift(pad('G..G'));
+  }
+  return rows.map((r) => r + '.'.repeat(W - r.length));
+}
+export const BAT_GRID = batGrid(0, 0);
 export const DRAKE_GRID = (() => {
   const g = Array.from({ length: 13 }, () => Array(19).fill('.'));
   const set = (x, y, c) => { g[y][x] = c; g[y][18 - x] = c; };
@@ -51,18 +73,10 @@ export const DRAKE_GRID = (() => {
 
 export const LOOKS = {
   bat: {
-    scale: 4, pad: 3, grid: BAT_GRID,
-    palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#f0f0e0' },
-    hp: [
-      { rects: [[4, 4, '#8a5a30', 4, 1], [-1, 1, '#3a2a5a', 1, 2], [12, 1, '#3a2a5a', 1, 2]] },
-      { rects: [[-1, 0, '#3a2a5a', 1, 3], [12, 0, '#3a2a5a', 1, 3], [-2, 1, '#3a2a5a', 1, 2], [13, 1, '#3a2a5a', 1, 2]] },
-      { rects: [[4, 0, '#d8b050', 4, 1], [4, -1, '#d8b050'], [7, -1, '#d8b050']] },
-    ],
-    dmg: [
-      { rects: [[5, 6, '#f6f0dc'], [7, 6, '#f6f0dc']] },
-      { rects: [[5, 6, '#f6f0dc', 1, 2], [7, 6, '#f6f0dc', 1, 2]] },
-      { rects: [[5, 6, '#f6f0dc', 1, 2], [7, 6, '#f6f0dc', 1, 2], [5, 8, '#e8283a'], [7, 8, '#e8283a'], [6, 7, '#c01828']] },
-    ],
+    scale: 4, pad: 0, gridFor: (hs, ds) => batGrid(hs, ds),
+    palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#fffaf0', R: '#e8283a', G: '#d8b050' },
+    hp: [{}, {}, {}],
+    dmg: [{}, {}, {}],
   },
   drake: {
     scale: 4, pad: 5, grid: DRAKE_GRID,
