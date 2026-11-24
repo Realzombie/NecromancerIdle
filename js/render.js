@@ -1,6 +1,6 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
-import { artCanvas } from './art.js';
+import { artCanvas, necroCanvas } from './art.js';
 import { ENEMY, enemyCanvas } from './enemyart.js';
 import { ICON_ART, iconArtCanvas } from './iconart.js';
 import { ATTACK_TIME } from './sim.js';
@@ -330,7 +330,8 @@ function silhouette(c, color) {
 
 function sprite(name) {
   if (cache[name]) return cache[name];
-  if (ICON_ART[name] && (ART_ON || /^(icon_|gear_)/.test(name))) { const ic = iconArtCanvas(name); return (cache[name] = makeSprite(ic, name === 'banner' ? 12 : ic.axPx)); }   // icons are always the new art; the banner follows the setting
+  if (ART_ON && /^necro[0-4]$/.test(name)) { const nc = necroCanvas(Number(name.slice(5))); const sp = makeSprite(nc, nc.width / 2); sp.orb = nc.orb; return (cache[name] = sp); }
+  if (ICON_ART[name] && ART_ON) { const ic = iconArtCanvas(name); return (cache[name] = makeSprite(ic, name === 'banner' ? 12 : ic.axPx)); }   // icons are always the new art; the banner follows the setting
   if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
   if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
   const s = SPRITES[name];
@@ -855,7 +856,7 @@ function drawNecro(g, t, tier, battle) {
   const bob = Math.sin(t * 2) * 1.5;
   g.drawImage(s.img, Math.round(x - s.w / 2 - 4), Math.round(base - s.h + bob));
   // Staff orb pulse
-  const ox = x - s.w / 2 - 4 + 8 * 6, oy = base - s.h + bob + 6;
+  const ox = x - s.w / 2 - 4 + (s.orb ? s.orb[0] : 8 * 6), oy = base - s.h + bob + (s.orb ? s.orb[1] : 6);
   g.fillStyle = staff ? RARITIES[ri(staff)].color : '#9a9a70';
   g.globalAlpha = 0.35 + 0.25 * Math.sin(t * 4) + cast;
   g.beginPath(); g.arc(ox, oy, 8 + Math.max(0, ri(staff)) * 2 + cast * 10, 0, Math.PI * 2); g.fill();

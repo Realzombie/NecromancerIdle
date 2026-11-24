@@ -317,6 +317,48 @@ function gargoyle({ hs = 0, ds = 0 }) {
   return p.finish();
 }
 
+
+// The necromancer, by rank (0 Grave Robber ... 3 Lich, 4 is the epic-robe look). Returns the Pix with .orb = where the
+// staff orb sits in sprite pixels, so the renderer can put its glow there.
+const NECRO_LOOK = [
+  { robe: '#4a4048', dark: '#3a3238', trim: '#7a6a58', eye: '#c8c070', orb: '#9a9a70', staff: '#7a5a30', bone: '#d8d0b8' },
+  { robe: '#3a2a5a', dark: '#2a2040', trim: '#8a6ab0', eye: '#8fd16a', orb: '#8fd16a', staff: '#7a5a30', bone: '#d8d0b8' },
+  { robe: '#5a3a8a', dark: '#3a2460', trim: '#d8b050', eye: '#8fd16a', orb: '#b8f090', staff: '#c8a040', bone: '#e0d8c0' },
+  { robe: '#16161e', dark: '#0e0e14', trim: '#4a8a5a', eye: '#b8f090', orb: '#b8f090', staff: '#d8d0b0', bone: '#ecece0' },
+  { robe: '#8a2a40', dark: '#5a1a2a', trim: '#d8b050', eye: '#ffd060', orb: '#ff8030', staff: '#7a5a30', bone: '#e0d8c0' },
+];
+export function necroPix(tier = 0) {
+  const L = NECRO_LOOK[tier] || NECRO_LOOK[0], p = new Pix(21, 25, 4);
+  // trailing robe and hem
+  p.P([[5, 11], [13, 11], [17, 24], [1, 24]], L.robe); p.P([[5, 11], [8, 11], [6, 24], [1, 24]], mix(L.robe, '#ffffff', 0.1), false);
+  p.R(1, 24, 17, 1, L.trim, true); p.R(8, 12, 2, 12, L.trim, true); if (tier >= 2) { p.R(2, 22, 15, 1, L.trim, true); p.R(5, 14, 1, 8, L.trim, true); p.R(12, 14, 1, 8, L.trim, true); }
+  p.px(3, 25, null); p.px(8, 25, null); p.px(13, 25, null);
+  p.R(5, 17, 9, 1, '#4a3020', true); p.R(8, 16, 3, 3, tier === 3 ? '#ecece0' : '#c8a040', true);              // belt and buckle
+  // mantle, hood and the skull face
+  p.E(9, 11, 6.4, 2.4, L.dark); p.E(9, 6.5, 5.6, 6, L.dark); p.E(9, 6, 4.4, 4.8, mix(L.dark, '#000000', 0.3), true);
+  p.R(6, 4, 7, 6, L.bone); p.R(7, 3, 5, 1, L.bone); p.R(7, 10, 5, 1, mix(L.bone, '#6a6050', 0.3));
+  p.R(6, 5, 3, 3, '#0a0610', true); p.R(10, 5, 3, 3, '#0a0610', true); p.px(7, 6, L.eye, true); p.px(8, 6, L.eye, true); p.px(11, 6, L.eye, true); p.px(12, 6, L.eye, true);
+  p.px(9, 8, '#0a0610', true); p.R(7, 10, 5, 1, '#0a0610', true); for (const x of [8, 10]) p.px(x, 10, L.bone, true);
+  if (tier >= 2 && tier !== 3) { p.R(5, 1, 9, 1, L.trim, true); p.E(9, 0, 2, 1, L.trim, true); }
+  if (tier === 3) { for (const [x, y] of [[3, 11], [15, 11]]) { p.E(x, y, 1.6, 1.4, L.bone); p.px(x - 1, y, '#0a0610', true); p.px(x + 1, y, '#0a0610', true); } for (const [x, y] of [[0, 20], [18, 18], [2, 15], [17, 22]]) { p.px(x, y, '#b8f090', true); p.px(x, y - 1, '#7aff6a', true); } }
+  if (tier === 4) { for (const x of [3, 15]) p.R(x - 1, 10, 3, 2, L.trim, true); }
+  // far arm hanging, near arm holding the staff
+  p.R(2, 12, 3, 6, L.dark); p.R(2, 17, 3, 2, L.bone, true);
+  p.R(14, 12, 3, 3, L.dark); p.R(16, 13, 2, 3, L.bone);
+  // the staff: a long pole with a clawed head cradling the orb
+  p.R(17, 4, 1, 21, L.staff);
+  p.R(15, 1, 1, 4, L.staff, true); p.R(19, 1, 1, 4, L.staff, true); p.R(16, 4, 3, 1, L.staff, true);
+  p.E(17.5, 2, 2, 2, L.orb, true); p.px(16, 1, '#ffffff', true);
+  p.finish();
+  p.orb = [(17.5 + 0.5) * 4, (2 + p.pad + 0.5) * 4];
+  return p;
+}
+export function necroCanvas(tier) {
+  const p = necroPix(tier), c = p.toCanvas(4);
+  c.orb = p.orb;
+  return c;
+}
+
 export const ART = { zombie, skeleton, archer, hound, mage, ghost, abomination, deathknight, plaguebearer, gravepriest, gargoyle };
 export const ART_SCALE = 4;
 // Returns a canvas for the unit, or null when it has no painted art.

@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>Necromancer</title>
+<style>body{margin:0;background:#1a1426;color:#e8e0f0;font:12px system-ui}#s{display:flex;gap:12px;padding:10px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:6px 10px;text-align:center}.c canvas{image-rendering:pixelated;display:block;margin:0 auto}</style>
+<div id="s"></div>
+<script type="module">
+import { iconCanvas, setArtStyle } from '../js/render.js';
+const q = new URLSearchParams(location.search); const S = Number(q.get('s')) || 3;
+if (q.get('m') === 'old') setArtStyle(false);
+const names = ['Grave Robber', 'Hexer', 'Bone Lord', 'Lich', 'Epic robes'];
+[0, 1, 2, 3, 4].forEach((i) => { const c = iconCanvas('necro' + i); c.style.width = c.width * S / 4 * 2 + 'px'; c.style.height = c.height * S / 4 * 2 + 'px'; const el = document.createElement('div'); el.className = 'c'; el.appendChild(c); el.insertAdjacentHTML('beforeend', names[i]); document.getElementById('s').appendChild(el); });
+</script>

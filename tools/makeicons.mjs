@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { necroPix } from '../js/art.js';
 
 const out = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'icons');
 fs.mkdirSync(out, { recursive: true });
@@ -34,18 +35,29 @@ function makePng(size) {
   const px = Buffer.alloc(size * size * 4);
   const bg = hex('#14101c');
   for (let i = 0; i < size * size; i++) { px[i * 4] = bg[0]; px[i * 4 + 1] = bg[1]; px[i * 4 + 2] = bg[2]; px[i * 4 + 3] = 255; }
-  // Keep the sprite inside the maskable safe zone (centre 60%).
-  const cell = Math.floor((size * 0.6) / grid.length);
-  const w = grid[0].length * cell, h = grid.length * cell;
-  const ox = Math.floor((size - w) / 2), oy = Math.floor((size - h) / 2);
-  grid.forEach((row, gy) => [...row].forEach((ch, gx) => {
-    if (ch === '.') return;
-    const [r, g, b] = hex(palette[ch]);
+  // A soft green glow behind the necromancer, then the sprite inside the maskable safe zone (centre 60%).
+  const gc = hex('#8fd16a');
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const d = Math.hypot(x - size / 2, y - size * 0.48) / (size * 0.42), k = Math.max(0, 1 - d) ** 2 * 0.45, i = (y * size + x) * 4;
+    px[i] = px[i] + (gc[0] - px[i]) * k; px[i + 1] = px[i + 1] + (gc[1] - px[i + 1]) * k; px[i + 2] = px[i + 2] + (gc[2] - px[i + 2]) * k;
+  }
+  const art = necroPix(2);
+  const cell = Math.floor((size * 0.64) / art.h);
+  const w = art.w * cell, h = art.h * cell;
+  const ox = Math.floor((size - w) / 2) - Math.floor(cell * 0.5), oy = Math.floor((size - h) / 2);
+  for (let gy = 0; gy < art.h; gy++) for (let gx = 0; gx < art.w; gx++) {
+    let c = art.c[gy * art.w + gx];
+    if (!c) {                                                 // a dark outline around the figure
+      const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => art.c[(gy + dy) * art.w + gx + dx] && gx + dx >= 0 && gx + dx < art.w && gy + dy >= 0 && gy + dy < art.h);
+      if (!near) continue;
+      c = '#0a0710';
+    }
+    const [r, g, b] = hex(c);
     for (let y = 0; y < cell; y++) for (let x = 0; x < cell; x++) {
       const i = ((oy + gy * cell + y) * size + ox + gx * cell + x) * 4;
       px[i] = r; px[i + 1] = g; px[i + 2] = b;
     }
-  }));
+  }
   const raw = Buffer.alloc((size * 4 + 1) * size);
   for (let y = 0; y < size; y++) px.copy(raw, y * (size * 4 + 1) + 1, y * size * 4, (y + 1) * size * 4);
   const ihdr = Buffer.alloc(13);

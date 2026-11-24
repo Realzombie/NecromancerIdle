@@ -62,7 +62,7 @@ export const ICON_ART = {
   }),
   icon_blight: mk(12, 11, (p) => {                               // a poison cloud with skulls in it
     p.E(3.5, 6, 3.2, 3, '#5ac85a'); p.E(8.5, 6, 3.2, 3, '#5ac85a'); p.E(6, 4, 3.6, 3.4, '#7aff6a'); p.R(1, 7, 10, 3, '#5ac85a');
-    p.R(4, 4, 1, 2, '#1a3a1a', true); p.R(7, 4, 1, 2, '#1a3a1a', true); p.R(5, 7, 2, 1, '#1a3a1a', true);
+    p.px(3, 6, '#c8ffa8', true); p.px(5, 3, '#c8ffa8', true); p.px(8, 5, '#c8ffa8', true); p.px(9, 8, '#3a8a3a', true); p.px(3, 9, '#3a8a3a', true);
   }),
   icon_mend: mk(12, 12, (p) => {                                 // a golden healing cross
     p.R(4, 1, 4, 10, '#e8c040'); p.R(1, 4, 10, 4, '#e8c040'); p.R(5, 2, 2, 8, '#fff0a0', true); p.R(2, 5, 8, 2, '#fff0a0', true);
@@ -97,7 +97,7 @@ export const ICON_ART = {
   banner: mk(16, 27, (p) => {
     p.R(2, 4, 2, 22, '#6a4a2a'); p.E(3, 2, 2.4, 2.2, BONE); p.px(2, 2, DARK, true); p.px(4, 2, DARK, true);
     p.P([[4, 5], [15, 6], [13, 10], [15, 14], [12, 18], [14, 22], [4, 20]], '#c03048'); p.P([[5, 6], [14, 7], [12, 10], [5, 11]], '#e0506a', true);
-    p.E(9.5, 11.5, 2.4, 2.2, '#f0e8d0', true); p.px(8, 11, DARK, true); p.px(10, 11, DARK, true); p.R(8, 13, 3, 1, DARK, true);
+    p.P([[7, 8], [13, 8], [13, 13], [10, 17], [7, 13]], '#f0e8d0', true); p.P([[8, 9], [12, 9], [12, 13], [10, 15], [8, 13]], '#6a1020', true); p.R(10, 9, 1, 6, '#f0e8d0', true); p.R(8, 11, 4, 1, '#f0e8d0', true);   // a heraldic shield
     p.P([[0, 26], [6, 26], [4, 23], [2, 23]], '#3a2a20'); p.P([[0, 27], [8, 27], [6, 24], [2, 24]], '#4a3a30');
   }),
   trap_idle: mk(14, 8, (p) => { trap(p, false); }),
