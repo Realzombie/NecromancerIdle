@@ -65,10 +65,10 @@ const SPRITES = {
   necro4: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#4a1020', h: '#8a2a40', R: '#3a0c18', r: '#7a2038', E: '#ffd060', T: '#7a5a30', O: '#ff8030' } },
   bat: { scale: 4, palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#f0f0e0' }, grid: BAT_GRID },
   drake: { scale: 4, palette: { B: '#e8e0c8', W: '#5a3a7a', E: '#9dff7a', D: '#2a1c30' }, grid: DRAKE_GRID },
-  griffin: { scale: 5, palette: { Y: '#c8a040', W: '#f0e8d0', O: '#e89030', F: '#8a6a3a', E: '#202020' },
-    grid: ['F..F.......W..', 'FFFFF.....WWO.', 'FFFFFF...WEWOO', '.FFFFYY..WWW..', '..FYYYYYYWW...', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YO....', '..YY....OO....', '.OOO...OOO....'] },
+  griffin: { scale: 5, palette: { Y: '#8a5a2a', W: '#f4f0e4', O: '#d8a020', F: '#c8b890', E: '#202020', T: '#5a4020' },
+    grid: ['...F.F.F...W..', '..FFFFFFF.WWO.', '..FFFFFFFWEWOO', '...FFFFYYYWW..', '..YYYYYYYYWW..', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YT....', '..YY....TT....', '.TTT...TTT....'] },
   wyvern: { scale: 5, palette: { B: '#6a8ab0', L: '#a8c8e8', W: '#4a6a90', E: '#e8f8ff', H: '#e8f0ff' },
-    grid: ['W.W.........H..', 'WWWW.......HLL.', 'WWWWW.....LLEL.', '.WWWW....LLLLLL', '..WWBBBBBBLL...', '...BBBBBBBB....', '...BBBBBBB.....', '..LBB..BB......', '.LL.B..BL......', 'LL.............'] },
+    grid: ['....WW.WW...H..', '...WWWWWWW.HLL.', '...WWWWWWW.LLEL', '....WWWW..LLLLL', '..BBBBBBBBLL...', '...BBBBBBBB....', '...BBBBBBB.....', '..LBB..BB......', '.LL.B..BL......', 'LL.............'] },
   zombie: {
     scale: 4,
     palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848' },

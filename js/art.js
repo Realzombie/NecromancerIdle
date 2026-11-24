@@ -319,24 +319,29 @@ function gargoyle({ hs = 0, ds = 0 }) {
 
 
 function bat({ hs = 0, ds = 0 }) {
-  const p = new Pix(24, 16, 2), body = '#6a4a8a', wing = '#3a2a5a', bone = '#7a6aa0';
+  const p = new Pix(34, 22, 3), body = '#6a4a8a', wing = '#3a2a5a', bone = hs >= 2 ? '#a898c8' : '#7a6aa0';
+  p.ox = 5;
+  const k = 1 + 0.14 * Math.min(hs, 2);                               // it grows with its health tiers, up to the crowned form
+  const X = (x) => 12 + (x - 12) * k, Y = (y) => 10 + (y - 10) * k;
+  const pts = (l) => l.map(([x, y]) => [X(x), Y(y)]);
   // wings first: both swept up, with finger bones
-  p.P([[10, 10], [6, 3], [0, 0], [1, 6], [0, 10], [3, 9], [5, 13], [8, 11]], mix(wing, '#000000', 0.15));
-  p.P([[14, 10], [18, 3], [23, 0], [22, 6], [23, 10], [20, 9], [18, 13], [15, 11]], wing);
-  for (const [x, y] of [[0, 0], [1, 6], [0, 10]]) p.L(10, 10, x, y, bone, true);
-  for (const [x, y] of [[23, 0], [22, 6], [23, 10]]) p.L(14, 10, x, y, bone, true);
-  p.E(12, 11, 3.2, 3.6, body);                                                             // furry body
-  p.E(13, 7, 3.2, 2.8, body);                                                              // head
-  p.P([[11, 5], [11, 0], [13, 4]], body); p.P([[14, 4], [16, 0], [16, 5]], body);          // big pointed ears
-  p.px(12, 6, '#ff4a4a', true); p.px(15, 6, '#ff4a4a', true);                              // red eyes
-  p.px(14, 8, '#f6f0dc', true); p.px(16, 8, '#f6f0dc', true);                              // little fangs
-  p.px(11, 15, '#c8c0d8', true); p.px(14, 15, '#c8c0d8', true);                            // feet
-  if (hs >= 1) p.R(10, 11, 6, 1, '#8a5a30', true);
-  if (hs >= 2) { for (const [x, y] of [[2, 3], [3, 1], [21, 3], [20, 1], [1, 8], [22, 8]]) p.px(x, y, '#ecece0', true); }
-  if (hs >= 3) { p.R(11, 3, 5, 1, '#d8b050', true); p.px(11, 2, '#d8b050', true); p.px(13, 2, '#d8b050', true); p.px(15, 2, '#d8b050', true); }
-  if (ds >= 1) { p.px(14, 9, '#f6f0dc', true); p.px(16, 9, '#f6f0dc', true); }
-  if (ds >= 2) { p.px(12, 6, '#ffb0b0', true); p.px(15, 6, '#ffb0b0', true); for (const [x, y] of [[0, 0], [23, 0]]) p.px(x, y - 1, '#f6f0dc', true); }
-  if (ds >= 3) { for (const [x, y] of [[13, 10], [15, 10]]) { p.px(x, y, '#e8283a', true); } p.px(14, 12, '#e8283a', true); p.px(12, 14, '#c01828', true); }
+  p.P(pts([[10, 10], [6, 3], [0, 0], [1, 6], [0, 10], [3, 9], [5, 13], [8, 11]]), mix(wing, '#000000', 0.15));
+  p.P(pts([[14, 10], [18, 3], [23, 0], [22, 6], [23, 10], [20, 9], [18, 13], [15, 11]]), wing);
+  for (const [x, y] of [[0, 0], [1, 6], [0, 10]]) p.L(X(10), Y(10), X(x), Y(y), bone, true);
+  for (const [x, y] of [[23, 0], [22, 6], [23, 10]]) p.L(X(14), Y(10), X(x), Y(y), bone, true);
+  p.E(X(12), Y(11), 3.2 * k, 3.6 * k, body);                             // furry body
+  p.E(X(13), Y(7), 3.2 * k, 2.8 * k, body);                              // head: the same colour at every level
+  p.P(pts([[11, 5], [11, 0], [13, 4]]), body); p.P(pts([[14, 4], [16, 0], [16, 5]]), body);   // big pointed ears
+  p.px(X(12), Y(6), '#ff4a4a', true); p.px(X(15), Y(6), '#ff4a4a', true);                  // red eyes
+  p.px(X(11), Y(15), '#c8c0d8', true); p.px(X(14), Y(15), '#c8c0d8', true);                // feet
+  // a dark mouth with two white fangs that get longer every damage tier
+  const mx = Math.round(X(12)), my = Math.round(Y(9));
+  p.R(mx, my, 4, 1, '#1a1020', true);
+  const len = [2, 3, 4, 5][ds];
+  for (const fx of [mx, mx + 3]) for (let i = 1; i <= len; i++) p.px(fx, my + i, '#fffaf0', true);
+  if (hs >= 1) p.R(Math.round(X(10)), Math.round(Y(11)), Math.round(6 * k), 1, '#8a5a30', true);
+  if (hs >= 3) { const cx = Math.round(X(11)); p.R(cx, Math.round(Y(3)), 5, 1, '#d8b050', true); for (const dx of [0, 2, 4]) p.px(cx + dx, Math.round(Y(3)) - 1, '#d8b050', true); }
+  if (ds >= 3) { for (const [x, y] of [[13, 11], [15, 11]]) p.px(X(x), Y(y), '#e8283a', true); p.px(X(14), Y(13), '#e8283a', true); p.px(X(12), Y(15) + 1, '#c01828', true); }
   return p.finish();
 }
 

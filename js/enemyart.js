@@ -103,11 +103,11 @@ function griffin() {
   const p = new Pix(32, 24, 4), tan = '#c89a50', white = '#f0ead8', wingc = '#8a6a3a';
   p.P([[17, 11], [19, 1], [28, 2], [25, 8]], mix(wingc, '#000000', 0.2));                      // far wing
   p.E(13, 15, 7.4, 4.6, tan); p.E(19, 12, 4, 4.2, white);                                      // lion body, feathered chest
-  p.P([[14, 12], [9, 0], [0, 3], [3, 9], [1, 12], [8, 13]], wingc); for (const [x, y] of [[9, 1], [3, 3], [1, 8]]) { p.R(x, y, 2, 2, white, true); }   // near wing with pale tips
+  p.P([[14, 12], [9, 0], [0, 3], [3, 9], [1, 12], [8, 13]], wingc); p.L(13, 11, 8, 1, mix(wingc, '#ffffff', 0.25), true); p.L(12, 12, 4, 5, mix(wingc, '#ffffff', 0.25), true); p.L(11, 12, 2, 10, mix(wingc, '#ffffff', 0.2), true);   // feather lines
   p.L(6, 13, 2, 8, tan, true); p.L(7, 13, 2, 9, tan, true); p.E(2, 7, 1.8, 2, '#8a5a2a', true);   // lion tail with a tuft
-  p.R(9, 18, 3, 5, tan); p.R(15, 19, 3, 4, mix(tan, '#000000', 0.15));                             // hind legs
-  p.R(8, 22, 5, 1, '#e89030', true); p.R(14, 22, 5, 1, '#e89030', true);
-  p.R(19, 15, 3, 8, '#e8c070'); p.R(23, 15, 3, 8, '#e8c070'); for (const x of [19, 21, 23, 25]) p.px(x, 23, '#e89030', true);   // eagle forelegs, joined to the chest
+  p.R(7, 18, 3, 5, tan); p.R(11, 19, 3, 4, mix(tan, '#000000', 0.15));                              // hind legs
+  p.R(6, 22, 5, 1, '#e89030', true); p.R(10, 22, 5, 1, '#e89030', true);
+  p.R(15, 16, 3, 7, '#e8c070'); p.R(19, 16, 3, 7, '#e8c070'); for (const x of [15, 17, 19, 21]) p.px(x, 23, '#e89030', true);   // eagle forelegs, set under the body
   p.E(24, 8, 3.4, 3.2, white);                                                                // eagle head
   p.P([[26, 7], [32, 10], [26, 12]], '#f0a030', true); p.px(29, 10, '#a05a10', true);          // hooked beak
   p.R(24, 6, 2, 2, '#ffe070', true); p.px(25, 7, '#202020', true); p.R(23, 5, 4, 1, '#4a3a20', true);   // fierce eye
@@ -126,9 +126,8 @@ function wyvern() {
   p.E(30, 6, 3.4, 2.8, pale); p.R(31, 6, 4, 3, pale);                                           // a compact head and short snout
   p.R(31, 8, 3, 1, '#1a2a4a', true); p.px(31, 9, '#f6f8ff', true); p.px(33, 9, '#f6f8ff', true);   // small fangs only
   p.R(30, 5, 2, 2, '#e8f8ff', true); p.px(31, 6, '#1a2a4a', true);
-  p.P([[28, 4], [25, 0], [31, 3]], '#e8f0ff'); p.P([[32, 3], [34, 0], [34, 4]], '#cfe4ff');      // horns
+  p.P([[28, 4], [25, 0], [31, 3]], '#e8f0ff'); p.P([[31, 4], [34, 1], [34, 5]], '#cfe4ff');      // horns
   p.P([[35, 7], [38, 6], [38, 9]], '#bfeaff', true); p.px(36, 7, '#ffffff', true);                // a shard of frost breath
-  for (const [x, y] of [[8, 5], [13, 2], [22, 4]]) p.px(x, y, '#e8f8ff', true);                   // snow drifting off the wings
   return p.finish();
 }
 
