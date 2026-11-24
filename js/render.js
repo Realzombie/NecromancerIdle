@@ -408,44 +408,35 @@ function lookSprite(unit, look) {
   return (cache[key] = makeSprite(c, (gw * L.scale) / 2));
 }
 
-// A Legion is its summon's own art made huge and crowned, with a standard-bearer and a few escorts at its heels:
-// one sprite built from the summon's normal look, so each summon needs no extra art.
+// A Legion is a crowd of its summon: two packs of three with a standard-bearer's banner standing between them.
+// One sprite built from the summon's normal look, so each summon needs no extra art.
 function legionSprite(base, look) {
   const key = 'legion:' + (ART_ON ? 'n:' : 'c:') + base + ':' + (look ? look.hs + ':' + look.ds + ':' + look.flags.join(',') : '');
   if (cache[key]) return cache[key];
   const one = LOOKS[base] && look ? lookSprite(base, look) : sprite(UNITS[base].sprite);
-  const w = one.w, h = one.h, bw = w * 2, bh = h * 2;
-  const cw = Math.round(bw + w * 1.3), ch = bh + 10;
+  const w = one.w, h = one.h, pack = Math.round(w * 2.0), gap = 30;
+  const cw = pack * 2 + gap, ch = h + 22;
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
-  const bx = cw - bw - 2, by = ch - bh;                                   // the giant stands at the front right
-  // a standard at the back left: a pole with a tattered green banner and a skull
-  const px = Math.round(w * 0.5), top = Math.max(2, ch - bh - 8);
-  g.fillStyle = '#0a0710'; g.fillRect(px - 2, top, 5, ch - top - 4);
-  g.fillStyle = '#6a5030'; g.fillRect(px - 1, top, 3, ch - top - 4);
-  g.fillStyle = '#0a0710'; g.beginPath(); g.moveTo(px + 2, top + 2); g.lineTo(px + 30, top + 7); g.lineTo(px + 22, top + 15); g.lineTo(px + 30, top + 24); g.lineTo(px + 2, top + 26); g.fill();
-  g.fillStyle = '#3f7a38'; g.beginPath(); g.moveTo(px + 3, top + 4); g.lineTo(px + 27, top + 8); g.lineTo(px + 21, top + 15); g.lineTo(px + 27, top + 22); g.lineTo(px + 3, top + 24); g.fill();
+  // the standard between the packs: a pole with a tattered green banner and a skull
+  const px = Math.round(cw / 2), top = 2;
+  g.fillStyle = '#0a0710'; g.fillRect(px - 2, top, 5, ch - top - 2);
+  g.fillStyle = '#6a5030'; g.fillRect(px - 1, top, 3, ch - top - 2);
+  g.fillStyle = '#0a0710'; g.beginPath(); g.moveTo(px + 2, top + 2); g.lineTo(px + 28, top + 7); g.lineTo(px + 21, top + 15); g.lineTo(px + 28, top + 24); g.lineTo(px + 2, top + 26); g.fill();
+  g.fillStyle = '#3f7a38'; g.beginPath(); g.moveTo(px + 3, top + 4); g.lineTo(px + 25, top + 8); g.lineTo(px + 20, top + 15); g.lineTo(px + 25, top + 22); g.lineTo(px + 3, top + 24); g.fill();
   g.fillStyle = '#c8e8b0'; g.fillRect(px + 8, top + 9, 8, 7); g.fillStyle = '#0a0710'; g.fillRect(px + 10, top + 11, 2, 3); g.fillRect(px + 13, top + 11, 2, 3);
-  // escorts: three of the summon, smaller and a little dimmer, standing behind
-  [[0.15, 16, 0.7], [0.5, 8, 0.85], [0.08, 0, 1]].forEach(([fx, up, al]) => {
-    g.globalAlpha = al;
-    g.drawImage(one.img, Math.round(fx * (bx - w)), Math.round(ch - h - 2 - up));
-  });
-  // the giant: a golden glow, then the summon at double size
-  const gold = one.gold || (one.gold = silhouette(one.img, '#ffd060'));
-  g.globalAlpha = 0.6;
-  for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) g.drawImage(gold, 0, 0, one.w, one.h, bx + dx, by + dy, bw, bh);
-  g.globalAlpha = 1;
-  g.drawImage(one.img, 0, 0, one.w, one.h, bx, by, bw, bh);
-  // a gold crown on its brow
-  const cxm = bx + Math.round(one.ax * 2);
-  g.fillStyle = '#0a0710'; g.fillRect(cxm - 12, by - 8, 24, 10);
-  g.fillStyle = '#e8c050'; g.fillRect(cxm - 10, by - 4, 20, 5);
-  for (const dx of [-10, -3, 4, 9]) g.fillRect(cxm + dx, by - 9, 3, 6);
-  g.fillStyle = '#c03030'; g.fillRect(cxm - 1, by - 3, 3, 3);
-  return (cache[key] = makeSprite(c, bx + one.ax * 2));
+  // two packs of three: one at the back, two in front
+  const drawPack = (x0) => {
+    g.globalAlpha = 0.8; g.drawImage(one.img, Math.round(x0 + (pack - w) / 2), ch - h - 14);
+    g.globalAlpha = 1;
+    g.drawImage(one.img, Math.round(x0), ch - h - 1);
+    g.drawImage(one.img, Math.round(x0 + pack - w), ch - h - 1);
+  };
+  drawPack(0);
+  drawPack(pack + gap);
+  return (cache[key] = makeSprite(c, cw / 2));
 }
 
 function unitSprite(u) {

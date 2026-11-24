@@ -8,7 +8,7 @@ const q = new URLSearchParams(location.search); const only = q.get('u');
 if (q.get('m') === 'old') setArtStyle(false);
 for (const u of PLAYER_UNITS) {
   if (only && !only.split(',').includes(u)) continue;
-  const c = lookCanvas('legion_' + u, { hs: 3, ds: 3, flags: [] }); c.style.width = c.width * 0.6 + 'px'; c.style.height = c.height * 0.6 + 'px';
+  const c = lookCanvas('legion_' + u, { hs: 3, ds: 3, flags: [] }); const z = Number(q.get('z')) || 0.6; c.style.width = c.width * z + 'px'; c.style.height = c.height * z + 'px';
   const el = document.createElement('div'); el.className = 'c'; el.appendChild(c); el.insertAdjacentHTML('beforeend', UNITS['legion_' + u].name); document.getElementById('s').appendChild(el);
 }
 </script>
