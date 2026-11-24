@@ -148,11 +148,11 @@ function archer({ hs = 0, ds = 0, flags = [] }) {
 function hound({ hs = 0, ds = 0 }) {
   const p = new Pix(30, 17, 4), skin = hs === 0 ? '#7f9476' : '#729a6a', far = mix(skin, '#5a7a5a', 0.18), bone = BONE;
   // a lean, long-legged zombie hound seen side-on: low back, deep chest, a neck, and a long muzzle with a black nose
-  for (const x of [7, 17]) { p.R(x, 10, 2, 6, far); p.R(x - 1, 16, 4, 1, far); }              // far legs
+  for (const x of [8, 16]) { p.R(x, 10, 2, 6, far); p.R(x - 1, 16, 4, 1, far); }              // far legs (one hind, one front)
   p.E(12, 8, 7.2, 3, skin);                                                                   // long body
   p.E(18, 8.5, 3.6, 3.6, skin);                                                               // deep chest
   p.E(6, 9, 3, 3, skin);                                                                      // haunch
-  for (const x of [4, 14, 20]) { p.R(x, 10, 2, 6, skin); p.R(x - 1, 16, 4, 1, mix(skin, '#000000', 0.15)); }   // near legs with paws
+  for (const x of [4, 20]) { p.R(x, 10, 2, 6, skin); p.R(x - 1, 16, 4, 1, mix(skin, '#000000', 0.15)); }   // near legs with paws (one hind, one front)
   p.L(3, 6, 0, 3, skin); p.L(3, 7, 0, 4, skin); p.px(0, 2, skin);                              // whip tail curling up
   p.P([[18, 7], [21, 2], [25, 3], [23, 10], [19, 11]], skin);                                  // thick neck
   p.E(25, 4, 2.9, 2.6, skin);                                                                 // head
@@ -166,7 +166,7 @@ function hound({ hs = 0, ds = 0 }) {
   if (hs >= 1) { p.R(19, 8, 4, 1, '#4a3a2a'); p.px(19, 7, '#d0d0e0', true); p.px(21, 7, '#d0d0e0', true); p.px(22, 7, '#d0d0e0', true); }
   if (hs >= 2) { p.R(8, 4, 8, 2, '#8a94aa'); p.px(9, 3, '#b8c0d0', true); p.px(12, 3, '#b8c0d0', true); p.px(15, 3, '#b8c0d0', true); }
   if (hs >= 3) { p.R(7, 7, 9, 2, '#d8b050'); p.R(23, 1, 4, 1, '#9aa4b8'); }
-  if (ds >= 1) for (const x of [4, 7, 14, 17, 20]) p.px(x + 1, 17, bone, true);
+  if (ds >= 1) for (const x of [4, 8, 16, 20]) p.px(x + 1, 17, bone, true);
   if (ds >= 2) { p.px(26, 9, '#f6f0dc', true); p.px(28, 9, '#f6f0dc', true); }
   if (ds >= 3) for (const x of [9, 12, 15]) p.P([[x, 4], [x + 1, 1], [x + 2, 4]], '#f4f0e0', true);
   return p.finish();
@@ -300,8 +300,8 @@ function gargoyle({ hs = 0, ds = 0 }) {
   p.R(4, 16, 6, 2, mix(stone, '#000000', 0.15)); for (const x of [4, 6, 8]) p.px(x, 18, bone, true);     // hind foot and toe claws
   p.L(5, 15, 0, 17, stone); p.px(0, 16, stone); p.px(0, 17, stone);                                      // stone tail
   // the front arm reaches forward to the ground: a thick arm, a fist and three claws
-  p.R(12, 10, 3, 5, stone); p.R(13, 14, 7, 3, stone);
-  for (const x of [14, 16, 18]) { p.px(x, 17, bone, true); p.px(x, 18, bone, true); }                // three separate claws digging into the ground
+  p.R(12, 10, 2, 2, stone); p.R(13, 11, 2, 3, stone); p.R(14, 13, 3, 3, stone);                    // a small arm bent up to a small fist
+  p.px(17, 13, bone, true); p.px(17, 15, bone, true);                                                 // two little claws
   // head: horns, scowling red eyes, a wide mouth with two fangs
   p.E(13, 5, 3.4, 3, stone); p.R(14, 6, 5, 3, stone);
   p.P([[10, 3], [8, -1], [12, 2]], bone); p.P([[14, 2], [17, -1], [16, 3]], bone);
@@ -311,8 +311,8 @@ function gargoyle({ hs = 0, ds = 0 }) {
   if (hs >= 1) { p.px(7, 9, '#4a7a4a', true); p.px(10, 6, '#4a7a4a', true); }
   if (hs >= 2) { p.R(7, 9, 7, 2, '#9aa4b8'); p.R(8, 8, 2, 1, '#aab2c6'); }
   if (hs >= 3) { p.R(6, 9, 8, 5, '#7a8aa8'); p.R(9, 9, 2, 5, '#d8b050'); p.R(13, 2, 4, 1, '#d8b050', true); }
-  if (ds >= 1) for (const x of [14, 16, 18]) p.px(x, 19, bone, true);                                         // longer claws
-  if (ds >= 2) { for (const x of [15, 16, 17]) p.px(x, 13, bone, true); for (const x of [5, 7]) p.px(x, 15, bone, true); }     // knuckle and heel spikes
+  if (ds >= 1) { p.px(18, 13, bone, true); p.px(18, 15, bone, true); }                                       // longer claws
+  if (ds >= 2) { p.px(14, 12, bone, true); p.px(16, 12, bone, true); for (const x of [5, 7]) p.px(x, 15, bone, true); }     // knuckle and heel spikes
   if (ds >= 3) { p.L(7, 11, 10, 14, '#ff5a2a', true); p.L(9, 9, 9, 12, '#ff5a2a', true); p.px(8, 12, '#ffd070', true); p.px(9, 11, '#ffd070', true); p.px(16, 11, '#ff5a2a', true); p.px(15, 12, '#ffd070', true); }   // molten cracks glowing through the stone
   return p.finish();
 }
