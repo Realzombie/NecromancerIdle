@@ -139,7 +139,7 @@ export class Battle {
       const u = this.spawn('warbanner', FIELD_W - 110 - i * 70, LANE_TOP + (LANE_BOTTOM - LANE_TOP) * (H.banners === 1 ? 0.5 : (i + 0.5) / H.banners), true);
       this.fx.push({ k: 'ring', x: u.x, y: u.y - 10, t: 0, life: 0.6, color: '#e05060' });
     }
-    if (H.banners) this.floaters.push({ x: FIELD_W - 150, y: 330, text: 'war banner!', t: 0 });
+    if (H.banners) this.floaters.push({ x: FIELD_W - 150, y: 380, text: 'war banner!', t: 0 });
   }
 
   updateHazards(dt) {

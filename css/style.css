@@ -307,7 +307,7 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 @media (orientation: portrait) and (max-width: 900px) { .rotate { display: flex; } }
 
 /* ---- Raise Dead bar: one button per summon ---- */
-.spell-bar { position: absolute; left: calc(var(--ix) + var(--u) * 90); bottom: var(--iy); z-index: 20; display: flex; gap: calc(var(--u) * 6); flex-wrap: wrap; max-width: 62%; }
+.spell-bar { position: absolute; left: calc(var(--ix) + var(--u) * 90); bottom: calc(var(--iy) + var(--u) * 4); align-content: flex-end; max-height: calc(var(--u) * 150); z-index: 20; display: flex; gap: calc(var(--u) * 6); flex-wrap: wrap-reverse; max-width: 62%; }
 .spellbtn { position: relative; overflow: hidden; width: calc(var(--u) * 44); height: calc(var(--u) * 44); padding: 0; border-radius: 0.6em; border: 2px solid var(--edge); background: rgba(20, 16, 28, 0.9); cursor: pointer; display: grid; place-items: center; }
 .spellbtn canvas { max-width: 70%; max-height: 70%; width: auto; height: auto; image-rendering: pixelated; position: relative; z-index: 1; }
 .spellbtn i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0, 0, 0, 0.6); z-index: 2; }
@@ -345,3 +345,5 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 .mute.snd { bottom: calc(var(--iy) + var(--u) * 40); }
 .mute.music { bottom: calc(var(--iy) + var(--u) * 80); }
 .mute.full { bottom: calc(var(--iy) + var(--u) * 120); }
+
+@supports (height: 100dvh) { #app { width: min(100vw, calc(100dvh * var(--aspect, 1.7778))); height: min(100dvh, calc(100vw / var(--aspect, 1.7778))); } }

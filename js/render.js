@@ -414,7 +414,7 @@ const clouds = Array.from({ length: 6 }, (_, i) => ({ x: i * 190 + rnd() * 60, y
 const flakes = Array.from({ length: 110 }, () => ({ x: rnd() * FIELD_W, y: rnd() * FIELD_H, sp: 28 + rnd() * 50, ph: rnd() * 6.28, r: 1 + Math.floor(rnd() * 2) }));
 const motes = Array.from({ length: 36 }, () => ({ x: rnd() * FIELD_W, y: 120 + rnd() * 400, sp: 5 + rnd() * 12, ph: rnd() * 6.28, r: 1 + rnd() * 1.6 }));
 const lamps = [300, 540, 780].map((x, i) => ({ x, y: 356 + (i % 2) * 6 }));
-const blades = Array.from({ length: 80 }, (_, i) => ({ x: i * 12 + rnd() * 8, h: 9 + rnd() * 9, ph: rnd() * 6.28 }));
+const blades = Array.from({ length: Math.ceil(FIELD_W / 12) + 3 }, (_, i) => ({ x: i * 12 + rnd() * 8, h: 9 + rnd() * 9, ph: rnd() * 6.28 }));
 const bats = [0, 1, 2].map((i) => ({ off: i * 400, y: 50 + i * 38, speed: 38 + i * 12, ph: i }));
 
 function drawTree(g, t) {
@@ -762,18 +762,21 @@ function drawUnit(g, u, t, rar) {
   }
 }
 
-// A buried mine: dark casing, a blinking red light once it is armed.
+// A jaw trap hidden in the grass: iron teeth around a pressure plate, with a rune that glows red once it is armed.
 function drawMine(g, m, t) {
   g.save(); g.translate(Math.round(m.x), Math.round(m.y)); g.scale(1.35, 1.35);
-  const x = 0, y = 0;
-  const armed = m.arm <= 0, blink = armed ? (Math.sin(m.pulse * 9) > 0.2) : (Math.sin(m.pulse * 25) > 0);
-  g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(x, y + 2, 13, 5, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#0a0710'; g.fillRect(x - 9, y - 7, 18, 10);
-  g.fillStyle = '#5a5268'; g.fillRect(x - 8, y - 6, 16, 7);
-  g.fillStyle = '#3a3448'; g.fillRect(x - 8, y - 1, 16, 2);
-  g.fillStyle = '#8a8298'; for (const dx of [-7, 5]) g.fillRect(x + dx, y - 8, 2, 3);
-  g.fillStyle = blink ? '#ff4040' : '#601818'; g.fillRect(x - 2, y - 9, 4, 4);
-  if (blink && armed) { g.fillStyle = 'rgba(255,60,60,0.25)'; g.beginPath(); g.ellipse(x, y - 3, 20, 9, 0, 0, Math.PI * 2); g.fill(); }
+  const armed = m.arm <= 0, glow = armed ? 0.55 + 0.35 * Math.sin(m.pulse * 7) : 0.15 + 0.15 * Math.sin(m.pulse * 25);
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(0, 3, 15, 5.5, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(255,50,50,' + (glow * 0.45) + ')'; g.beginPath(); g.ellipse(0, 1, 19, 8, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#0a0710'; g.beginPath(); g.ellipse(0, 0, 13, 5.5, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#6a6478'; g.beginPath(); g.ellipse(0, -0.5, 12, 4.6, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#2a2236'; g.beginPath(); g.ellipse(0, 0, 8.5, 3, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#b8b0c8';
+  for (let i = 0; i < 9; i++) {              // teeth point up and inwards around the ring
+    const a2 = (i / 9) * Math.PI * 2, tx = Math.cos(a2) * 11, ty = Math.sin(a2) * 4.3;
+    g.beginPath(); g.moveTo(tx - 1.6, ty); g.lineTo(tx * 0.9, ty * 0.9 - 4.5); g.lineTo(tx + 1.6, ty); g.fill();
+  }
+  g.fillStyle = armed ? 'rgba(255,' + (70 + glow * 90 | 0) + ',60,1)' : '#7a3030'; g.fillRect(-2, -2, 4, 2);   // the pressure plate
   g.restore();
 }
 

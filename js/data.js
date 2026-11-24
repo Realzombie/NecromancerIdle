@@ -7,10 +7,10 @@ const _q = typeof location !== 'undefined' ? Number(new URLSearchParams(location
 const _wide = _q > 1 ? _q : typeof screen !== 'undefined' && typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches ? Math.max(screen.width, screen.height) / Math.min(screen.width, screen.height) : 16 / 9;
 export const FIELD_W = Math.round(Math.max(960, Math.min(1280, 540 * _wide)) / 8) * 8;
 export const FIELD_H = 540;
-export const LANE_TOP = 330;       // units are spread vertically between these
-export const LANE_BOTTOM = 440;
-export const LANE_MIN_Y = 322;     // hard clamp for unit y
-export const LANE_MAX_Y = 462;
+export const LANE_TOP = 374;       // units are spread vertically between these
+export const LANE_BOTTOM = 458;
+export const LANE_MIN_Y = 368;     // hard clamp for unit y
+export const LANE_MAX_Y = 474;
 
 // Player units. raise = base seconds between raises. rally = x range where they gather when idle.
 // unlockCost = champion souls to unlock in the skill tree (0 = owned from the start).
@@ -228,7 +228,7 @@ export function statEffect(stat, lvl, unit) {
 export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'player' && !UNITS[k].static);
 
 // ---- Field hazards ----
-// Mines are laid between the lines at the start of each wave and blow up under your horde (zone 2 onwards).
+// Traps (the code calls them mines) are laid between the lines at the start of each wave and spring under your horde (zone 2 onwards).
 // War banners appear from zone 3 on every third wave and buff the enemies near them until cut down.
 export function hazardsFor(zone, wave) {
   const id = zone.id;
@@ -242,7 +242,7 @@ export function hazardsFor(zone, wave) {
 export function hazardText(zone) {
   const parts = [];
   const h = hazardsFor(zone, 8);
-  if (h.mines) parts.push('Mines');
+  if (h.mines) parts.push('Traps');
   if (zone.endless || zone.id >= 3) parts.push('War banners');
   return parts;
 }

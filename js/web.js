@@ -19,13 +19,13 @@ export function createWeb({ save, play, onChange }) {
 
   const applyView = () => { world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`; };
   function recenter() {
-    view.s = 0.5;
+    view.s = 0.3;
     view.x = root.clientWidth / 2;
-    view.y = root.clientHeight * 0.3;
+    view.y = root.clientHeight * 0.66;
     applyView();
   }
   function zoom(f, cx = root.clientWidth / 2, cy = root.clientHeight / 2) {
-    const s = Math.max(0.4, Math.min(1.6, view.s * f));
+    const s = Math.max(0.2, Math.min(1.6, view.s * f));
     view.x = cx - ((cx - view.x) * s) / view.s;
     view.y = cy - ((cy - view.y) * s) / view.s;
     view.s = s;
@@ -37,27 +37,28 @@ export function createWeb({ save, play, onChange }) {
   //   the summon at the top, then a row of [HP | Rise Faster | Damage], with each chain running straight down its column
   //   and the special abilities in the middle column below. Summons chain outwards from the necromancer (left for the
   //   zombie line, right for the skeleton line); Plague Bearer and Death Knight hang above their parents.
-  const COL = 180, ROW = 150, GAP = 60, UP_GAP = 330;
+  const COL = 180, ROW = 150;
+  // Fixed positions (they never move when you buy things). Pods of owned summons hang down from their summon, or grow
+  // upwards for the ones marked up, so the web spreads out in every direction without lines crossing a pod.
   const LAYOUT = {
-    zombie: { from: 'hub', dir: -1 }, skeleton: { from: 'hub', dir: 1 },
-    hound: { from: 'zombie', dir: -1 }, abomination: { from: 'hound', dir: -1 }, gargoyle: { from: 'abomination', dir: -1 },
-    archer: { from: 'skeleton', dir: 1 }, mage: { from: 'archer', dir: 1 }, ghost: { from: 'mage', dir: 1 }, gravepriest: { from: 'ghost', dir: 1 },
-    plaguebearer: { from: 'zombie', up: true }, deathknight: { from: 'skeleton', up: true },
+    zombie: { from: 'hub', x: -340, y: 0 }, skeleton: { from: 'hub', x: 340, y: 0 },
+    hound: { from: 'zombie', x: -870, y: 0 }, archer: { from: 'skeleton', x: 870, y: 0 },
+    plaguebearer: { from: 'zombie', x: -340, y: -330, up: true }, deathknight: { from: 'skeleton', x: 340, y: -330, up: true },
+    abomination: { from: 'hound', x: -870, y: -330, up: true }, mage: { from: 'archer', x: 870, y: -330, up: true },
+    gargoyle: { from: 'abomination', x: -1400, y: -330, up: true }, ghost: { from: 'mage', x: 1400, y: -330, up: true },
+    gravepriest: { from: 'ghost', x: 1930, y: -330, up: true },
   };
   function build() {
     const nodes = [], links = [];
     const add = (n) => { nodes.push(n); return n; };
     const hub = add({ id: 'hub', x: 0, y: 0, kind: 'hub' });
     links.push([hub, add({ id: 'unlock:spell', x: 0, y: 150, kind: 'unlock' })]);
-    const halfW = (u) => (u === 'hub' ? 48 : owned(save, u) ? COL + 55 : 56);
     const un = { hub };
     for (const u of Object.keys(LAYOUT)) {
       if (!PLAYER_UNITS.includes(u) || !unitVisible(save, u)) continue;
       const L = LAYOUT[u], p = un[L.from];
       if (!p) continue;
-      const x = L.up ? p.x : p.x + L.dir * (halfW(L.from) + GAP + halfW(u));
-      const y = L.up ? p.y - UP_GAP : p.y;
-      un[u] = add({ id: 'unit:' + u, x, y, kind: 'unit', unit: u });
+      un[u] = add({ id: 'unit:' + u, x: L.x, y: L.y, kind: 'unit', unit: u });
       links.push([p, un[u]]);
     }
     for (const u of Object.keys(un)) {

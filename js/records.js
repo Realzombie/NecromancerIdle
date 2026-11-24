@@ -40,12 +40,14 @@ export function rewardText(r) {
 export const isDone = (save, a) => !!(save.ach && save.ach[a.id]);
 
 // Award anything newly earned. Returns the list of achievements unlocked just now.
-export function checkAchievements(save) {
+// 'live' adds the running battle's progress so a milestone can pop up mid-fight (stats are only banked when it ends).
+export function checkAchievements(save, live) {
   save.ach = save.ach || {};
   const fresh = [];
+  const view = live ? { ...save, stats: { ...(save.stats || {}), kills: st(save, 'kills') + (live.kills || 0), soulsEarned: st(save, 'soulsEarned') + (live.souls || 0) } } : save;
   for (const a of ACHIEVEMENTS) {
     if (save.ach[a.id]) continue;
-    const [now, goal] = a.prog(save);
+    const [now, goal] = a.prog(view);
     if (now < goal) continue;
     save.ach[a.id] = true;
     if (a.reward.dust) save.dust = (save.dust || 0) + a.reward.dust;

@@ -179,6 +179,7 @@ function startBattle(zoneId) {
   show(null);
 }
 
+let liveFresh = [], liveTimer = 0;
 function endBattle() {
   const fresh = checkAchievements(save);
   const bounties = reportBattle(save, battle);
@@ -188,10 +189,10 @@ function endBattle() {
   $('result-title').textContent = E ? 'The Crypt claims you' : won ? 'Zone Cleared!' : 'Your horde has fallen';
   let text;
   if (won) {
-    text = `${UNITS[battle.zone.boss].name} is dead and ${battle.zone.name} is yours. +${battle.payout} souls banked.`;
+    text = `${UNITS[battle.zone.boss].name} is dead and ${battle.zone.name} is yours. ${Math.floor(battle.earned)} souls collected, all banked.`;
     if (battle.champDrop) text += ' The boss dropped a champion soul. Spend it in the skill tree!';
   } else {
-    text = `The living chased you off. +${battle.payout} souls banked from ${battle.kills} kills.`;
+    text = `The living chased you off. ${Math.floor(battle.earned)} souls collected from ${battle.kills} kills, but only half (${battle.payout}) are banked on a defeat.`;
   }
   if (E) {
     text = `You survived ${E.waves} wave${E.waves === 1 ? '' : 's'}` + (E.record ? ` (a new record, was ${E.prev})` : ` (best ${E.prev})`) + `. +${battle.payout} souls banked.`;
@@ -211,11 +212,13 @@ function endBattle() {
     chip.insertAdjacentHTML('beforeend', '<span>' + it.name + '</span>');
     extra.appendChild(chip);
   }
-  for (const a of fresh) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9733; ' + a.name + ' &middot; ' + rewardText(a.reward) + '</div>');
+  for (const a of fresh) toast('Achievement: ' + a.name + ' (' + rewardText(a.reward) + ')');
+  for (const a of [...liveFresh, ...fresh]) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9733; ' + a.name + ' &middot; ' + rewardText(a.reward) + '</div>');
   for (const b of bounties) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#9873; Bounty: ' + bountyText(b) + ' &middot; +' + b.dust + ' dust' + (b.champ ? ' +1 champion soul' : '') + '</div>');
   for (const t of battle.newFinds || []) extra.insertAdjacentHTML('beforeend', '<div class="rchip achv">&#128214; Bestiary: ' + UNITS[t].name + ' (+' + (UNITS[t].boss ? '0.4' : '0.15') + '% souls)</div>');
   if (best >= 2) play('drop');
   if (fresh.length || bounties.length || (battle.newFinds || []).length) setTimeout(() => play('ach'), 400);
+  liveFresh = [];
   show('screen-result');
   if (autoOn) {
     $('result-text').textContent += ' Fighting again in 3 seconds... (Return Home to stop)';
@@ -381,6 +384,12 @@ function frame(now) {
   const tier = necroTier(save);
   if (battle) {
     if (!battle.result && !paused) {
+      liveTimer += dt;
+      if (liveTimer > 1.5) {            // milestones can pop up in the middle of a fight
+        liveTimer = 0;
+        const got = checkAchievements(save, { kills: battle.kills, souls: Math.floor(battle.earned * (TUNING.failPayout || 0.5)) });
+        for (const a of got) { toast('Achievement: ' + a.name + ' (' + rewardText(a.reward) + ')'); play('ach'); liveFresh.push(a); }
+      }
       const steps = speed * 2;
       for (let i = 0; i < steps; i++) battle.update(dt / 2);
       drainSounds(battle);
