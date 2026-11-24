@@ -153,7 +153,7 @@ export class Battle {
       m.arm -= dt; m.pulse += dt;
       if (m.boom > 0 || m.arm > 0) continue;
       for (const u of this.units) {
-        if (u.team !== 'player' || u.def.static || u.def.ghostly || u.hp <= 0) continue;
+        if (u.team !== 'player' || u.def.static || u.def.ghostly || u.def.fly || u.hp <= 0) continue;
         if (Math.hypot(u.x - m.x, (u.y - m.y) * 1.6) <= 18 + u.def.radius * 0.6) { m.boom = 1; break; }
       }
     }
@@ -166,7 +166,7 @@ export class Battle {
       this.emit('trap');
       for (let i = 0; i < 10; i++) this.spark(m.x, m.y - 6, i % 2 ? '#ffb040' : '#ff6030');
       for (const o of this.units) {
-        if (o.team !== 'player' || o.def.static || o.def.ghostly || o.hp <= 0) continue;
+        if (o.team !== 'player' || o.def.static || o.def.ghostly || o.def.fly || o.hp <= 0) continue;
         if (Math.hypot(o.x - m.x, (o.y - m.y) * 1.6) > 52 + o.def.radius) continue;
         const soft = o.def.heavy ? 0.4 : 1;
         const d = (m.flat + m.pct * o.maxHp) * soft;
@@ -203,6 +203,7 @@ export class Battle {
       ht: this.rand(1, 4),
       age: 0, fresh: true,
     };
+    if (def.fly) { u.alt = this.rand(def.alt[0], def.alt[1]); u.altNow = u.alt; u.flap = this.rand(0, 6); }
     if (def.team === 'enemy') { const e = this.save.seen[type] || (this.save.seen[type] = {}); e.seen = true; }
     u.status = {};
     // Elites: a rare, bigger and meaner enemy that drops triple souls and may carry gear.
@@ -324,7 +325,7 @@ export class Battle {
     // Projectiles
     for (const p of this.projectiles) {
       if (p.target.hp <= 0) { p.dead = true; continue; }
-      const dx = p.target.x - p.x, dy = (p.target.y - 14) - p.y;
+      const dx = p.target.x - p.x, dy = (p.target.y - 14 - (p.target.altNow || 0)) - p.y;
       const d = Math.hypot(dx, dy);
       const step = p.speed * dt;
       if (d <= step) {
@@ -361,7 +362,7 @@ export class Battle {
       if (u.hp > 0) continue;
       for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
       this.emit('die', u.team);
-      if (this.corpses.length < 50) this.corpses.push({ u, x: u.x, y: u.y, t: 0 });
+      if (this.corpses.length < 50) this.corpses.push({ u, x: u.x, y: u.y, t: 0, alt: u.altNow || 0 });
       if (u.team === 'enemy' && this.fx.length < 260) this.fx.push({ k: 'soul', x: u.x, y: u.y - 20, t: 0, life: 1.1 });
       if (u.def.boss) this.shake = 1;
       if (u.sp && u.sp.burst) this.sporeBurst(u);
@@ -438,7 +439,7 @@ export class Battle {
       const A = u.def.aura, big = u.sp && u.sp.blight;
       const r = A.r * (big ? 1.5 : 1), dps = A.dps * u.dmg * (big ? 2 : 1);
       for (const o of this.units) {
-        if (o.team === u.team || o.hp <= 0 || Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) > r) continue;
+        if (o.team === u.team || o.hp <= 0 || o.def.fly || Math.hypot(o.x - u.x, (o.y - u.y) * 1.5) > r) continue;
         const st = o.status.poison;
         if (st) { st.t = Math.max(st.t, 0.5); st.dps = Math.max(st.dps, dps); } else o.status.poison = { t: 0.5, dps };
       }
@@ -456,13 +457,13 @@ export class Battle {
         u.swing = null;
         if (t.hp > 0) {
           if (u.def.range > 40) {
-            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16, target: t, dmg: u.dmg, speed: u.def.splash ? 260 : 340, src: u, splash: u.def.splash || 0, magic: !!u.def.splash });
+            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16 - (u.altNow || 0), target: t, dmg: u.dmg, speed: u.def.splash ? 260 : 340, src: u, splash: u.def.splash || 0, magic: !!u.def.splash });
           } else if (Math.hypot(t.x - u.x, (t.y - u.y) * 1.5) <= (u.def.range + t.def.radius) * 1.4) {
             this.fx.push({ k: 'slash', x: u.x + u.facing * 16, y: u.y - 18, dir: u.facing, t: 0, life: 0.2, color: u.team === 'player' ? '#d8f0c0' : '#f0d0c0' });
             this.hit(t, u.dmg, u);
             if (u.def.cleave) {
               for (const o of this.units) {
-                if (o.team === u.team || o === t || o.hp <= 0) continue;
+                if (o.team === u.team || o === t || o.hp <= 0 || o.def.fly) continue;
                 if (Math.hypot(o.x - t.x, (o.y - t.y) * 1.5) <= u.def.cleave) this.hit(o, u.dmg * 0.7, u);
               }
               this.fx.push({ k: 'ring', x: t.x, y: t.y - 6, t: 0, life: 0.3, color: '#d8c8a0' });
@@ -473,14 +474,20 @@ export class Battle {
     }
 
     let target = null, best = Infinity;
+    const reachesAir = u.def.fly || u.def.range > 40;   // only flyers and ranged units can hit something in the air
     for (const o of this.units) {
       if (o.team === u.team) continue;
+      if (o.def.fly && !reachesAir) continue;
       const d = Math.hypot(o.x - u.x, (o.y - u.y) * 1.5);
       if (d < best) { best = d; target = o; }
     }
     if (u.team === 'player' && best > TUNING.aggroRange) target = null;
 
     u.engaged = !!(target && best <= u.def.range + target.def.radius);
+    if (u.def.fly) {
+      const want = u.engaged && u.def.range <= 40 ? 14 : u.alt;
+      u.altNow += Math.sign(want - u.altNow) * Math.min(Math.abs(want - u.altNow), (u.engaged ? 260 : 90) * dt);
+    }
     if (u.engaged) {
       u.facing = Math.sign(target.x - u.x) || u.facing;
       if (u.cd <= 0) {
@@ -533,6 +540,7 @@ export class Battle {
     for (let i = 0; i < us.length; i++) {
       for (let j = i + 1; j < us.length; j++) {
         const a = us[i], b = us[j];
+        if (!!a.def.fly !== !!b.def.fly) continue;
         const min = (a.def.radius + b.def.radius) * TUNING.separation;
         let dx = b.x - a.x, dy = (b.y - a.y) * 1.8;
         if (Math.abs(dx) > min || Math.abs(dy) > min) continue;
@@ -641,6 +649,7 @@ export class Battle {
       if (src.sp.pack) dmg *= 1 + 0.1 * Math.min(5, this.alive('player', 'hound') - 1);
       if (src.sp.poison) target.status.poison = { t: 4, dps: 0.35 * src.dmg };
       if (src.sp.fire) target.status.burn = { t: 3, dps: 0.4 * src.dmg };
+      if (src.sp.inferno) target.status.burn = { t: 4, dps: 0.55 * src.dmg };
       if (src.sp.frost) target.status.slow = { t: 3 };
     }
     if (src && src.buffed) dmg *= src.buffed;
@@ -657,7 +666,8 @@ export class Battle {
     if (gm.thorns && target.team === 'player' && src && src.team === 'enemy' && src.def.range <= 40 && src.hp > 0) src.hp -= dmg * gm.thorns;
     target.hp -= dmg;
     if (src && src.def.boss) this.shake = Math.max(this.shake, 0.45);
-    if (src && src.sp && src.sp.drain && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.5);
+    if (src && src.sp && (src.sp.drain || src.sp.feast) && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.5);
+    if (src && src.def.lifesteal && src.hp > 0) src.hp = Math.min(src.maxHp, src.hp + dmg * src.def.lifesteal);
     if (!quiet) this.emit('hit', target.team);
     target.flash = 0.12;
     for (let i = 0; i < 3; i++) this.spark(target.x, target.y - 16, '#ffffff');

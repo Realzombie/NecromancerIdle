@@ -63,6 +63,14 @@ const SPRITES = {
   icon_dust: { scale: 4, palette: { D: '#e8e0c8', d: '#b8b09a' },
     grid: ['....D.....', '...DDD....', '..DDdDD...', '.DDDDDDD..', 'DdDDdDDdD.'] },
   necro4: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#4a1020', h: '#8a2a40', R: '#3a0c18', r: '#7a2038', E: '#ffd060', T: '#7a5a30', O: '#ff8030' } },
+  bat: { scale: 4, palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#f0f0e0' },
+    grid: ['W..........W', 'WW...PP...WW', 'WWW.PPPP.WWW', '.WWWPEPEWWW.', '..WWPPPPWW..', '...WWPFPW...', '....W..W....'] },
+  drake: { scale: 4, palette: { B: '#e8e0c8', W: '#5a3a7a', E: '#9dff7a', D: '#2a1c30', O: '#ff9a30' },
+    grid: ['W....W........', 'WW..WW.....BB.', 'WWWWWW...BEBBO', '.WWWWBB.BBBBBO', '..WBBBBBBBBDO.', '...BBBBBBBD...', '..D.B.B.B.D...', '..D..D...D....'] },
+  griffin: { scale: 4, palette: { Y: '#c8a040', W: '#f0e8d0', O: '#e89030', F: '#8a6a3a', E: '#202020' },
+    grid: ['FF.......WW.', 'FFFF....WWWO', 'FFFFYYYWWEOO', '.FFYYYYYYWW.', '..YYYYYYY...', '..YY.YY.YY..', '..O..O..O...'] },
+  wyvern: { scale: 4, palette: { B: '#6a8ab0', L: '#a8c8e8', W: '#4a6a90', E: '#e8f8ff', H: '#e8f0ff' },
+    grid: ['W............', 'WW.....H.LL..', 'WWW...HLLLEL.', '.WWWBBBBBLLLL', '..WBBBBBBBB..', '...BBBBBBB...', '...B.B..BBB..', '..LL.LL...BBB'] },
   zombie: {
     scale: 4,
     palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848' },
@@ -330,6 +338,7 @@ function silhouette(c, color) {
 
 function sprite(name) {
   if (cache[name]) return cache[name];
+  if (ART_ON && (name === 'bat' || name === 'drake')) { const fc = artCanvas(name); return (cache[name] = makeSprite(fc, fc.width / 2)); }
   if (ART_ON && /^necro[0-4]$/.test(name)) { const nc = necroCanvas(Number(name.slice(5))); const sp = makeSprite(nc, nc.width / 2); sp.orb = nc.orb; return (cache[name] = sp); }
   if (ICON_ART[name] && ART_ON) { const ic = iconArtCanvas(name); return (cache[name] = makeSprite(ic, name === 'banner' ? 12 : ic.axPx)); }   // icons are always the new art; the banner follows the setting
   if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
@@ -371,6 +380,7 @@ function lookSprite(unit, look) {
   if (cache[key]) return cache[key];
   const ac = ART_ON ? artCanvas(unit, look) : null;          // the painted art, when there is some
   if (ac) return (cache[key] = makeSprite(ac, ac.width / 2));
+  if (!LOOKS[unit]) return sprite(UNITS[unit].sprite);   // newer summons have only one classic look
   const L = LOOKS[unit];
   const grid = L.gridFor ? L.gridFor(look.hs) : L.grid;
   const pal = { ...L.palette, ...(look.hs === 0 && L.rottenPalette ? L.rottenPalette : {}) };
@@ -880,7 +890,7 @@ function drawNecro(g, t, tier, battle) {
     battle.raiseTypes().forEach((type, i) => {
       const bw = 70, bx = x - bw / 2, by = base + 18 + i * 9;
       g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(bx - 1, by - 1, bw + 2, 7);
-      g.fillStyle = { zombie: '#8fd16a', archer: '#e8e0c8', skeleton: '#a8b0e0', hound: '#e0a050', mage: '#b070d0', ghost: '#b8d8e8', abomination: '#a0c080', deathknight: '#8a8aa8', plaguebearer: '#9dff7a', gravepriest: '#ffe080', gargoyle: '#9a9aaa' }[type] || '#ffffff';
+      g.fillStyle = { zombie: '#8fd16a', archer: '#e8e0c8', skeleton: '#a8b0e0', hound: '#e0a050', mage: '#b070d0', ghost: '#b8d8e8', abomination: '#a0c080', deathknight: '#8a8aa8', plaguebearer: '#9dff7a', gravepriest: '#ffe080', gargoyle: '#9a9aaa', bat: '#b070d0', drake: '#e8e0c8' }[type] || '#ffffff';
       g.fillRect(bx, by, bw * battle.raiseProgress(type), 5);
     });
   }
@@ -888,7 +898,8 @@ function drawNecro(g, t, tier, battle) {
 
 function drawUnit(g, u, t, rar) {
   const s = unitSprite(u);
-  const bob = u.def.ghostly ? 4 + Math.sin(t * 3 + u.id) * 3 : u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
+  const alt = u.altNow || 0;
+  const bob = u.def.fly ? Math.sin(t * 5 + (u.flap || 0)) * 3 : u.def.ghostly ? 4 + Math.sin(t * 3 + u.id) * 3 : u.moving ? Math.abs(Math.sin(t * 9 + u.id)) * 3 : 0;
   // Attack animation: wind up (lean back), strike (lunge and lean forward), then recover.
   let lunge = 0, lean = 0, squash = 1;
   if (u.attackAnim > 0) {
@@ -901,9 +912,9 @@ function drawUnit(g, u, t, rar) {
   if (!u.attackAnim && !u.moving) squash = 1 + 0.025 * Math.sin(t * 3 + u.id * 1.3);
   const rise = u.age < 0.45 ? u.age / 0.45 : 1;
   const dir = u.team === 'player' ? 1 : -1;
-  const px = Math.round(u.x + lunge * dir), py = Math.round(u.y - bob + (1 - rise) * 16);
-  g.fillStyle = u.team === 'player' ? 'rgba(143,209,106,0.28)' : 'rgba(214,89,107,0.28)';
-  g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.45, 5, 0, 0, Math.PI * 2); g.fill();
+  const px = Math.round(u.x + lunge * dir), py = Math.round(u.y - bob - alt + (1 - rise) * 16);
+  g.fillStyle = u.team === 'player' ? 'rgba(143,209,106,' + (0.28 - Math.min(0.16, alt / 800)) + ')' : 'rgba(214,89,107,' + (0.28 - Math.min(0.16, alt / 800)) + ')';
+  g.beginPath(); g.ellipse(u.x, u.y, s.w * 0.45 * (1 - Math.min(0.4, alt / 330)), 5, 0, 0, Math.PI * 2); g.fill();
   if (u.def.aura) {
     const ar = u.def.aura.r * (u.sp && u.sp.blight ? 1.5 : 1);
     g.fillStyle = 'rgba(120,220,90,' + (0.1 + 0.04 * Math.sin(t * 3 + u.id)) + ')';
@@ -995,7 +1006,7 @@ function drawCorpse(g, c) {
   const fall = Math.min(1, p * 2.4), ease = 1 - Math.pow(1 - fall, 3);
   g.save();
   g.globalAlpha = Math.max(0, 1 - p * p) * (u.def.ghostly ? 0.7 : 1);
-  g.translate(Math.round(c.x), Math.round(c.y + p * 5));
+  g.translate(Math.round(c.x), Math.round(c.y + p * 5 - (c.alt || 0) * (1 - Math.min(1, p * 2.2))));
   if (u.team === 'enemy') g.scale(-1, 1);
   g.rotate(-ease * (u.def.static ? 0.05 : 1.45));
   const x0 = -s.ax, y0 = -s.h;
@@ -1090,7 +1101,7 @@ function drawScene(g, battle, tier = 0) {
   SC = sceneFor(battle.zone.id);
   drawBackground(g, t);
   drawNecro(g, t, tier, battle);
-  const sorted = [...battle.units].sort((a, b) => a.y - b.y);
+  const sorted = [...battle.units].sort((a, b) => (!!a.def.fly - !!b.def.fly) || a.y - b.y);   // flyers are drawn last, above everyone
   for (const m of battle.mines || []) drawMine(g, m, t);
   const rar = topRarity(battle.save);
   for (const c of battle.corpses || []) drawCorpse(g, c);

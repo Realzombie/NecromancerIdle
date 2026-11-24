@@ -47,6 +47,7 @@ export function createWeb({ save, play, onChange }) {
     abomination: { from: 'hound', x: -870, y: -330, up: true }, mage: { from: 'archer', x: 870, y: -330, up: true },
     gargoyle: { from: 'abomination', x: -1400, y: -330, up: true }, ghost: { from: 'mage', x: 1400, y: -330, up: true },
     gravepriest: { from: 'ghost', x: 1930, y: -330, up: true },
+    bat: { from: 'hound', x: -1400, y: 0 }, drake: { from: 'gravepriest', x: 2460, y: -330, up: true },
   };
   function build() {
     const nodes = [], links = [];

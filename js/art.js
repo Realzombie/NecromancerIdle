@@ -318,6 +318,64 @@ function gargoyle({ hs = 0, ds = 0 }) {
 }
 
 
+function bat({ hs = 0, ds = 0 }) {
+  const p = new Pix(24, 16, 2), body = '#6a4a8a', wing = '#3a2a5a', bone = '#7a6aa0';
+  // wings first: both swept up, with finger bones
+  p.P([[10, 10], [6, 3], [0, 0], [1, 6], [0, 10], [3, 9], [5, 13], [8, 11]], mix(wing, '#000000', 0.15));
+  p.P([[14, 10], [18, 3], [23, 0], [22, 6], [23, 10], [20, 9], [18, 13], [15, 11]], wing);
+  for (const [x, y] of [[0, 0], [1, 6], [0, 10]]) p.L(10, 10, x, y, bone, true);
+  for (const [x, y] of [[23, 0], [22, 6], [23, 10]]) p.L(14, 10, x, y, bone, true);
+  p.E(12, 11, 3.2, 3.6, body);                                                             // furry body
+  p.E(13, 7, 3.2, 2.8, body);                                                              // head
+  p.P([[11, 5], [11, 0], [13, 4]], body); p.P([[14, 4], [16, 0], [16, 5]], body);          // big pointed ears
+  p.px(12, 6, '#ff4a4a', true); p.px(15, 6, '#ff4a4a', true);                              // red eyes
+  p.px(14, 8, '#f6f0dc', true); p.px(16, 8, '#f6f0dc', true);                              // little fangs
+  p.px(11, 15, '#c8c0d8', true); p.px(14, 15, '#c8c0d8', true);                            // feet
+  if (hs >= 1) p.R(10, 11, 6, 1, '#8a5a30', true);
+  if (hs >= 2) { for (const [x, y] of [[2, 3], [3, 1], [21, 3], [20, 1], [1, 8], [22, 8]]) p.px(x, y, '#ecece0', true); }
+  if (hs >= 3) { p.R(11, 3, 5, 1, '#d8b050', true); p.px(11, 2, '#d8b050', true); p.px(13, 2, '#d8b050', true); p.px(15, 2, '#d8b050', true); }
+  if (ds >= 1) { p.px(14, 9, '#f6f0dc', true); p.px(16, 9, '#f6f0dc', true); }
+  if (ds >= 2) { p.px(12, 6, '#ffb0b0', true); p.px(15, 6, '#ffb0b0', true); for (const [x, y] of [[0, 0], [23, 0]]) p.px(x, y - 1, '#f6f0dc', true); }
+  if (ds >= 3) { for (const [x, y] of [[13, 10], [15, 10]]) { p.px(x, y, '#e8283a', true); } p.px(14, 12, '#e8283a', true); p.px(12, 14, '#c01828', true); }
+  return p.finish();
+}
+
+function drake({ hs = 0, ds = 0 }) {
+  const p = new Pix(40, 28, 4), bone = '#e6dfc6', dk = mix(bone, '#6a6050', 0.35), mem = '#5a3a7a';
+  // far wing (small, up on the right), then the big near wing on the left
+  p.P([[22, 12], [30, 2], [38, 8], [32, 9], [28, 12]], mix(mem, '#000000', 0.2)); p.L(22, 12, 30, 2, dk, true); p.L(22, 12, 38, 8, dk, true);
+  p.P([[18, 13], [8, 0], [1, 9], [8, 8], [5, 14], [12, 12]], mem); p.P([[18, 13], [10, 3], [6, 9], [13, 11]], mix(mem, '#ffffff', 0.12), true);
+  for (const [x, y] of [[8, 0], [1, 9], [5, 14]]) p.L(18, 13, x, y, bone, true);
+  // tail of bone vertebrae, ending in a spade
+  p.L(14, 17, 3, 22, bone, true); for (let i = 0; i < 5; i++) p.R(13 - i * 2.2, 17 + i * 1.1 - 1, 2, 3, bone);
+  p.P([[0, 20], [4, 21], [3, 26], [0, 24]], bone);
+  // spine and ribcage
+  p.L(26, 13, 12, 17, bone, true); p.R(12, 15, 15, 2, bone);
+  for (let x = 14; x < 26; x += 3) p.R(x, 16, 1, 6, bone);
+  p.R(13, 16, 13, 1, dk, true);
+  p.R(14, 22, 11, 1, dk, true);
+  // legs dangling
+  p.R(14, 22, 2, 4, bone); p.R(12, 25, 4, 1, bone); p.R(23, 22, 2, 4, bone); p.R(24, 25, 4, 1, bone);
+  // long neck and a snarling skull
+  p.L(26, 14, 30, 7, bone, true); p.L(27, 14, 31, 7, bone, true); p.R(29, 8, 2, 3, bone);
+  p.E(33, 6, 3.4, 2.8, bone); p.R(33, 8, 5, 2, bone); p.R(34, 8, 4, 1, '#2a1c30', true);
+  for (const x of [34, 36]) p.px(x, 9, '#f6f0dc', true);
+  p.R(32, 5, 2, 1, '#2a1c30', true); p.px(32, 5, GLOW, true);
+  p.P([[30, 4], [27, 0], [32, 3]], bone); p.P([[33, 3], [34, 0], [35, 4]], dk);
+  if (hs >= 1) for (let x = 14; x < 26; x += 3) p.px(x, 17, '#d8b050', true);
+  if (hs >= 2) { p.R(31, 3, 5, 1, '#d8b050', true); p.px(31, 2, '#d8b050', true); p.px(33, 2, '#d8b050', true); p.px(35, 2, '#d8b050', true); }
+  if (hs >= 3) { p.R(13, 14, 14, 3, '#8a94aa', true); p.R(13, 14, 14, 1, '#c8d0e0', true); }
+  // fire from its mouth, bigger with damage tiers
+  const f = [0, 2, 4, 6][ds];
+  if (f === 0) { p.px(39, 8, '#9a9aa8', true); p.px(38, 7, '#9a9aa8', true); }
+  else {
+    p.P([[38, 8], [38 + f, 6], [38 + f + 1, 9], [38 + f, 12], [38, 10]], '#e8401a', true);
+    p.P([[38, 8], [38 + f - 1, 7], [38 + f - 1, 9], [38 + f - 1, 11], [38, 10]], '#ff9a30', true);
+    p.px(38 + 1, 9, '#ffe880', true); if (ds >= 2) p.px(38 + 3, 9, '#ffe880', true);
+  }
+  return p.finish();
+}
+
 // The necromancer, by rank (0 Grave Robber ... 3 Lich, 4 is the epic-robe look). Returns the Pix with .orb = where the
 // staff orb sits in sprite pixels, so the renderer can put its glow there.
 const NECRO_LOOK = [
@@ -359,7 +417,7 @@ export function necroCanvas(tier) {
   return c;
 }
 
-export const ART = { zombie, skeleton, archer, hound, mage, ghost, abomination, deathknight, plaguebearer, gravepriest, gargoyle };
+export const ART = { bat, drake, zombie, skeleton, archer, hound, mage, ghost, abomination, deathknight, plaguebearer, gravepriest, gargoyle };
 export const ART_SCALE = 4;
 // Returns a canvas for the unit, or null when it has no painted art.
 export function artCanvas(unit, look) {

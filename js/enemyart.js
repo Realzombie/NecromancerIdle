@@ -99,7 +99,41 @@ function person(o) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+function griffin() {
+  const p = new Pix(32, 24, 4), tan = '#c89a50', white = '#f0ead8', wingc = '#8a6a3a';
+  p.P([[17, 11], [19, 1], [28, 2], [25, 8]], mix(wingc, '#000000', 0.2));                      // far wing
+  p.E(13, 15, 7.4, 4.6, tan); p.E(19, 12, 4, 4.2, white);                                      // lion body, feathered chest
+  p.P([[14, 12], [9, 0], [0, 3], [3, 9], [1, 12], [8, 13]], wingc); for (const [x, y] of [[9, 1], [3, 3], [1, 8]]) { p.R(x, y, 2, 2, white, true); }   // near wing with pale tips
+  p.L(6, 13, 2, 8, tan, true); p.L(7, 13, 2, 9, tan, true); p.E(2, 7, 1.8, 2, '#8a5a2a', true);   // lion tail with a tuft
+  p.R(9, 18, 3, 5, tan); p.R(15, 19, 3, 4, mix(tan, '#000000', 0.15));                             // hind legs
+  p.R(8, 22, 5, 1, '#e89030', true); p.R(14, 22, 5, 1, '#e89030', true);
+  p.R(20, 18, 2, 5, '#e8c070'); p.R(24, 18, 2, 5, '#e8c070'); for (const x of [20, 22, 24, 26]) p.px(x, 23, '#e89030', true);   // eagle talons
+  p.E(24, 8, 3.4, 3.2, white);                                                                // eagle head
+  p.P([[26, 7], [32, 10], [26, 12]], '#f0a030', true); p.px(29, 10, '#a05a10', true);          // hooked beak
+  p.R(24, 6, 2, 2, '#ffe070', true); p.px(25, 7, '#202020', true); p.R(23, 5, 4, 1, '#4a3a20', true);   // fierce eye
+  p.P([[21, 6], [20, 2], [24, 5]], white);                                                     // head crest
+  return p.finish();
+}
+
+function wyvern() {
+  const p = new Pix(36, 26, 3), blue = '#6a8ab0', pale = '#a8c8e8', wingc = '#4a6a90';
+  p.P([[19, 11], [26, 0], [35, 7], [28, 7]], mix(wingc, '#000000', 0.2)); p.L(19, 11, 26, 0, pale, true); p.L(19, 11, 35, 7, pale, true);    // far wing
+  p.L(10, 17, 2, 24, blue, true); p.L(10, 18, 2, 25, blue, true); p.P([[0, 22], [4, 23], [3, 27], [0, 25]], pale);                         // tail with a spade
+  p.E(15, 15, 7.4, 4.4, blue); p.E(15, 17, 5, 2.4, pale, true);                                                                       // body and pale belly
+  p.P([[13, 12], [6, 0], [0, 8], [6, 7], [4, 13], [9, 11]], wingc); for (const [x, y] of [[6, 0], [0, 8], [4, 13]]) p.L(13, 12, x, y, pale, true);   // near wing
+  p.R(12, 19, 3, 5, mix(blue, '#000000', 0.15)); p.R(19, 19, 3, 5, blue); for (const x of [11, 13, 19, 21]) p.px(x, 24, '#e8f8ff', true);   // legs and claws
+  p.P([[20, 12], [27, 5], [30, 8], [23, 16]], blue);                                           // neck
+  p.E(30, 6, 3.4, 2.8, pale); p.R(31, 7, 4, 2, pale);                                           // head with a long jaw
+  p.R(32, 8, 4, 1, '#1a2a4a', true); p.px(33, 9, '#f6f8ff', true); p.px(35, 9, '#f6f8ff', true);
+  p.R(30, 5, 2, 2, '#e8f8ff', true); p.px(31, 6, '#1a2a4a', true);
+  p.P([[28, 4], [25, 0], [31, 3]], '#e8f0ff'); p.P([[32, 3], [34, 0], [34, 4]], '#cfe4ff');      // horns
+  p.P([[35, 8], [38, 6], [38, 10]], '#bfeaff', true); p.px(36, 7, '#ffffff', true);               // an icicle of frost breath
+  for (const [x, y] of [[8, 5], [13, 2], [22, 4]]) p.px(x, y, '#e8f8ff', true);                   // snow drifting off the wings
+  return p.finish();
+}
+
 export const ENEMY = {
+  griffin, wyvern,
   peasant:  () => person({ head: 'straw', cloth: '#8a6a4a', legs: '#5a4a3a', weapon: 'pitchfork' }),
   militia:  () => person({ head: 'cap', hc: '#8a8a98', cloth: '#6a7a4a', legs: '#4a3a3a', weapon: 'spear', shield: 'round', sh: '#8a5a2a' }),
   slinger:  () => person({ head: 'hood', hc: '#6a5a3a', cloth: '#8a7a5a', legs: '#4a3a3a', weapon: 'sling' }),

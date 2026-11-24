@@ -25,6 +25,8 @@ export const UNITS = {
   deathknight:  { name: 'Death Knight',   hp: 110, dmg: 14, atk: 1.1, speed: 70, range: 26,  radius: 12, raise: 28, rally: [380, 560], sprite: 'deathknight', team: 'player', unlockCost: 3, costMul: 3,   blurb: 'A heavily armoured knight who charges into the enemy line.' },
   plaguebearer: { name: 'Plague Bearer',  hp: 70,  dmg: 3,  atk: 1.2, speed: 30, range: 24,  radius: 11, raise: 26, rally: [400, 580], sprite: 'plaguebearer', team: 'player', unlockCost: 3, costMul: 2.6, aura: { r: 62, dps: 1.9 }, blurb: 'Wreathed in a toxic cloud that poisons every enemy nearby.' },
   gravepriest:  { name: 'Grave Priest',   hp: 45,  dmg: 3,  atk: 1.4, speed: 32, range: 120, radius: 9,  raise: 30, rally: [220, 360], sprite: 'gravepriest', team: 'player', unlockCost: 3, costMul: 2.4, heal: { amt: 10, every: 3, range: 170 }, blurb: 'Mends the wounded among your horde.' },
+  bat:          { name: 'Vampire Bat',    hp: 20,  dmg: 5,  atk: 0.7, speed: 95, range: 22, radius: 8,  raise: 10, rally: [420, 660], sprite: 'bat', team: 'player', unlockCost: 2, costMul: 2.2, fly: true, alt: [100, 140], lifesteal: 0.3, blurb: 'Flies over the lines and bites from above. Ground melee cannot touch it, and every bite heals it.' },
+  drake:        { name: 'Bone Drake',     hp: 150, dmg: 22, atk: 1.5, speed: 42, range: 170, radius: 15, raise: 34, rally: [260, 420], sprite: 'drake', team: 'player', unlockCost: 5, costMul: 3.6, fly: true, alt: [120, 160], splash: 42, blurb: 'A skeletal dragon that circles overhead and burns the ranks below with bone fire.' },
   gargoyle:     { name: 'Gargoyle',       hp: 150, dmg: 9,  atk: 1.3, speed: 34, range: 24,  radius: 12, raise: 34, rally: [420, 600], sprite: 'gargoyle', team: 'player', unlockCost: 4, costMul: 3.2, armor: 0.2, blurb: 'Living stone. Shrugs off a fifth of every blow.' },
 
 
@@ -41,6 +43,7 @@ export const UNITS = {
   commander:{ name: 'Knight Commander',   hp: 2600,dmg: 30, atk: 1.1, speed: 28, range: 34,  radius: 18, drop: 420, sprite: 'commander',team: 'enemy', boss: true, abil: ['guard','slam'] },
 
   // Region 2: the Crusader Reach.
+  griffin:  { name: 'Griffin',            hp: 135, dmg: 15, atk: 1.1, speed: 62, range: 26,  radius: 12, drop: 28,  sprite: 'griffin',  team: 'enemy', fly: true, alt: [95, 135] },
   crusader: { name: 'Crusader',           hp: 150, dmg: 12, atk: 1.2, speed: 30, range: 28,  radius: 12, drop: 22,  sprite: 'crusader', team: 'enemy' },
   crossbow: { name: 'Crossbowman',        hp: 45,  dmg: 15, atk: 1.8, speed: 30, range: 190, radius: 9,  drop: 20,  sprite: 'crossbow', team: 'enemy' },
   cleric:   { name: 'Cleric',             hp: 70,  dmg: 4,  atk: 2.0, speed: 30, range: 140, radius: 9,  drop: 24,  sprite: 'cleric',   team: 'enemy', heal: { amt: 18, every: 2.2, range: 160 } },
@@ -49,6 +52,7 @@ export const UNITS = {
   templar:  { name: 'Templar Lord',       hp: 5000, dmg: 55, atk: 1.2, speed: 26, range: 36, radius: 18, drop: 1000, sprite: 'templar',  team: 'enemy', boss: true, abil: ['slam','guard'], summon: { type: 'crusader', n: 2, every: 18 } },
   archbishop:{ name: 'The Archbishop',    hp: 6500, dmg: 65, atk: 1.3, speed: 26, range: 150, radius: 17, drop: 1500, sprite: 'archbishop', team: 'enemy', boss: true, abil: ['smite','curse'], heal: { amt: 120, every: 4, range: 220 } },
   // Region 3: the Heroes' Reach.
+  wyvern:   { name: 'Frost Wyvern',       hp: 210, dmg: 38, atk: 1.8, speed: 40, range: 170, radius: 14, drop: 95,  sprite: 'wyvern',   team: 'enemy', fly: true, alt: [115, 155], splash: 40 },
   berserker:{ name: 'Berserker',          hp: 260, dmg: 28, atk: 0.8, speed: 52, range: 26,  radius: 11, drop: 70,  sprite: 'berserker', team: 'enemy' },
   archmage: { name: 'Archmage',           hp: 120, dmg: 36, atk: 2.0, speed: 30, range: 190, radius: 9,  drop: 80,  sprite: 'archmage', team: 'enemy', splash: 55 },
   assassin: { name: 'Assassin',           hp: 150, dmg: 40, atk: 0.7, speed: 70, range: 22,  radius: 9,  drop: 75,  sprite: 'assassin', team: 'enemy', dodge: 0.35 },
@@ -113,21 +117,21 @@ export const ZONES = [
   { id: 5, region: 2, name: 'Pilgrim Road', blurb: 'Crusaders and crossbowmen march to purge you.', waves: 8, scale: 1.26, rating: 370, boss: 'inquisitor',
     compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('crusader', 1 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3))] },
   { id: 6, region: 2, name: 'Cathedral Steps', blurb: 'Clerics mend the wounded faster than you can cut them down.', waves: 8, scale: 1.33, rating: 470, boss: 'templar',
-    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2)] },
+    compose: (n) => [...rep('griffin', n >= 3 ? 1 + Math.floor(n / 4) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2)] },
   { id: 7, region: 2, name: 'Hallowed Ground', blurb: 'Paladins in blessed plate hold the line.', waves: 10, scale: 1.25, rating: 580, boss: 'archbishop',
-    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
+    compose: (n) => [...rep('griffin', n >= 3 ? 1 + Math.floor(n / 3) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
   { id: 8, region: 2, name: 'The Holy Citadel', blurb: 'The last bastion of the faithful.', waves: 10, scale: 1.3, rating: 770, boss: 'avenger',
-    compose: (n) => [...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
+    compose: (n) => [...rep('griffin', n >= 2 ? 1 + Math.floor(n / 3) : 0), ...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
 
   // Region 3
   { id: 9, region: 3, name: 'Frostbitten Pass', blurb: 'Berserkers charge out of the blizzard.', waves: 7, scale: 1.6, rating: 810, boss: 'herodawn',
     compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('crossbow', 2), ...rep('cleric', 1)] },
   { id: 10, region: 3, name: "Wizard's Tower", blurb: 'Archmages rain ruin from the battlements.', waves: 7, scale: 1.55, rating: 1000, boss: 'supreme',
-    compose: (n) => [...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
+    compose: (n) => [...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
   { id: 11, region: 3, name: "Dragon's Rest", blurb: 'Assassins slip through the dark, and sentinels bar the way.', waves: 8, scale: 1.45, rating: 1100, boss: 'slayer',
-    compose: (n) => [...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
+    compose: (n) => [...rep('wyvern', n >= 3 ? 1 + Math.floor(n / 4) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
   { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.45, rating: 1350, boss: 'herokind',
-    compose: (n) => [...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
+    compose: (n) => [...rep('wyvern', n >= 2 ? 1 + Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
 
   // The Endless Crypt: waves never stop and get steadily worse. Unlocks after zone 12. No boss; fail is the only ending.
   { id: 13, region: 4, name: 'The Endless Crypt', blurb: 'The living pour in forever. How long can you hold?', waves: Infinity, scale: 1.1, rating: 0, boss: null, endless: true,
@@ -179,6 +183,10 @@ export const TIER_NAMES = {
               hpLook: ['Ragged', 'Bandaged', 'Masked', 'Tainted'],             dmgLook: ['Dim censer', 'Bubbling', 'Noxious', 'Plague-heart'] },
   gravepriest: { hp: ['Gilded Trim', 'Mitre', 'Halo of Bone'],                  dmg: ['Brighter Light', 'Holy Focus', 'Wailing Skull'],
               hpLook: ['Plain', 'Trimmed', 'Mitred', 'Haloed'],                dmgLook: ['Dim', 'Bright', 'Holy', 'Wailing'] },
+  bat:      { hp: ['Leather Straps', 'Bone Plating', 'Bloodsteel Crown'],     dmg: ['Sharp Fangs', 'Razor Wings', 'Blood Frenzy'],
+              hpLook: ['Scrawny', 'Strapped', 'Plated', 'Crowned'],            dmgLook: ['Nibbling', 'Fanged', 'Razor-winged', 'Frenzied'] },
+  drake:    { hp: ['Iron Ribs', 'Gilded Skull', 'Bone Armour'],                dmg: ['Hot Breath', 'Bone Fire', 'Dragonfire'],
+              hpLook: ['Bare bone', 'Ribbed', 'Gilded', 'Armoured'],            dmgLook: ['Smoking', 'Burning', 'Roaring', 'Dragonfire'] },
   gargoyle: { hp: ['Hardened Stone', 'Granite Plating', 'Obsidian Heart'],      dmg: ['Sharp Talons', 'Stone Fists', 'Obsidian Claws'],
               hpLook: ['Cracked', 'Hardened', 'Plated', 'Obsidian'],           dmgLook: ['Dull claws', 'Talons', 'Fists', 'Obsidian claws'] },
   abomination: { hp: ['Heavy Stitching', 'Bone Plates', 'Iron Spikes'], dmg: ['Meaty Fists', 'Bone Knuckles', 'Wrecking Fists'],
@@ -209,6 +217,10 @@ export const SPECIALS = {
             desc: 'Heals every wounded ally in range, not just one.' },
   granite:{ unit: 'gargoyle',    name: 'Granite Heart', icon: 'granite', cost: 550, needs: { stat: 'hp', tiers: 1 },
             desc: 'Below 30% health, takes half damage.' },
+  feast:  { unit: 'bat',      name: 'Blood Feast',  icon: 'drain',  cost: 400, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'Heals the bat for half the damage it deals, on top of its own life steal.' },
+  inferno:{ unit: 'drake',    name: 'Inferno',      icon: 'fire',   cost: 600, needs: { stat: 'dmg', tiers: 1 },
+            desc: 'Bone fire sets enemies alight, burning them over time.' },
   pack:   { unit: 'hound',    name: 'Pack Hunter',  icon: 'pack',   cost: 350, needs: { stat: 'dmg', tiers: 1 },
             desc: 'Each other living hound adds 10% damage (up to 5).' },
 };
@@ -292,7 +304,7 @@ export function statCost(stat, unit, lvl, save) {
 // ---- The long game: what each rebirth opens up ----
 // Zones, summons and upgrade tiers are gated behind how many times you have been reborn, so a single run only goes so far.
 export const zoneRebirth = (id) => (id <= 4 ? 0 : id === 13 ? 6 : Math.floor((id - 3) / 2));
-export const UNIT_REBIRTH = { zombie: 0, skeleton: 0, hound: 0, archer: 0, plaguebearer: 1, deathknight: 1, mage: 2, abomination: 2, ghost: 3, gravepriest: 4, gargoyle: 5 };
+export const UNIT_REBIRTH = { zombie: 0, skeleton: 0, hound: 0, archer: 0, plaguebearer: 1, deathknight: 1, mage: 2, abomination: 2, ghost: 3, gravepriest: 4, gargoyle: 5, bat: 2, drake: 6 };
 export const TIER_REBIRTH = [0, 1, 3];                 // the second and third tier of HP and damage upgrades
 // Rebirths needed before the next level of this stat can be bought (0 = no lock).
 export function statNeeds(stat, lvl) {
@@ -393,7 +405,7 @@ export const PERKS = {
 };
 export const PERK_KEYS = Object.keys(PERKS);
 // Unit unlocks that Eternal Pact keeps, in the order they are kept.
-export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abomination', 'deathknight', 'plaguebearer', 'gravepriest', 'gargoyle'];
+export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abomination', 'deathknight', 'plaguebearer', 'gravepriest', 'gargoyle', 'bat', 'drake'];
 
 export function perk(save, key) { return (save.perks && save.perks[key]) || 0; }
 export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow(PERKS[key].growth, lvl)); }
@@ -469,6 +481,8 @@ export const UNIT_TREE = {
   hound:        { parent: 'zombie',       pos: [-640, -500], gate: { units: ['zombie'], levels: 8 } },
   plaguebearer: { parent: 'zombie',       pos: [-220, -500], gate: { units: ['zombie'], levels: 20 } },
   abomination:  { parent: 'hound',        pos: [-640, -830], gate: { units: ['zombie', 'hound'], levels: 30 } },
+  bat:          { parent: 'hound',        pos: [-1000, -500], gate: { units: ['zombie', 'hound'], levels: 24 } },
+  drake:        { parent: 'gravepriest',  pos: [1000, -1160], gate: { units: ['mage', 'ghost', 'gravepriest'], levels: 60 } },
   gargoyle:     { parent: 'abomination',  pos: [-220, -830], gate: { units: ['zombie', 'hound', 'abomination'], levels: 55 } },
   archer:       { parent: 'skeleton',     pos: [640, -500],  gate: { units: ['skeleton'], levels: 8 } },
   deathknight:  { parent: 'skeleton',     pos: [220, -500],  gate: { units: ['skeleton'], levels: 20 } },
