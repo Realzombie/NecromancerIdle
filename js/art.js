@@ -100,7 +100,7 @@ function zombie({ hs = 0, ds = 0, flags = [] }) {
 }
 
 function skeleton({ hs = 0, ds = 0 }) {
-  const p = new Pix(14, 17);
+  const p = new Pix(14, 17, 4);
   p.R(4, 11, 1, 5, BONE); p.R(8, 11, 1, 5, BONE); p.R(3, 16, 3, 1, BONE); p.R(7, 16, 3, 1, BONE); p.R(4, 13, 1, 1, DARK, true); p.R(8, 13, 1, 1, DARK, true);
   p.R(3, 10, 7, 2, '#b8b098');
   for (let i = 0; i < 3; i++) { p.R(3, 6 + i * 2, 7, 1, BONE); p.R(4, 7 + i * 2, 5, 1, DARK, true); }
@@ -116,8 +116,8 @@ function skeleton({ hs = 0, ds = 0 }) {
   const bl = ['#d0d0d8', '#e8ecf8', '#c8e0ff', '#ffd890'][ds];
   p.R(1, 9, 1, 4, '#6a4a2a'); p.R(0, 8, 3, 1, '#d8b050', true);
   p.R(1, 2 - ds, 1, 6 + ds, bl); p.px(1, 1 - ds, '#ffffff', true);
-  if (ds >= 2) { p.R(2, 3, 1, 1, ds === 3 ? '#ff9a30' : '#9bd0ff', true); p.R(2, 5, 1, 1, ds === 3 ? '#ff9a30' : '#9bd0ff', true); }
-  if (ds >= 3) { p.R(0, -1, 3, 2, '#ff7a20', true); p.px(1, -2, '#ffd060', true); }
+  if (ds >= 2) { p.px(2, 4, ds === 3 ? '#ff9a30' : '#9bd0ff', true); p.px(2, 6, ds === 3 ? '#ff9a30' : '#9bd0ff', true); }
+  if (ds >= 3) { p.R(0, -3, 3, 4, '#ff6a1a', true); p.R(1, -4, 1, 2, '#ff6a1a', true); p.R(1, -3, 1, 3, '#ffd060', true); p.px(2, -1, '#ffd060', true); p.px(0, 1, '#ffd060', true); }   // a clean flame hugging the tip
   return p.finish();
 }
 
@@ -136,25 +136,37 @@ function archer({ hs = 0, ds = 0, flags = [] }) {
   p.L(11.5, 8 - h, 10, 8, '#f0e8d0', true); p.L(11.5, 8 + h, 10, 8, '#f0e8d0', true);
   p.L(6, 8, 14, 8, '#c8a878', true); p.px(15, 8, ds >= 3 ? '#ffb040' : '#d0d0d8', true); p.px(5, 7, '#c85050', true);
   p.R(7, 7, 3, 2, BONE);
-  if (ds >= 3 || flags.includes('fire')) { p.E(14, 8, 1.2, 1.2, '#ff9a30', true); p.px(14, 6, '#ffd060', true); p.px(15, 10, '#ff7a20', true); }
+  if (ds >= 3 || flags.includes('fire')) {
+    p.P([[16, 8], [13, 5], [10, 6], [12, 8], [9, 9], [13, 11]], '#e8401a', true);          // outer flame streaming back from the head
+    p.P([[15, 8], [13, 6], [11, 7], [12, 8], [11, 9], [13, 10]], '#ff9a30', true);         // middle
+    p.P([[14, 8], [12, 7], [12, 9]], '#ffe880', true); p.px(13, 8, '#ffffff', true);        // white-hot core
+    p.px(8, 6, '#ff9a30', true); p.px(7, 10, '#ff7a20', true); p.px(9, 4, '#ffd060', true); // embers
+  }
   return p.finish();
 }
 
 function hound({ hs = 0, ds = 0 }) {
-  const p = new Pix(21, 11, 2), skin = hs === 0 ? '#7a8e72' : '#6f9468';
-  for (const [x, far] of [[3, 1], [5, 0], [11, 1], [13, 0]]) p.R(x, 6, 1, 4, far ? mix(skin, '#5a7a5a', 0.1) : skin);
-  p.E(8, 5, 5.6, 2.6, skin);
-  for (const x of [6, 8, 10]) p.R(x, 4, 1, 3, BONE, true);
-  p.L(3, 4, 0, 1, skin); p.px(0, 0, skin);                                              // tail
-  p.E(14.5, 3.5, 2.6, 2.4, skin); p.R(15, 4, 5, 2, skin); p.P([[13, 1], [14, -2], [15, 1]], mix(skin, '#9ab08a', 0.1)); p.P([[15, 1], [17, -1], [17, 2]], skin);
-  p.R(14, 3, 2, 2, '#ff6a3a', true); p.px(15, 3, '#fff0a0', true); p.px(19, 4, DARK, true);
-  p.R(16, 6, 4, 1, DARK, true); p.px(17, 6, '#f4ecd0', true); p.px(19, 6, '#f4ecd0', true); p.px(17, 7, '#f4ecd0', true);
-  p.R(6, 3, 2, 1, '#c8b080'); p.R(11, 5, 1, 2, '#cfc6a8', true);
-  if (hs >= 1) { p.R(12, 3, 3, 1, '#4a3a2a'); p.px(12, 2, '#d0d0e0', true); p.px(14, 2, '#d0d0e0', true); }
-  if (hs >= 2) { p.R(5, 2, 6, 1, '#8a94aa'); p.px(6, 1, '#b8c0d0', true); p.px(9, 1, '#b8c0d0', true); }
-  if (hs >= 3) { p.R(5, 4, 6, 2, '#d8b050'); p.R(13, 1, 3, 1, '#9aa4b8'); }
-  if (ds >= 1) for (const x of [3, 5, 11, 13]) p.px(x + 1, 10, BONE, true);
-  if (ds >= 2) { p.px(17, 7, '#ffffff', true); p.px(19, 7, '#ffffff', true); }
+  const p = new Pix(25, 14, 3), skin = hs === 0 ? '#7a8e72' : '#6f9468', far = mix(skin, '#5a7a5a', 0.12);
+  // a stocky, deep-chested zombie wolf: thick legs, a hunched back, a big square head with upright ears
+  for (const x of [5, 13]) p.R(x, 8, 2, 5, far);
+  p.R(3, 12, 4, 1, far); p.R(12, 12, 4, 1, far);
+  p.E(9, 6, 6.6, 3.6, skin); p.E(14, 7, 3.6, 4, skin);
+  for (const x of [4, 15]) p.R(x, 8, 2, 5, skin);
+  p.R(2, 12, 4, 1, mix(skin, '#000000', 0.15)); p.R(14, 12, 4, 1, mix(skin, '#000000', 0.15));
+  p.P([[14, 4], [17, 0], [20, 2], [18, 8], [14, 9]], skin);                                   // neck and shoulders
+  p.R(1, 3, 3, 4, skin); p.R(0, 1, 2, 3, skin);                                              // thick raised tail
+  p.E(19, 3, 3.2, 2.8, skin); p.R(20, 4, 4, 3, skin);                                        // head and broad muzzle
+  p.P([[17, 1], [17, -3], [19, 0]], mix(skin, '#9ab08a', 0.1)); p.P([[19, 0], [21, -3], [22, 1]], skin);   // upright ears
+  p.R(19, 2, 3, 2, '#ff5a3a', true); p.px(20, 2, '#ffe890', true);                           // glowing eye
+  p.px(23, 4, DARK, true);                                                                  // nose
+  p.R(20, 6, 4, 1, DARK, true); p.px(21, 7, '#f4ecd0', true); p.px(23, 7, '#f4ecd0', true); p.px(20, 5, '#f4ecd0', true);   // open jaw and fangs
+  for (const x of [7, 9, 11]) p.R(x, 5, 1, 3, BONE, true);                                  // ribs showing
+  p.R(6, 2, 3, 2, '#c8b080'); p.px(7, 3, DARK, true);                                       // a stitched patch
+  if (hs >= 1) { p.R(15, 3, 4, 1, '#4a3a2a'); p.px(15, 2, '#d0d0e0', true); p.px(17, 2, '#d0d0e0', true); }
+  if (hs >= 2) { p.R(6, 2, 7, 2, '#8a94aa'); p.px(7, 1, '#b8c0d0', true); p.px(10, 1, '#b8c0d0', true); }
+  if (hs >= 3) { p.R(5, 4, 8, 2, '#d8b050'); p.R(17, 1, 4, 1, '#9aa4b8'); }
+  if (ds >= 1) for (const x of [2, 5, 14, 17]) p.px(x + 1, 13, BONE, true);
+  if (ds >= 2) { p.px(21, 8, '#ffffff', true); p.px(23, 8, '#ffffff', true); }
   if (ds >= 3) for (const x of [6, 8, 10]) p.P([[x, 2], [x + 1, 0], [x + 2, 2]], '#f4f0e0', true);
   return p.finish();
 }
@@ -176,18 +188,25 @@ function mage({ hs = 0, ds = 0 }) {
 }
 
 function ghost({ hs = 0, ds = 0 }) {
-  const p = new Pix(14, 17, 1), body = '#a8c4e8';
+  const p = new Pix(17, 17, 5), body = '#a8c4e8';
   p.P([[2, 5], [9, 5], [11, 13], [10, 16], [8, 14], [6, 16], [4, 14], [2, 16], [0, 13]], body);
   p.E(5.5, 4, 4.2, 3.8, mix(body, '#ffffff', 0.15));
   p.E(3.5, 4, 0.8, 1.5, '#0a1020', true); p.E(7.5, 4, 0.8, 1.5, '#0a1020', true); p.px(3, 3, '#c8f4ff', true); p.px(7, 3, '#c8f4ff', true);
   p.E(5.5, 8, 0.9, 1.1, '#0a1020', true);
-  p.R(9, 7, 4, 1, body); p.R(12, 8, 1, 2, body); p.R(0, 8, 2, 3, body);
+  p.R(0, 8, 2, 3, body);
   if (hs >= 1) { p.R(1, 11, 8, 1, '#5a6a8a', true); for (const x of [1, 4, 7]) p.R(x, 12, 1, 2, '#7a8aaa', true); }
   if (hs >= 2) p.R(2, 0, 7, 1, '#d0d8f0');
   if (hs >= 3) { p.R(2, -1, 7, 2, '#d8b050'); for (const x of [2, 5, 8]) p.px(x, -2, '#d8b050', true); }
-  if (ds >= 1) { p.px(13, 8, '#e8f8ff', true); p.px(13, 6, '#e8f8ff', true); }
-  if (ds >= 2) { p.R(12, 5, 3, 1, '#e8f8ff', true); p.R(13, 9, 3, 1, '#e8f8ff', true); }
-  if (ds >= 3) p.E(14, 8, 1.4, 1.4, '#ffffff', true);
+  // the ghost's blade: a spectral sword held up in front, longer and brighter every damage tier
+  const blade = ['#cfe4ff', '#e4f2ff', '#f4fbff', '#ffffff'][ds], glow = ['#6a8ac0', '#7aa0d8', '#8ac8f0', '#a0f0ff'][ds];
+  const len = [4, 6, 8, 10][ds], hx = 13;
+  p.R(9, 8, 4, 2, body); p.R(11, 8, 3, 2, mix(body, '#ffffff', 0.2));                          // the arm and hand
+  p.R(hx - 2, 7, 5, 1, '#d8b050', true);                                                     // crossguard
+  p.R(hx - 1, 8, 3, 2, '#7a5a30', true);                                                     // grip
+  p.R(hx - 1, 7 - len, 3, len, glow, true);                                                  // glowing edge
+  p.R(hx, 7 - len, 1, len, blade, true); p.px(hx, 6 - len, '#ffffff', true);                  // bright blade and tip
+  if (ds >= 2) for (let i = 0; i < 3; i++) p.px(hx + 2 + (i % 2), 5 - len + i * 3, '#c8f4ff', true);   // sparkles
+  if (ds >= 3) { p.R(hx - 3, 5 - len, 1, 1, '#c8f4ff', true); p.R(hx + 3, 3, 1, 1, '#c8f4ff', true); }
   return p.finish();
 }
 
@@ -199,7 +218,7 @@ function abomination({ hs = 0, ds = 0 }) {
   p.P([[6, 11], [14, 11], [15, 20], [5, 20]], '#b8a888'); p.R(5, 14, 11, 1, '#6a4a2a'); p.R(7, 16, 2, 3, '#8a3a2a', true); p.R(12, 17, 2, 3, '#8a3a2a', true);   // apron
   p.E(11, 4, 3.4, 3, skin); p.R(8, 5, 7, 2, skin); p.R(8, 6, 7, 1, DARK, true);
   for (const x of [9, 11, 13]) p.px(x, 6, '#f0e8c8', true);
-  p.R(9, 2, 2, 2, '#ffe890', true); p.px(10, 3, DARK, true); p.R(13, 2, 2, 2, '#ffe890', true); p.px(14, 3, DARK, true); p.R(9, 1, 6, 1, '#3a2a30', true);
+  p.R(9, 3, 2, 1, '#ff7a30', true); p.R(13, 3, 2, 1, '#ff7a30', true); p.R(9, 2, 3, 1, '#3a2a30', true); p.R(12, 2, 3, 1, '#3a2a30', true); p.px(11, 1, '#3a2a30', true); p.px(12, 1, '#3a2a30', true);   // heavy angry brow over glowing slits
   p.E(18, 10, 2.4, 4, skin2); p.R(17, 13, 4, 4, skin2); p.E(19, 18, 2.4, 1.8, skin2);              // big arm
   p.E(3, 10, 1.6, 3, skin3); p.R(2, 12, 3, 4, skin3);                                                // small arm
   if (hs >= 1) { p.R(8, 0, 2, 2, '#8a94aa'); p.R(7, 7, 3, 2, '#8a94aa'); }
@@ -213,20 +232,25 @@ function abomination({ hs = 0, ds = 0 }) {
 }
 
 function deathknight({ hs = 0, ds = 0 }) {
-  const p = new Pix(24, 19, 2), plate = ['#3a3a52', '#444466', '#50507a', '#5e4a8a'][hs], edge = hs >= 2 ? '#a070ff' : '#7a58b0';
-  p.P([[4, 6], [0, 9], [-0, 14], [4, 12], [7, 10]], '#4a2468');                                       // cape
-  p.R(4, 10, 13, 5, '#4a4262'); p.R(14, 8, 4, 5, '#4a4262');             // the warhorse, body and neck
-  p.E(19, 9, 2, 2, BONE); p.R(19, 10, 4, 2, BONE); p.px(20, 8, '#ff6a3a', true); p.px(23, 11, DARK, true); p.P([[16, 7], [17, 5], [18, 8]], '#2a2438');
-  for (const x of [5, 7, 13, 15]) p.R(x, 15, 1, 3, BONE); for (const x of [5, 7, 13, 15]) p.R(x - 1, 18, 2, 1, '#5a4a3a');
-  for (let i = 0; i < 4; i++) p.px(15 - i, 7 + i % 2, i % 2 ? '#c08aff' : '#7a3aff', true);              // flame mane
-  for (let i = 0; i < 3; i++) p.px(3 - i, 10 + i, i % 2 ? '#c08aff' : '#7a3aff', true);               // flame tail
-  p.R(8, 3, 5, 7, plate); p.R(8, 3, 5, 1, edge, true); p.R(10, 4, 1, 6, edge, true);                   // the knight
-  p.E(10, 1, 2.6, 2.4, plate); p.R(8, 1, 5, 2, plate); p.R(9, 1, 4, 1, '#05030a', true); p.px(10, 1, '#ff5a3a', true); p.px(12, 1, '#ff5a3a', true);
-  p.P([[8, 0], [6, -2], [9, -1]], BONE); p.P([[13, 0], [15, -2], [12, -1]], BONE);                     // horns
-  p.P([[7, 3], [5, 1], [9, 3]], plate); p.P([[13, 3], [15, 1], [11, 3]], plate);
-  if (hs >= 3) p.R(10, -2, 1, 2, '#d8b050', true);
-  p.R(11, 9, 2, 3, plate);
-  p.R(12, 4, 11 + ds, 1, '#5a3a20'); p.P([[22 + ds, 3], [25 + ds, 4], [22 + ds, 6]], ['#aab0be', '#d0d6e4', '#d8c8ff', '#ff9a60'][ds], true); p.P([[16, 3], [19, 4], [16, 6]], '#8a1c2a', true);
+  const p = new Pix(20, 20, 4), plate = ['#3a3a52', '#444466', '#50507a', '#5e4a8a'][hs], edge = hs >= 2 ? '#a070ff' : '#7a58b0', dk = mix(plate, '#000000', 0.3);
+  // a heavily armoured knight on foot: a tattered cape, huge pauldrons, a horned helm and a two-handed greatsword
+  p.P([[5, 6], [0, 10], [-1, 18], [4, 17], [6, 12]], '#4a2468'); p.P([[5, 6], [2, 11], [2, 17], [5, 15]], '#6a3a8a', true);
+  p.R(5, 15, 3, 4, dk); p.R(10, 15, 3, 4, dk); p.R(4, 19, 5, 1, plate); p.R(9, 19, 5, 1, plate);   // greaves and boots
+  p.R(5, 13, 3, 3, plate); p.R(10, 13, 3, 3, plate); p.px(6, 14, edge, true); p.px(11, 14, edge, true);   // knees
+  p.R(4, 6, 10, 8, plate); p.R(4, 6, 10, 1, edge, true); p.R(8, 7, 2, 7, edge, true); p.R(4, 13, 10, 1, edge, true);   // breastplate
+  p.R(5, 11, 8, 2, '#2a1c30'); p.R(8, 11, 2, 2, '#d8b050', true);                              // belt and buckle
+  p.E(4, 7, 2.8, 2.4, plate); p.E(14, 7, 2.8, 2.4, plate); p.P([[2, 6], [1, 2], [4, 5]], plate); p.P([[16, 6], [17, 2], [13, 5]], plate);   // spiked pauldrons
+  p.E(9, 3, 3.4, 3, plate); p.R(6, 3, 7, 3, plate); p.R(7, 3, 6, 2, '#05030a', true); p.px(8, 3, '#ff5a3a', true); p.px(11, 3, '#ff5a3a', true);   // helm
+  p.P([[6, 1], [3, -2], [7, 0]], BONE); p.P([[12, 1], [15, -2], [11, 0]], BONE);                // horns
+  if (hs >= 1) { p.R(8, 0, 2, 2, edge, true); }
+  if (hs >= 2) for (const [x, y] of [[2, 3], [16, 3]]) p.px(x, y, '#d8d0b4', true);
+  if (hs >= 3) { p.R(8, -2, 2, 2, '#d8b050', true); p.R(5, 8, 3, 2, '#d8b050', true); p.R(10, 8, 3, 2, '#d8b050', true); }
+  p.R(13, 9, 3, 3, plate); p.R(15, 8, 2, 3, dk);                                               // gauntlet gripping the sword
+  const bl = ['#c8ccd8', '#e0e4f0', '#d8c8ff', '#ffb070'][ds], len = 11 + ds * 2;
+  p.R(16, 7, 2, 1, '#d8b050', true); p.R(16, 8, 2, 3, '#5a3a20', true);                          // guard and grip
+  p.R(16, 7 - len, 2, len, bl, true); p.R(17, 7 - len, 1, len, mix(bl, '#ffffff', 0.4), true); p.px(16, 6 - len, bl, true);
+  if (ds >= 2) for (let i = 0; i < 3; i++) p.px(15, 3 - len + 6 + i * 3, ds === 3 ? '#ff7a20' : '#a8c0ff', true);
+  if (ds >= 3) { p.P([[16, 5 - len], [17, 2 - len], [18, 5 - len]], '#ff9a30', true); }
   return p.finish();
 }
 
