@@ -42,12 +42,15 @@ export function batGrid(hs = 0, ds = 0) {
     for (let x = 0; x < W; x++) r.push(base[Math.min(base.length - 1, Math.floor(y / s))][Math.min(11, Math.floor(x / s))]);
     g.push(r);
   }
-  // the mouth sits directly under the eyes, with a fang under each eye: 1 cell long at first, 2 at the end
+  // the eyes: make both the same width, then put the mouth directly under them with a fang at each outer edge
   let eyeRow = -1, lastEye = -1;
   for (let y = 0; y < H; y++) if (g[y].includes('E')) { if (eyeRow < 0) eyeRow = y; lastEye = y; }
-  const runs = []; let st = -1;
-  g[eyeRow].forEach((c, x) => { if (c === 'E' && st < 0) st = x; if ((c !== 'E' || x === W - 1) && st >= 0) { runs.push([st, c === 'E' ? x : x - 1]); st = -1; } });
-  const fl = Math.floor((runs[0][0] + runs[0][1]) / 2), fr = Math.floor((runs[runs.length - 1][0] + runs[runs.length - 1][1]) / 2);
+  const findRuns = (row) => { const out = []; let st = -1; row.forEach((c, x) => { if (c === 'E' && st < 0) st = x; if (c !== 'E' && st >= 0) { out.push([st, x - 1]); st = -1; } }); if (st >= 0) out.push([st, row.length - 1]); return out; };
+  let runs = findRuns(g[eyeRow]);
+  const ew = Math.min(...runs.map(([x0, x1]) => x1 - x0 + 1));
+  runs.forEach(([x0, x1], i) => { for (let y = eyeRow; y <= lastEye; y++) for (let x = x0; x <= x1; x++) { const keep = i === 0 ? x < x0 + ew : x > x1 - ew; if (!keep) g[y][x] = 'P'; } });
+  runs = findRuns(g[eyeRow]);
+  const fl = runs[0][0], fr = runs[runs.length - 1][1];
   const y0 = lastEye + 1, len = [1, 1, 2, 2][ds], fc = ds === 0 ? 'f' : 'F';
   for (let x = fl; x <= fr; x++) g[y0][x] = x === fl || x === fr ? fc : 'M';
   for (let i = 1; i < len && y0 + i < H; i++) { g[y0 + i][fl] = fc; g[y0 + i][fr] = fc; }
