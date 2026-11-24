@@ -414,7 +414,7 @@ function legionSprite(base, look) {
   const key = 'legion:' + (ART_ON ? 'n:' : 'c:') + base + ':' + (look ? look.hs + ':' + look.ds + ':' + look.flags.join(',') : '');
   if (cache[key]) return cache[key];
   const one = LOOKS[base] && look ? lookSprite(base, look) : sprite(UNITS[base].sprite);
-  const w = one.w, h = one.h, pack = Math.round(w * 2.0), gap = 30;
+  const w = one.w, h = one.h, pack = Math.round(w * 1.9), gap = 12;
   const cw = pack * 2 + gap, ch = h + 22;
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
