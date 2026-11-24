@@ -99,7 +99,7 @@ function person(o) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-function griffin() {
+function griffin(lord = false) {
   const p = new Pix(32, 24, 4), tan = '#c89a50', white = '#f0ead8', wingc = '#8a6a3a';
   p.P([[17, 11], [19, 1], [28, 2], [25, 8]], mix(wingc, '#000000', 0.2));                      // far wing
   p.E(13, 15, 7.4, 4.6, tan); p.E(19, 12, 4, 4.2, white);                                      // lion body, feathered chest
@@ -112,10 +112,15 @@ function griffin() {
   p.P([[26, 7], [32, 10], [26, 12]], '#f0a030', true); p.px(29, 10, '#a05a10', true);          // hooked beak
   p.R(24, 6, 2, 2, '#ffe070', true); p.px(25, 7, '#202020', true); p.R(23, 5, 4, 1, '#4a3a20', true);   // fierce eye
   p.P([[21, 6], [20, 2], [24, 5]], white);                                                     // head crest
+  if (lord) {                                                                                  // the Gryphon Lord: golden barding, a red plume and a cape
+    p.R(8, 12, 10, 4, '#d8b050', true); p.R(8, 12, 10, 1, '#fff0a0', true); p.R(12, 12, 2, 4, '#a02828', true);
+    p.P([[22, 6], [14, 1], [17, 7]], '#c03030', true); p.R(22, 5, 5, 1, '#d8b050', true);
+    p.P([[6, 11], [1, 14], [3, 20], [8, 17]], '#a02828', true);
+  }
   return p.finish();
 }
 
-function wyvern() {
+function wyvern(wyrm = false) {
   const p = new Pix(36, 26, 3), blue = '#6a8ab0', pale = '#a8c8e8', wingc = '#4a6a90';
   p.P([[19, 11], [26, 0], [35, 7], [28, 7]], mix(wingc, '#000000', 0.2)); p.L(19, 11, 26, 0, pale, true); p.L(19, 11, 35, 7, pale, true);    // far wing
   p.L(10, 17, 2, 24, blue, true); p.L(10, 18, 2, 25, blue, true); p.P([[0, 22], [4, 23], [3, 27], [0, 25]], pale);                         // tail with a spade
@@ -128,11 +133,16 @@ function wyvern() {
   p.R(30, 5, 2, 2, '#e8f8ff', true); p.px(31, 6, '#1a2a4a', true);
   p.P([[28, 4], [25, 0], [31, 3]], '#e8f0ff'); p.P([[31, 4], [34, 1], [34, 5]], '#cfe4ff');      // horns
   p.P([[35, 7], [38, 6], [38, 9]], '#bfeaff', true); p.px(36, 7, '#ffffff', true);                // a shard of frost breath
+  if (wyrm) {                                                                                  // the Frost Wyrm: a crest of ice spikes and glowing eyes
+    for (const x of [8, 11, 14, 17, 20]) p.P([[x, 11], [x + 1, 7], [x + 2, 11]], '#e8f6ff', true);
+    p.px(31, 6, '#40e0ff', true); p.px(30, 6, '#40e0ff', true); p.P([[27, 3], [25, -2], [30, 2]], '#ffffff', true);
+    p.P([[36, 8], [40, 5], [40, 11]], '#9ae8ff', true);
+  }
   return p.finish();
 }
 
 export const ENEMY = {
-  griffin, wyvern,
+  griffin, wyvern, gryphonlord: () => griffin(true), frostwyrm: () => wyvern(true),
   peasant:  () => person({ head: 'straw', cloth: '#8a6a4a', legs: '#5a4a3a', weapon: 'pitchfork' }),
   militia:  () => person({ head: 'cap', hc: '#8a8a98', cloth: '#6a7a4a', legs: '#4a3a3a', weapon: 'spear', shield: 'round', sh: '#8a5a2a' }),
   slinger:  () => person({ head: 'hood', hc: '#6a5a3a', cloth: '#8a7a5a', legs: '#4a3a3a', weapon: 'sling' }),
@@ -165,7 +175,8 @@ export function enemyCanvas(name) {
   const f = ENEMY[name];
   if (!f) return null;
   const p = f();
-  const c = p.toCanvas(4);
-  c.axPx = p.ax;
+  const sc = name === 'gryphonlord' || name === 'frostwyrm' ? 6 : 4;   // the sky champions are drawn bigger
+  const c = p.toCanvas(sc);
+  c.axPx = p.ax !== undefined ? p.ax * sc / 4 : c.width / 2;
   return c;
 }

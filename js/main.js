@@ -54,13 +54,19 @@ function show(id) {
 // ---- Offline souls: based on the highest zone cleared, capped. Never advances zones. ----
 function claimOffline() {
   if (battle || save.bestZone < 1) return;
-  const secs = Math.min((Date.now() - save.lastSeen) / 1000, offlineCapHours(save) * 3600);
+  const away = (Date.now() - save.lastSeen) / 1000, capS = offlineCapHours(save) * 3600;
+  const secs = Math.min(away, capS);
   if (secs < TUNING.offlineMinSeconds) return;
   const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp) * (1 + 0.25 * perk(save, 'restless')));
   save.souls += gained;
   writeSave(save);
-  const h = Math.floor(secs / 3600), mnt = Math.floor((secs % 3600) / 60);
-  homeNote = `Welcome back! Your horde gathered ${gained} souls in ${h ? h + 'h ' : ''}${mnt}m away.`;
+  const fmt = (s) => { const h = Math.floor(s / 3600), mnt = Math.floor((s % 3600) / 60); return (h ? h + 'h ' : '') + mnt + 'm'; };
+  const perHour = Math.round(gained / (secs / 3600));
+  let note = 'Welcome back! You were away ' + fmt(away) + '.\nYour horde gathered ' + gained.toLocaleString() + ' souls (about ' + perHour.toLocaleString() + ' an hour, from your best zone, ' + save.bestZone + ').';
+  const capped = away > capS;
+  if (capped) note += '\nThe ' + offlineCapHours(save) + 'h cap was reached, so ' + fmt(away - capS) + ' of your time away earned nothing.';
+  if ((capped || save.rebirths) && perk(save, 'restless') < PERKS.restless.max) note += '\nThe rebirth perk Restless Dead raises both the cap and the rate.';
+  homeNote = note;
 }
 
 function setBanks() {
@@ -440,7 +446,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Test hook (used by automated checks).
-window.__game = { setPaused, save, get battle() { return battle; }, startBattle, endBattle, afterChange, toast, armoury };
+window.__game = { claimOffline, renderHome, setPaused, save, get battle() { return battle; }, startBattle, endBattle, afterChange, toast, armoury };
 
 // Fullscreen button: shown on touch devices while not fullscreen (a reliable fallback if the install did not go fullscreen by itself)
 {

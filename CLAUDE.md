@@ -244,3 +244,10 @@ Everything below is pushed to `main` and live on GitHub Pages (service worker `C
 5. Both art styles on the phone (gear menu NEW/OLD), especially enemies and the necromancer in OLD.
 
 **Ideas not done yet:** defences (removed on purpose, to come back later), tutorial hints, zone counter-attacks, shorter late-zone attempts, a Legion look that is more than a mob of the summon, flying bosses.
+
+## Later on Nov 24: music, sky champions, Legion look, offline report
+- **Zone music (`js/music.js`, used by `js/audio.js`):** the original ambient piece is now the `home` theme and each zone has its own theme built from the same ingredients (chord pad, sparse bells, plus extras such as drone, wind, embers, organ, choir, plucked arpeggio, war drums, heartbeat, rumble and sparkles). `setMusicTheme(key)` crossfades over 2.5s; `show()` in `js/main.js` picks `z<zone id>` in battle and `home` everywhere else. `tools/renderaudio.html?all=1` renders every theme to WAV (it posts to a tiny local receiver on port 9911, see the commit history for the script, files land in the git-ignored `exports/`).
+- **New sounds:** wing flaps while flyers are out, a screech when a flying enemy spawns, a bat squeak, a dive whoosh and a breath gout for flyers attacking, a trap-set click and a sharper trap snap (`SOUNDS` in `js/audio.js`).
+- **Sky champions:** the Gryphon Lord (zones 6-8, a mid-zone wave) and the Frost Wyrm (zones 10-12) are big flying enemies with armoured/spiked variants of the griffin and wyvern art (`gryphonlord`, `frostwyrm` in `js/enemyart.js`, classic grids in `SPRITES`). The Holy Avenger (zone 8 boss) now flies too.
+- **Legion look:** `legionSprite` in `js/render.js` now draws the summon at double size with a gold glow and crown, three escorts and a banner (preview with `tools/legionsheet.html`).
+- **Offline report:** the welcome-back note shows time away, souls and souls an hour, says when the cap was hit and how much time went unused, and points at Restless Dead.

@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Legions</title>
+<style>body{margin:0;background:#1a1426;color:#e8e0f0;font:12px system-ui}#s{display:flex;flex-wrap:wrap;gap:10px;padding:10px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:6px 10px;text-align:center}.c canvas{image-rendering:pixelated;display:block;margin:0 auto}</style>
+<div id="s"></div>
+<script type="module">
+import { lookCanvas, setArtStyle } from '../js/render.js';
+import { PLAYER_UNITS, UNITS } from '../js/data.js';
+const q = new URLSearchParams(location.search); const only = q.get('u');
+if (q.get('m') === 'old') setArtStyle(false);
+for (const u of PLAYER_UNITS) {
+  if (only && !only.split(',').includes(u)) continue;
+  const c = lookCanvas('legion_' + u, { hs: 3, ds: 3, flags: [] }); c.style.width = c.width * 0.6 + 'px'; c.style.height = c.height * 0.6 + 'px';
+  const el = document.createElement('div'); el.className = 'c'; el.appendChild(c); el.insertAdjacentHTML('beforeend', UNITS['legion_' + u].name); document.getElementById('s').appendChild(el);
+}
+</script>

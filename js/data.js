@@ -44,6 +44,7 @@ export const UNITS = {
 
   // Region 2: the Crusader Reach.
   griffin:  { name: 'Griffin',            hp: 115, dmg: 14, atk: 1.1, speed: 62, range: 26,  radius: 12, drop: 28,  sprite: 'griffin',  team: 'enemy', fly: true, alt: [95, 135] },
+  gryphonlord: { name: 'Gryphon Lord',     hp: 650, dmg: 30, atk: 1.1, speed: 55, range: 30,  radius: 17, drop: 150, sprite: 'gryphonlord', team: 'enemy', fly: true, alt: [105, 135] },
   crusader: { name: 'Crusader',           hp: 150, dmg: 12, atk: 1.2, speed: 30, range: 28,  radius: 12, drop: 22,  sprite: 'crusader', team: 'enemy' },
   crossbow: { name: 'Crossbowman',        hp: 45,  dmg: 15, atk: 1.8, speed: 30, range: 190, radius: 9,  drop: 20,  sprite: 'crossbow', team: 'enemy' },
   cleric:   { name: 'Cleric',             hp: 70,  dmg: 4,  atk: 2.0, speed: 30, range: 140, radius: 9,  drop: 24,  sprite: 'cleric',   team: 'enemy', heal: { amt: 18, every: 2.2, range: 160 } },
@@ -53,6 +54,7 @@ export const UNITS = {
   archbishop:{ name: 'The Archbishop',    hp: 6500, dmg: 65, atk: 1.3, speed: 26, range: 150, radius: 17, drop: 1500, sprite: 'archbishop', team: 'enemy', boss: true, abil: ['smite','curse'], heal: { amt: 120, every: 4, range: 220 } },
   // Region 3: the Heroes' Reach.
   wyvern:   { name: 'Frost Wyvern',       hp: 210, dmg: 38, atk: 1.8, speed: 40, range: 170, radius: 14, drop: 95,  sprite: 'wyvern',   team: 'enemy', fly: true, alt: [115, 155], splash: 40 },
+  frostwyrm: { name: 'Frost Wyrm',        hp: 1000, dmg: 62, atk: 2.0, speed: 36, range: 190, radius: 19, drop: 320, sprite: 'frostwyrm', team: 'enemy', fly: true, alt: [120, 160], splash: 55 },
   berserker:{ name: 'Berserker',          hp: 260, dmg: 28, atk: 0.8, speed: 52, range: 26,  radius: 11, drop: 70,  sprite: 'berserker', team: 'enemy' },
   archmage: { name: 'Archmage',           hp: 120, dmg: 36, atk: 2.0, speed: 30, range: 190, radius: 9,  drop: 80,  sprite: 'archmage', team: 'enemy', splash: 55 },
   assassin: { name: 'Assassin',           hp: 150, dmg: 40, atk: 0.7, speed: 70, range: 22,  radius: 9,  drop: 75,  sprite: 'assassin', team: 'enemy', dodge: 0.35 },
@@ -61,7 +63,7 @@ export const UNITS = {
   supreme:  { name: 'Archmage Supreme',   hp: 10000, dmg: 120, atk: 2.0, speed: 26, range: 200, radius: 17, drop: 5200, sprite: 'supreme', team: 'enemy', boss: true, abil: ['volley','smite'], splash: 70 },
   slayer:   { name: 'The Dragonslayer',   hp: 20000, dmg: 160, atk: 1.2, speed: 28, range: 40, radius: 20, drop: 7000, sprite: 'slayer', team: 'enemy', boss: true, abil: ['slam','leap','volley'] },
   herokind: { name: 'The Hero King',      hp: 40000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, abil: ['smite','guard'], summon: { type: 'berserker', n: 1, every: 16 }, heal: { amt: 300, every: 5, range: 240 } },
-  avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true, abil: ['leap','guard'] },
+  avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true, fly: true, alt: [95, 125], abil: ['leap','guard'] },
 };
 
 // Boss abilities. Each boss lists some in its `abil`. Slam, leap and smite show a red warning first so they can be seen coming.
@@ -117,21 +119,21 @@ export const ZONES = [
   { id: 5, region: 2, name: 'Pilgrim Road', blurb: 'Crusaders and crossbowmen march to purge you.', waves: 8, scale: 1.26, rating: 370, boss: 'inquisitor',
     compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('crusader', 1 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3))] },
   { id: 6, region: 2, name: 'Cathedral Steps', blurb: 'Clerics mend the wounded faster than you can cut them down.', waves: 8, scale: 1.33, rating: 470, boss: 'templar',
-    compose: (n) => [...rep('griffin', n >= 5 ? 1 : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2)] },
+    compose: (n) => [...rep('gryphonlord', n === 5 ? 1 : 0), ...rep('griffin', n >= 5 ? 1 : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2)] },
   { id: 7, region: 2, name: 'Hallowed Ground', blurb: 'Paladins in blessed plate hold the line.', waves: 10, scale: 1.25, rating: 580, boss: 'archbishop',
-    compose: (n) => [...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
+    compose: (n) => [...rep('gryphonlord', n === 6 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
   { id: 8, region: 2, name: 'The Holy Citadel', blurb: 'The last bastion of the faithful.', waves: 10, scale: 1.3, rating: 770, boss: 'avenger',
-    compose: (n) => [...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
+    compose: (n) => [...rep('gryphonlord', n === 7 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
 
   // Region 3
   { id: 9, region: 3, name: 'Frostbitten Pass', blurb: 'Berserkers charge out of the blizzard.', waves: 7, scale: 1.6, rating: 810, boss: 'herodawn',
     compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('crossbow', 2), ...rep('cleric', 1)] },
   { id: 10, region: 3, name: "Wizard's Tower", blurb: 'Archmages rain ruin from the battlements.', waves: 7, scale: 1.55, rating: 1000, boss: 'supreme',
-    compose: (n) => [...rep('wyvern', n >= 4 ? Math.floor(n / 4) : 0), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
+    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 4 ? Math.floor(n / 4) : 0), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
   { id: 11, region: 3, name: "Dragon's Rest", blurb: 'Assassins slip through the dark, and sentinels bar the way.', waves: 8, scale: 1.45, rating: 1100, boss: 'slayer',
-    compose: (n) => [...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
+    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
   { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.45, rating: 1350, boss: 'herokind',
-    compose: (n) => [...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
+    compose: (n) => [...rep('frostwyrm', n === 5 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
 
   // The Endless Crypt: waves never stop and get steadily worse. Unlocks after zone 12. No boss; fail is the only ending.
   { id: 13, region: 4, name: 'The Endless Crypt', blurb: 'The living pour in forever. How long can you hold?', waves: Infinity, scale: 1.1, rating: 0, boss: null, endless: true,

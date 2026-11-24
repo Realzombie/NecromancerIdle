@@ -67,6 +67,10 @@ const SPRITES = {
   drake: { scale: 4, palette: { B: '#e8e0c8', W: '#5a3a7a', E: '#9dff7a', D: '#2a1c30' }, grid: DRAKE_GRID },
   griffin: { scale: 5, palette: { Y: '#8a5a2a', W: '#f4f0e4', O: '#d8a020', F: '#c8b890', E: '#202020', T: '#5a4020' },
     grid: ['...F.F.F..W...', '..FFFFFFF.WWW.', '..FFFFFFFWWEWW', '...FFFFYYYWWWO', '..YYYYYYYYWW..', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YT....', '..YY....TT....', '.TTT...TTT....'] },
+  gryphonlord: { scale: 8, palette: { Y: '#6a4a2a', W: '#f4f0e4', O: '#d8a020', F: '#d8c8a0', E: '#202020', T: '#3a2a18' },
+    grid: ['...F.F.F..W...', '..FFFFFFF.WTW.', '..FFFFFFFWWEWW', '...FFFFYYYWWWO', '..YYYYYYYYWW..', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YT....', '..YY....TT....', '.TTT...TTT....'] },
+  frostwyrm: { scale: 8, palette: { B: '#3a5a90', L: '#a8d8f8', W: '#2a4a78', E: '#40e0ff', H: '#ffffff' },
+    grid: ['....WW.WW...H..', '...WWWWWWW.HLL.', '...WWWWWWW.LLEL', '....WWWW..LLLLL', '..BBBBBBBBLL...', '...BBBBBBBB....', '...BBBBBBB.....', '..LBB..BB......', '.LL.B..BL......', 'LL.............'] },
   wyvern: { scale: 5, palette: { B: '#6a8ab0', L: '#a8c8e8', W: '#4a6a90', E: '#e8f8ff', H: '#e8f0ff' },
     grid: ['....WW.WW...H..', '...WWWWWWW.HLL.', '...WWWWWWW.LLEL', '....WWWW..LLLLL', '..BBBBBBBBLL...', '...BBBBBBBB....', '...BBBBBBB.....', '..LBB..BB......', '.LL.B..BL......', 'LL.............'] },
   zombie: {
@@ -404,32 +408,44 @@ function lookSprite(unit, look) {
   return (cache[key] = makeSprite(c, (gw * L.scale) / 2));
 }
 
-// A Legion is a mob of its summon with a standard-bearer behind it: one sprite built from the summon's own art.
+// A Legion is its summon's own art made huge and crowned, with a standard-bearer and a few escorts at its heels:
+// one sprite built from the summon's normal look, so each summon needs no extra art.
 function legionSprite(base, look) {
   const key = 'legion:' + (ART_ON ? 'n:' : 'c:') + base + ':' + (look ? look.hs + ':' + look.ds + ':' + look.flags.join(',') : '');
   if (cache[key]) return cache[key];
   const one = LOOKS[base] && look ? lookSprite(base, look) : sprite(UNITS[base].sprite);
-  const w = one.w, h = one.h, cw = Math.round(w * 2.5), ch = Math.round(h * 1.55);
+  const w = one.w, h = one.h, bw = w * 2, bh = h * 2;
+  const cw = Math.round(bw + w * 1.3), ch = bh + 10;
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
-  // the standard: a pole with a tattered green banner and a skull
-  const px = Math.round(cw * 0.5), top = 4;
-  g.fillStyle = '#0a0710'; g.fillRect(px - 2, top, 5, ch - top - 6);
-  g.fillStyle = '#6a5030'; g.fillRect(px - 1, top, 3, ch - top - 6);
-  g.fillStyle = '#0a0710'; g.beginPath(); g.moveTo(px + 2, top + 2); g.lineTo(px + 34, top + 8); g.lineTo(px + 26, top + 18); g.lineTo(px + 34, top + 28); g.lineTo(px + 2, top + 30); g.fill();
-  g.fillStyle = '#3f7a38'; g.beginPath(); g.moveTo(px + 3, top + 4); g.lineTo(px + 31, top + 9); g.lineTo(px + 24, top + 18); g.lineTo(px + 31, top + 26); g.lineTo(px + 3, top + 28); g.fill();
-  g.fillStyle = '#c8e8b0'; g.fillRect(px + 9, top + 11, 9, 8); g.fillStyle = '#0a0710'; g.fillRect(px + 11, top + 13, 2, 3); g.fillRect(px + 15, top + 13, 2, 3);
-  // the mob: back row first, then the front row overlapping it
-  const spots = [[0.2, 0.36], [0.5, 0.3], [0.8, 0.36], [0.06, 0.78], [0.34, 0.92], [0.66, 0.92], [0.94, 0.78]];
-  spots.sort((a, b) => a[1] - b[1]);
-  for (const [fx, fy] of spots) {
-    const ox = Math.round(fx * (cw - w)), oy = Math.round(fy * (ch - h));
-    g.globalAlpha = 0.55 + 0.45 * fy; g.drawImage(one.img, ox, oy);
-  }
+  const bx = cw - bw - 2, by = ch - bh;                                   // the giant stands at the front right
+  // a standard at the back left: a pole with a tattered green banner and a skull
+  const px = Math.round(w * 0.5), top = Math.max(2, ch - bh - 8);
+  g.fillStyle = '#0a0710'; g.fillRect(px - 2, top, 5, ch - top - 4);
+  g.fillStyle = '#6a5030'; g.fillRect(px - 1, top, 3, ch - top - 4);
+  g.fillStyle = '#0a0710'; g.beginPath(); g.moveTo(px + 2, top + 2); g.lineTo(px + 30, top + 7); g.lineTo(px + 22, top + 15); g.lineTo(px + 30, top + 24); g.lineTo(px + 2, top + 26); g.fill();
+  g.fillStyle = '#3f7a38'; g.beginPath(); g.moveTo(px + 3, top + 4); g.lineTo(px + 27, top + 8); g.lineTo(px + 21, top + 15); g.lineTo(px + 27, top + 22); g.lineTo(px + 3, top + 24); g.fill();
+  g.fillStyle = '#c8e8b0'; g.fillRect(px + 8, top + 9, 8, 7); g.fillStyle = '#0a0710'; g.fillRect(px + 10, top + 11, 2, 3); g.fillRect(px + 13, top + 11, 2, 3);
+  // escorts: three of the summon, smaller and a little dimmer, standing behind
+  [[0.15, 16, 0.7], [0.5, 8, 0.85], [0.08, 0, 1]].forEach(([fx, up, al]) => {
+    g.globalAlpha = al;
+    g.drawImage(one.img, Math.round(fx * (bx - w)), Math.round(ch - h - 2 - up));
+  });
+  // the giant: a golden glow, then the summon at double size
+  const gold = one.gold || (one.gold = silhouette(one.img, '#ffd060'));
+  g.globalAlpha = 0.6;
+  for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) g.drawImage(gold, 0, 0, one.w, one.h, bx + dx, by + dy, bw, bh);
   g.globalAlpha = 1;
-  return (cache[key] = makeSprite(c, cw / 2));
+  g.drawImage(one.img, 0, 0, one.w, one.h, bx, by, bw, bh);
+  // a gold crown on its brow
+  const cxm = bx + Math.round(one.ax * 2);
+  g.fillStyle = '#0a0710'; g.fillRect(cxm - 12, by - 8, 24, 10);
+  g.fillStyle = '#e8c050'; g.fillRect(cxm - 10, by - 4, 20, 5);
+  for (const dx of [-10, -3, 4, 9]) g.fillRect(cxm + dx, by - 9, 3, 6);
+  g.fillStyle = '#c03030'; g.fillRect(cxm - 1, by - 3, 3, 3);
+  return (cache[key] = makeSprite(c, bx + one.ax * 2));
 }
 
 function unitSprite(u) {
