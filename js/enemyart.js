@@ -46,7 +46,7 @@ const WEAP = {
   dagger2: (p, hx, hy) => { p.R(hx, hy - 4, 1, 5, '#e0e4f0', true); p.R(hx - 1, hy + 1, 3, 1, '#4a3a2a', true); p.R(hx + 3, hy - 3, 1, 4, '#e0e4f0', true); },
   torch: (p, hx, hy) => { p.R(hx, hy - 4, 2, 8, '#5a3a20'); p.P([[hx - 2, hy - 4], [hx + 1, hy - 11], [hx + 4, hy - 4]], '#ff7a20', true); p.P([[hx - 1, hy - 4], [hx + 1, hy - 9], [hx + 3, hy - 4]], '#ffd060', true); },
   scourge: (p, hx, hy) => { p.R(hx, hy - 3, 2, 6, '#3a2a20'); p.L(hx + 1, hy - 3, hx + 6, hy - 9, '#9a9aa8', true); p.L(hx + 6, hy - 9, hx + 9, hy - 5, '#9a9aa8', true); p.px(hx + 9, hy - 4, '#d8d8e8', true); },
-  holysword: (p, hx, hy) => { p.R(hx - 1, hy - 13, 4, 14, '#ffb050', true); p.R(hx, hy - 13, 2, 13, '#fff0a0', true); p.P([[hx - 1, hy - 14], [hx + 1, hy - 20], [hx + 3, hy - 14]], '#ff8a30', true); p.R(hx - 3, hy, 8, 1, GOLD, true); p.R(hx, hy + 1, 2, 3, '#7a5a20', true); },
+  holysword: (p, hx, hy) => { p.R(hx - 1, hy - 13, 4, 14, '#ffb050', true); p.R(hx, hy - 13, 2, 13, '#fff0a0', true); p.P([[hx - 1, hy - 12], [hx - 2, hy - 15], [hx + 1, hy - 21], [hx + 4, hy - 15], [hx + 3, hy - 12]], '#ff8a30', true); p.P([[hx, hy - 12], [hx + 1, hy - 18], [hx + 2, hy - 12]], '#ffe070', true); p.R(hx - 3, hy, 8, 1, GOLD, true); p.R(hx, hy + 1, 2, 3, '#7a5a20', true); },
 };
 
 const SHIELD = {
@@ -88,8 +88,9 @@ function person(o) {
   const hx = tx + tw + 2, hh = top + 3;
   p.R(tx - 2, top + 1, 3, 4 + b, mix(o.sleeve || (o.chestBare ? skin : cloth), '#000000', 0.15));
   p.R(tx + tw - 1, top + 1, 4, 3, o.sleeve || (o.chestBare ? skin : cloth)); p.R(tx + tw + 2, top + 1, 2, 3, skin);
+  if (o.weapon && o.weaponBehind) WEAP[o.weapon](p, hx + (o.shield ? -1 : 1), hh, o);          // e.g. a spear rising from behind a big shield
   if (o.shield) SHIELD[o.shield](p, tx + tw + 3 + (o.shield === 'tower' ? 1 : 0), top + 6, o);
-  if (o.weapon) WEAP[o.weapon](p, hx + (o.shield ? -1 : 1), hh, o);
+  if (o.weapon && !o.weaponBehind) WEAP[o.weapon](p, hx + (o.shield ? -1 : 1), hh, o);
   if (o.weapon2) WEAP[o.weapon2](p, tx - 3, top + 4, o);
   if (o.after) o.after(p, { cx, hy, top, tx, tw, H, b, legTop });
   p.finish();
@@ -120,7 +121,7 @@ export const ENEMY = {
   berserker: () => person({ bulk: 1, head: 'horns', hc: '#8a8a98', chestBare: true, cloth: '#b04020', legs: '#6a4a2a', skin: '#d8a070', sleeve: '#d8a070', beard: '#8a4a2a', weapon: 'axe', weapon2: 'axe', angry: true }),
   archmage: () => person({ robe: true, head: 'pointy', hc: '#3a50a0', cloth: '#4a60c0', trim: '#e8d070', beard: '#f0f0f8', weapon: 'staff', orb: '#80c0ff', skin: '#e0b890' }),
   assassin: () => person({ head: 'mask', hc: '#202030', cloth: '#303045', legs: '#202030', weapon: 'dagger2', after: (p, c) => { p.R(c.tx - 5, c.top + 1, 5, 2, '#c03030', true); p.R(c.tx - 7, c.top + 3, 4, 1, '#c03030', true); } }),
-  sentinel: () => person({ bulk: 2, head: 'greathelm', hc: '#7a90b0', eye: '#80d0ff', crest: '#e8f0ff', cloth: '#7a90b0', armor: 'plate', legs: '#4a5a78', weapon: 'halberd', shield: 'tower', sh: '#5a70a0', pauldrons: '#9ab0c8' }),
+  sentinel: () => person({ bulk: 2, head: 'greathelm', hc: '#7a90b0', eye: '#80d0ff', crest: '#e8f0ff', cloth: '#7a90b0', armor: 'plate', legs: '#4a5a78', weapon: 'spear', weaponBehind: true, shield: 'tower', sh: '#5a70a0', pauldrons: '#9ab0c8' }),
   herodawn: () => person({ bulk: 2, head: 'spiky', hc: '#e8c040', cloth: '#f0f0ff', armor: 'plate', legs: '#a07020', cape: '#fff6d0', weapon: 'holysword', pauldrons: '#e8c040', trim: GOLD, eye: '#2060c0', after: (p, c) => { p.E(c.tx + 3, c.top + 5, 2, 2, '#ffd040', true); } }),
   supreme:  () => person({ bulk: 2, robe: true, head: 'crown', cloth: '#5030a0', trim: '#c080ff', weapon: 'staff', orb: '#c080ff', skin: '#e0b890', eye: '#ffe040', after: (p, c) => { for (const [x, y] of [[-9, 2], [11, -1], [-6, -9], [14, 8]]) { p.E(c.cx + x, c.top + y, 1.6, 1.6, '#c080ff', true); p.px(c.cx + x - 1, c.top + y - 1, '#ffffff', true); } } }),
   slayer:   () => person({ bulk: 2, head: 'horns', hc: '#5a6a7a', cloth: '#4a5a6a', armor: 'chain', legs: '#2a3040', cape: '#1a2a3a', weapon: 'greatsword', blade: '#c8e0ff', pauldrons: '#6a7a8a', eye: '#ff6020', angry: true }),
