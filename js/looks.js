@@ -31,27 +31,29 @@ const ZOMBIE_ROTTEN = [
 ];
 
 // Classic flyers. The drake is drawn front-on (wings spread, skull on top, ribs and a tail) so it reads clearly at this size.
-// The classic bat is built from its tiers: hs scales the whole bat up until the crown, ds lengthens its two parallel fangs.
+// The classic bat is built from its tiers: hs scales the whole bat up until the crown, ds grows the two fangs set in its mouth.
 export function batGrid(hs = 0, ds = 0) {
   const base = ['W...P..P...W', 'WW...PP...WW', 'WWW.PPPP.WWW', '.WWWPEPEWWW.', '..WWPPPPWW..', '...WPPPPW...'];
   const s = [1, 1.34, 1.67, 1.67][Math.min(3, hs)];
   const W = Math.round(12 * s), H = Math.round(base.length * s);
-  const rows = [];
+  const g = [];
   for (let y = 0; y < H; y++) {
-    let r = '';
-    for (let x = 0; x < W; x++) r += base[Math.min(base.length - 1, Math.floor(y / s))][Math.min(11, Math.floor(x / s))];
-    rows.push(r);
+    const r = [];
+    for (let x = 0; x < W; x++) r.push(base[Math.min(base.length - 1, Math.floor(y / s))][Math.min(11, Math.floor(x / s))]);
+    g.push(r);
   }
-  const fl = Math.floor(5 * s), fr = Math.floor(7 * s);                          // the two fangs, hanging under the eyes
-  const fang = (cl, cr) => '.'.repeat(fl) + cl + '.'.repeat(fr - fl - 1) + cr + '.'.repeat(Math.max(0, W - fr - 1));
-  const len = 2 + ds;
-  for (let i = 0; i < len; i++) rows.push(fang(i === len - 1 && ds >= 3 ? 'R' : 'F', i === len - 1 && ds >= 3 ? 'R' : 'F'));
-  if (ds >= 3) rows.push(fang('R', '.'));                                         // a drip of blood
-  if (hs >= 3) {                                                                  // a gold crown on the head
+  // the mouth sits in the bottom of the face, under the eyes, with a fang at each end: 1 cell long at first, 2 at the end
+  const fl = Math.floor(5 * s), fr = Math.floor(7 * s), y0 = Math.ceil(4 * s), len = [1, 1, 2, 2][ds];
+  const fc = ds === 0 ? 'f' : 'F';
+  for (let x = fl; x <= fr; x++) g[y0][x] = x === fl || x === fr ? fc : 'M';
+  for (let i = 1; i < len && y0 + i < H; i++) { g[y0 + i][fl] = fc; g[y0 + i][fr] = fc; }
+  if (ds >= 3) { g[y0 + len - 1][fl] = 'R'; g[y0 + len - 1][fr] = 'R'; }                 // blood on the fang tips
+  const rows = g.map((r) => r.join(''));
+  if (hs >= 3) {                                                                         // a gold crown on the head
     const c0 = Math.floor(4.4 * s), pad = (str) => '.'.repeat(c0) + str + '.'.repeat(Math.max(0, W - c0 - str.length));
     rows.unshift(pad('GGGG')); rows.unshift(pad('G..G'));
   }
-  return rows.map((r) => r + '.'.repeat(W - r.length));
+  return rows;
 }
 export const BAT_GRID = batGrid(0, 0);
 export const DRAKE_GRID = (() => {
@@ -74,7 +76,7 @@ export const DRAKE_GRID = (() => {
 export const LOOKS = {
   bat: {
     scale: 4, pad: 0, gridFor: (hs, ds) => batGrid(hs, ds),
-    palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#fffaf0', R: '#e8283a', G: '#d8b050' },
+    palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#fffaf0', f: '#d8d0c0', M: '#1a1020', R: '#e8283a', G: '#d8b050' },
     hp: [{}, {}, {}],
     dmg: [{}, {}, {}],
   },
