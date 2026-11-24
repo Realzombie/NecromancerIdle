@@ -30,7 +30,55 @@ const ZOMBIE_ROTTEN = [
   '.D..DD..',
 ];
 
+// Classic flyers. The drake is drawn front-on (wings spread, skull on top, ribs and a tail) so it reads clearly at this size.
+export const BAT_GRID = ['W..........W', 'WW...PP...WW', 'WWW.PPPP.WWW', '.WWWPEPEWWW.', '..WWPPPPWW..', '...WWPFPW...', '....W..W....'];
+export const DRAKE_GRID = (() => {
+  const g = Array.from({ length: 13 }, () => Array(19).fill('.'));
+  const set = (x, y, c) => { g[y][x] = c; g[y][18 - x] = c; };
+  const wing = [[0, 2], [0, 4], [0, 5], [1, 6], [2, 7], [4, 7], [6, 6]];            // [from x, to x] per row, mirrored
+  wing.forEach(([a, b], i) => { for (let x = a; x <= b; x++) set(x, i + 1, 'W'); });
+  for (const [x, y] of [[0, 1], [2, 3], [4, 5], [5, 6]]) set(x, y, 'B');            // wing bones
+  g[0][7] = 'B'; g[0][11] = 'B'; g[1][8] = 'B'; g[1][10] = 'B';                       // horns
+  for (let x = 7; x <= 11; x++) { g[1][x] = g[1][x] === '.' ? 'B' : g[1][x]; g[2][x] = 'B'; }
+  g[2][8] = 'E'; g[2][10] = 'E';                                                      // glowing eyes
+  for (let x = 8; x <= 10; x++) g[3][x] = 'B';
+  g[4][8] = 'D'; g[4][9] = 'B'; g[4][10] = 'D';                                       // a short jaw
+  g[5][9] = 'B';
+  for (let y = 6; y <= 9; y++) for (let x = 6; x <= 12; x++) g[y][x] = (y % 2 === 0) ? 'B' : (x % 2 === 0 ? 'B' : 'D');   // ribcage
+  g[10][8] = 'B'; g[10][9] = 'B'; g[10][10] = 'B'; g[11][9] = 'B'; g[12][8] = 'B'; g[12][9] = 'B'; g[12][10] = 'B';   // tail
+  return g.map((r) => r.join(''));
+})();
+
 export const LOOKS = {
+  bat: {
+    scale: 4, pad: 0, grid: BAT_GRID,
+    palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#f0f0e0' },
+    hp: [
+      { rects: [[4, 4, '#8a5a30', 4, 1]] },
+      { rects: [[0, 0, '#ecece0'], [11, 0, '#ecece0'], [1, 2, '#ecece0'], [10, 2, '#ecece0']] },
+      { rects: [[4, 0, '#d8b050', 4, 1], [4, -1, '#d8b050'], [7, -1, '#d8b050']] },
+    ],
+    dmg: [
+      { rects: [[7, 5, '#f0f0e0']] },
+      { rects: [[4, 3, '#ffb0b0'], [6, 3, '#ffb0b0']] },
+      { rects: [[5, 6, '#e8283a'], [7, 6, '#e8283a'], [6, 6, '#c01828']] },
+    ],
+  },
+  drake: {
+    scale: 4, pad: 5, grid: DRAKE_GRID,
+    palette: { B: '#e8e0c8', W: '#5a3a7a', E: '#9dff7a', D: '#2a1c30' },
+    hp: [
+      { rects: [[7, 7, '#d8b050', 5, 1], [7, 9, '#d8b050', 5, 1]] },
+      { rects: [[7, 0, '#d8b050', 5, 1], [8, -1, '#d8b050'], [10, -1, '#d8b050']] },
+      { rects: [[6, 6, '#8a94aa', 7, 2], [6, 6, '#c8d0e0', 7, 1]] },
+    ],
+    dmg: [
+      { rects: [[12, 3, '#9a9aa8'], [13, 2, '#9a9aa8']] },
+      { rects: [[12, 3, '#ff9a30', 2, 1], [13, 2, '#e8401a'], [12, 4, '#e8401a']] },
+      { rects: [[12, 2, '#e8401a', 4, 3], [12, 3, '#ff9a30', 4, 1], [13, 3, '#ffe880', 2, 1], [16, 3, '#e8401a']] },
+    ],
+  },
+
   zombie: {
     scale: 4, pad: 3,
     gridFor: (hs) => (hs === 0 ? ZOMBIE_ROTTEN : ZOMBIE_GRID),

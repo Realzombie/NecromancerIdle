@@ -4,7 +4,7 @@ import { artCanvas, necroCanvas } from './art.js';
 import { ENEMY, enemyCanvas } from './enemyart.js';
 import { ICON_ART, iconArtCanvas } from './iconart.js';
 import { ATTACK_TIME } from './sim.js';
-import { LOOKS } from './looks.js';
+import { LOOKS, BAT_GRID, DRAKE_GRID } from './looks.js';
 import { RARITIES, SLOTS, rarityIndex, wornItem } from './gear.js';
 
 // Palette letters: . = transparent
@@ -63,14 +63,12 @@ const SPRITES = {
   icon_dust: { scale: 4, palette: { D: '#e8e0c8', d: '#b8b09a' },
     grid: ['....D.....', '...DDD....', '..DDdDD...', '.DDDDDDD..', 'DdDDdDDdD.'] },
   necro4: { scale: 6, grid: NECRO_GRID, palette: { ...NECRO_BASE, H: '#4a1020', h: '#8a2a40', R: '#3a0c18', r: '#7a2038', E: '#ffd060', T: '#7a5a30', O: '#ff8030' } },
-  bat: { scale: 4, palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#f0f0e0' },
-    grid: ['W..........W', 'WW...PP...WW', 'WWW.PPPP.WWW', '.WWWPEPEWWW.', '..WWPPPPWW..', '...WWPFPW...', '....W..W....'] },
-  drake: { scale: 4, palette: { B: '#e8e0c8', W: '#5a3a7a', E: '#9dff7a', D: '#2a1c30', O: '#ff9a30' },
-    grid: ['W....W........', 'WW..WW.....BB.', 'WWWWWW...BEBBO', '.WWWWBB.BBBBBO', '..WBBBBBBBBDO.', '...BBBBBBBD...', '..D.B.B.B.D...', '..D..D...D....'] },
-  griffin: { scale: 4, palette: { Y: '#c8a040', W: '#f0e8d0', O: '#e89030', F: '#8a6a3a', E: '#202020' },
-    grid: ['FF.......WW.', 'FFFF....WWWO', 'FFFFYYYWWEOO', '.FFYYYYYYWW.', '..YYYYYYY...', '..YY.YY.YY..', '..O..O..O...'] },
-  wyvern: { scale: 4, palette: { B: '#6a8ab0', L: '#a8c8e8', W: '#4a6a90', E: '#e8f8ff', H: '#e8f0ff' },
-    grid: ['W............', 'WW.....H.LL..', 'WWW...HLLLEL.', '.WWWBBBBBLLLL', '..WBBBBBBBB..', '...BBBBBBB...', '...B.B..BBB..', '..LL.LL...BBB'] },
+  bat: { scale: 4, palette: { P: '#5a3a7a', W: '#3a2a5a', E: '#ff4040', F: '#f0f0e0' }, grid: BAT_GRID },
+  drake: { scale: 4, palette: { B: '#e8e0c8', W: '#5a3a7a', E: '#9dff7a', D: '#2a1c30' }, grid: DRAKE_GRID },
+  griffin: { scale: 5, palette: { Y: '#c8a040', W: '#f0e8d0', O: '#e89030', F: '#8a6a3a', E: '#202020' },
+    grid: ['F..F.......W..', 'FFFFF.....WWO.', 'FFFFFF...WEWOO', '.FFFFYY..WWW..', '..FYYYYYYWW...', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YO....', '..YY....OO....', '.OOO...OOO....'] },
+  wyvern: { scale: 5, palette: { B: '#6a8ab0', L: '#a8c8e8', W: '#4a6a90', E: '#e8f8ff', H: '#e8f0ff' },
+    grid: ['W.W.........H..', 'WWWW.......HLL.', 'WWWWW.....LLEL.', '.WWWW....LLLLLL', '..WWBBBBBBLL...', '...BBBBBBBB....', '...BBBBBBB.....', '..LBB..BB......', '.LL.B..BL......', 'LL.............'] },
   zombie: {
     scale: 4,
     palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848' },

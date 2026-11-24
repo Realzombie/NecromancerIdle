@@ -9,9 +9,9 @@ const lighter = (c) => mix(c, '#fff6e0', 0.26);
 const darker = (c) => mix(c, '#1a1028', 0.3);
 
 export class Pix {
-  constructor(w, h, pad = 0) { this.pad = pad; this.w = w; this.h = h + pad; this.c = new Array(this.w * this.h).fill(null); this.l = new Array(this.w * this.h).fill(0); this.layer = 0; this.flat = new Set(); }
+  constructor(w, h, pad = 0) { this.pad = pad; this.ox = 0; this.w = w; this.h = h + pad; this.c = new Array(this.w * this.h).fill(null); this.l = new Array(this.w * this.h).fill(0); this.layer = 0; this.flat = new Set(); }
   px(x, y, c, flat) {
-    x = Math.round(x); y = Math.round(y) + this.pad;
+    x = Math.round(x) + this.ox; y = Math.round(y) + this.pad;
     if (x < 0 || y < 0 || x >= this.w || y >= this.h) return this;
     const i = y * this.w + x;
     this.c[i] = c; this.l[i] = this.layer;
@@ -341,7 +341,7 @@ function bat({ hs = 0, ds = 0 }) {
 }
 
 function drake({ hs = 0, ds = 0 }) {
-  const p = new Pix(40, 28, 4), bone = '#e6dfc6', dk = mix(bone, '#6a6050', 0.35), mem = '#5a3a7a';
+  const p = new Pix(54, 28, 4); p.ox = 3; const bone = '#e6dfc6', dk = mix(bone, '#6a6050', 0.35), mem = '#5a3a7a';
   // far wing (small, up on the right), then the big near wing on the left
   p.P([[22, 12], [30, 2], [38, 8], [32, 9], [28, 12]], mix(mem, '#000000', 0.2)); p.L(22, 12, 30, 2, dk, true); p.L(22, 12, 38, 8, dk, true);
   p.P([[18, 13], [8, 0], [1, 9], [8, 8], [5, 14], [12, 12]], mem); p.P([[18, 13], [10, 3], [6, 9], [13, 11]], mix(mem, '#ffffff', 0.12), true);
@@ -358,20 +358,22 @@ function drake({ hs = 0, ds = 0 }) {
   p.R(14, 22, 2, 4, bone); p.R(12, 25, 4, 1, bone); p.R(23, 22, 2, 4, bone); p.R(24, 25, 4, 1, bone);
   // long neck and a snarling skull
   p.L(26, 14, 30, 7, bone, true); p.L(27, 14, 31, 7, bone, true); p.R(29, 8, 2, 3, bone);
-  p.E(33, 6, 3.4, 2.8, bone); p.R(33, 8, 5, 2, bone); p.R(34, 8, 4, 1, '#2a1c30', true);
-  for (const x of [34, 36]) p.px(x, 9, '#f6f0dc', true);
+  p.E(33, 6, 3.4, 2.8, bone); p.R(35, 5, 4, 3, bone);                                   // skull with a short snout
+  p.R(35, 8, 3, 1, bone); p.R(36, 8, 2, 1, '#2a1c30', true); p.px(36, 9, '#f6f0dc', true); p.px(38, 8, '#f6f0dc', true);   // a tucked jaw with two small fangs
   p.R(32, 5, 2, 1, '#2a1c30', true); p.px(32, 5, GLOW, true);
   p.P([[30, 4], [27, 0], [32, 3]], bone); p.P([[33, 3], [34, 0], [35, 4]], dk);
   if (hs >= 1) for (let x = 14; x < 26; x += 3) p.px(x, 17, '#d8b050', true);
   if (hs >= 2) { p.R(31, 3, 5, 1, '#d8b050', true); p.px(31, 2, '#d8b050', true); p.px(33, 2, '#d8b050', true); p.px(35, 2, '#d8b050', true); }
   if (hs >= 3) { p.R(13, 14, 14, 3, '#8a94aa', true); p.R(13, 14, 14, 1, '#c8d0e0', true); }
-  // fire from its mouth, bigger with damage tiers
-  const f = [0, 2, 4, 6][ds];
-  if (f === 0) { p.px(39, 8, '#9a9aa8', true); p.px(38, 7, '#9a9aa8', true); }
+  // fire from its mouth: a widening cone, longer and hotter with damage tiers
+  const f = [0, 7, 11, 15][ds], w = [0, 2.2, 3.4, 4.6][ds];
+  if (f === 0) { for (const [x, y] of [[39, 6], [41, 4], [40, 2]]) p.px(x, y, '#9a9aa8', true); }
   else {
-    p.P([[38, 8], [38 + f, 6], [38 + f + 1, 9], [38 + f, 12], [38, 10]], '#e8401a', true);
-    p.P([[38, 8], [38 + f - 1, 7], [38 + f - 1, 9], [38 + f - 1, 11], [38, 10]], '#ff9a30', true);
-    p.px(38 + 1, 9, '#ffe880', true); if (ds >= 2) p.px(38 + 3, 9, '#ffe880', true);
+    const ey = 8 + f * 0.22;
+    p.P([[39, 7], [39 + f * 0.5, 7 - w * 0.6], [39 + f, ey - w - 0.5], [39 + f + 2, ey], [39 + f, ey + w + 0.5], [39 + f * 0.5, 9 + w * 0.5], [39, 9]], '#e8401a', true);
+    p.P([[39, 7.5], [39 + f * 0.5, 7.5 - w * 0.35], [39 + f * 0.9, ey - w * 0.55], [39 + f * 0.95, ey], [39 + f * 0.9, ey + w * 0.6], [39 + f * 0.5, 8.8 + w * 0.3], [39, 8.6]], '#ff9a30', true);
+    p.P([[39, 8], [39 + f * 0.45, 8 - w * 0.15], [39 + f * 0.6, ey], [39 + f * 0.45, 8 + w * 0.3]], '#ffe880', true);
+    if (ds >= 2) for (const [dx, dy] of [[f + 3, -w], [f + 4, w + 1], [f + 1, w + 3]]) p.px(39 + dx, ey + dy, '#ffb040', true);
   }
   return p.finish();
 }
