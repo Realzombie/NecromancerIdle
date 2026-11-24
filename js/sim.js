@@ -477,7 +477,7 @@ export class Battle {
     const reachesAir = u.def.fly || u.def.range > 40;   // only flyers and ranged units can hit something in the air
     for (const o of this.units) {
       if (o.team === u.team) continue;
-      if (o.def.fly && !reachesAir) continue;
+      if (o.def.fly && !reachesAir && o.altNow > 40) continue;   // a swooping flyer is within reach of ground melee while it is down low
       const d = Math.hypot(o.x - u.x, (o.y - u.y) * 1.5);
       if (d < best) { best = d; target = o; }
     }
