@@ -455,6 +455,162 @@ function drawCastle(g, t) {
   g.globalAlpha = 1;
 }
 
+// Every zone gets its own scene: a different skyline, time of day, props and lights, so no two battlefields look alike.
+// skyline: what stands on the horizon at skyX. props: what is scattered on the ground. lamps: x positions of lamp posts.
+const SCENES = {
+  1:  { skyline: 'chapel',    skyX: 130, props: 'graves', lamps: [330, 700], trees: 'dead', orbX: 700 },
+  2:  { skyline: 'burnt',     skyX: 640, props: 'craters', lamps: [], trees: 'dead', sky: ['#1c0a10', '#9a4a2a'], orbX: 300, orbRed: true },
+  3:  { skyline: 'chapel',    skyX: 700, props: 'graves', lamps: [260, 520], trees: 'dead', orbX: 420 },
+  4:  { skyline: 'gate',      skyX: 640, props: 'rocks', lamps: [300, 560, 820], trees: 'none', orbX: 250 },
+  5:  { skyline: 'village',   skyX: 520, props: 'tents', lamps: [380, 860], trees: 'oak', orbX: 800 },
+  6:  { skyline: 'cathedral', skyX: 640, props: 'pillars', lamps: [420], trees: 'none', orbX: 300 },
+  7:  { skyline: 'ruins',     skyX: 360, props: 'graves', lamps: [], trees: 'oak', orbX: 760 },
+  8:  { skyline: 'keep',      skyX: 700, props: 'rocks', lamps: [300, 520, 780], trees: 'none', orbX: 400 },
+  9:  { skyline: 'pass',      skyX: 480, props: 'snow', lamps: [], trees: 'pine', sky: ['#1a2848', '#9ab8d8'], orbX: 760 },
+  10: { skyline: 'tower',     skyX: 660, props: 'snow', lamps: [380], trees: 'pine', orbX: 320 },
+  11: { skyline: 'cave',      skyX: 560, props: 'rocks', lamps: [], trees: 'none', sky: ['#14122a', '#5a3050'], orbX: 860 },
+  12: { skyline: 'keep',      skyX: 640, props: 'pillars', lamps: [300, 780], trees: 'pine', orbX: 440 },
+  13: { skyline: 'crypt',     skyX: 700, props: 'graves', lamps: [], trees: 'dead', sky: ['#0c0618', '#2c1048'], orbX: 300 },
+};
+const DEFAULT_SCENE = { skyline: 'castle', skyX: 830, props: 'graves', lamps: [300, 540, 780], trees: 'dead', orbX: 640 };
+let SC = DEFAULT_SCENE;
+const scaledScenes = {};
+function sceneFor(id) {   // scenes are laid out for a 960 wide field; stretch the positions to the real width
+  if (!scaledScenes[id]) { const s = SCENES[id] || DEFAULT_SCENE, k = FIELD_W / 960; scaledScenes[id] = { ...s, skyX: s.skyX * k, orbX: s.orbX * k, lamps: s.lamps.map((x) => x * k) }; }
+  return scaledScenes[id];
+}
+
+function win(g, t, x, y, i, w = 4, h = 7) { g.globalAlpha = 0.5 + 0.5 * Math.sin(t * 2.6 + i * 2.1 + SC.skyX); g.fillStyle = TH.windows; g.fillRect(x, y, w, h); g.globalAlpha = 1; g.fillStyle = TH.castle; }
+function roof(g, x, y, w, h) { g.beginPath(); g.moveTo(x - 3, y); g.lineTo(x + w / 2, y - h); g.lineTo(x + w + 3, y); g.fill(); }
+function crenel(g, x, y, w) { for (let i = 0; i < w; i += 8) g.fillRect(x + i, y - 6, 5, 6); }
+function smokePuff(g, t, x, y, k) { for (let i = 0; i < 4; i++) { const u = ((t * 0.25 + i / 4 + k) % 1); g.globalAlpha = (1 - u) * 0.35; g.fillStyle = '#9a98a8'; g.beginPath(); g.arc(x + Math.sin(u * 5 + k) * 5 + u * 8, y - u * 36, 3 + u * 5, 0, 7); g.fill(); } g.globalAlpha = 1; g.fillStyle = TH.castle; }
+
+function drawSkyline(g, t) {
+  const x = SC.skyX, B = 332;
+  g.fillStyle = TH.castle;
+  switch (SC.skyline) {
+    case 'castle': drawCastle(g, t); break;
+    case 'village': {
+      for (let i = 0; i < 6; i++) {
+        const hx = x - 120 + i * 52 + (i % 2) * 8, hw = 30 + (i % 3) * 8, hh = 24 + (i % 2) * 8;
+        g.fillRect(hx, B - hh, hw, hh); roof(g, hx, B - hh, hw, 16);
+        g.fillRect(hx + hw - 8, B - hh - 22, 5, 14);
+        if (i % 2 === 0) smokePuff(g, t, hx + hw - 6, B - hh - 22, i);
+        win(g, t, hx + 6, B - hh + 7, i); if (hw > 36) win(g, t, hx + hw - 14, B - hh + 7, i + 3);
+      }
+      g.fillRect(x + 190, B - 56, 14, 56); roof(g, x + 190, B - 56, 14, 22);   // a little church spire
+      break;
+    }
+    case 'burnt': {
+      g.fillRect(x - 70, B - 34, 60, 34); g.fillRect(x - 10, B - 20, 30, 20);          // a ruined barn and house
+      g.beginPath(); g.moveTo(x - 76, B - 34); g.lineTo(x - 50, B - 62); g.lineTo(x - 30, B - 38); g.lineTo(x - 14, B - 50); g.lineTo(x - 4, B - 34); g.fill();
+      g.fillRect(x + 40, B - 70, 5, 70); g.fillRect(x + 28, B - 56, 16, 3);
+      for (let i = 0; i < 5; i++) { const f = 0.6 + 0.4 * Math.sin(t * 9 + i * 2); g.fillStyle = 'rgba(255,' + (90 + f * 80 | 0) + ',30,0.8)'; g.beginPath(); g.moveTo(x - 60 + i * 20, B - 30); g.lineTo(x - 56 + i * 20, B - 30 - 14 * f - 6); g.lineTo(x - 50 + i * 20, B - 30); g.fill(); }
+      smokePuff(g, t, x - 50, B - 36, 1); smokePuff(g, t, x, B - 22, 2);
+      break;
+    }
+    case 'chapel': {
+      g.fillRect(x - 38, B - 44, 76, 44); roof(g, x - 38, B - 44, 76, 22);
+      g.fillRect(x + 20, B - 110, 22, 66); roof(g, x + 20, B - 110, 22, 34);
+      g.fillRect(x + 30, B - 156, 2, 14); g.fillRect(x + 26, B - 152, 10, 2);        // a cross on the spire
+      win(g, t, x - 24, B - 32, 0, 6, 12); win(g, t, x - 8, B - 32, 1, 6, 12); win(g, t, x + 25, B - 80, 2, 6, 10);
+      break;
+    }
+    case 'gate': {
+      g.fillRect(x - 150, B - 56, 300, 56); crenel(g, x - 150, B - 56, 300);
+      for (const tx of [x - 178, x + 140]) { g.fillRect(tx, B - 112, 38, 112); crenel(g, tx, B - 112, 38); }
+      g.fillStyle = '#05030a'; g.fillRect(x - 24, B - 46, 48, 46); g.beginPath(); g.arc(x, B - 46, 24, Math.PI, 0); g.fill();
+      for (const tx of [x - 40, x + 40]) { const f = 0.7 + 0.3 * Math.sin(t * 10 + tx); g.fillStyle = 'rgba(255,170,60,' + (0.5 * f) + ')'; g.beginPath(); g.arc(tx, B - 44, 9, 0, 7); g.fill(); g.fillStyle = '#ffb040'; g.fillRect(tx - 2, B - 48, 4, 6); }
+      break;
+    }
+    case 'cathedral': {
+      g.fillRect(x - 70, B - 70, 140, 70); roof(g, x - 70, B - 70, 140, 36);
+      for (const tx of [x - 96, x + 66]) { g.fillRect(tx, B - 140, 30, 140); roof(g, tx, B - 140, 30, 54); g.fillRect(tx + 14, B - 206, 2, 14); g.fillRect(tx + 10, B - 202, 10, 2); }
+      g.fillStyle = TH.windows; g.globalAlpha = 0.7 + 0.3 * Math.sin(t * 1.5); g.beginPath(); g.arc(x, B - 52, 13, 0, 7); g.fill(); g.globalAlpha = 1;
+      g.fillStyle = TH.castle; for (let i = -1; i <= 1; i++) g.fillRect(x + i * 26 - 1, B - 52, 2, 26);
+      break;
+    }
+    case 'ruins': {
+      for (const [dx, w, h] of [[-110, 24, 58], [-60, 18, 34], [-10, 30, 74], [50, 16, 28], [90, 26, 52]]) {
+        g.fillRect(x + dx, B - h, w, h); g.beginPath(); g.moveTo(x + dx, B - h); g.lineTo(x + dx + w * 0.4, B - h - 8); g.lineTo(x + dx + w, B - h + 4); g.lineTo(x + dx + w, B - h); g.fill();
+      }
+      g.strokeStyle = TH.castle; g.lineWidth = 8; g.beginPath(); g.arc(x - 35, B - 56, 24, Math.PI, 0); g.stroke();       // a broken arch
+      break;
+    }
+    case 'keep': {
+      g.fillRect(x - 90, B - 74, 180, 74); crenel(g, x - 90, B - 74, 180);
+      g.fillRect(x - 40, B - 140, 80, 66); crenel(g, x - 40, B - 140, 80);
+      for (const tx of [x - 120, x + 98]) { g.fillRect(tx, B - 106, 22, 106); roof(g, tx, B - 106, 22, 32); }
+      for (const [fx, fy] of [[x - 30, B - 142], [x + 22, B - 142], [x, B - 76]]) {   // banners
+        g.fillStyle = '#7a1c24'; g.beginPath(); g.moveTo(fx, fy); g.lineTo(fx + 12 + Math.sin(t * 3 + fx) * 3, fy + 6); g.lineTo(fx, fy + 22); g.fill(); g.fillStyle = TH.castle; g.fillRect(fx - 1, fy - 4, 2, 30);
+      }
+      win(g, t, x - 8, B - 120, 0, 6, 10); win(g, t, x - 60, B - 50, 1); win(g, t, x + 50, B - 50, 2);
+      break;
+    }
+    case 'pass': {
+      for (const [dx, w, h] of [[-160, 60, 150], [-70, 44, 110], [60, 70, 170], [150, 48, 120]]) {
+        g.fillStyle = TH.castle; g.beginPath(); g.moveTo(x + dx - w / 2, B); g.lineTo(x + dx - w * 0.15, B - h); g.lineTo(x + dx + w * 0.1, B - h + 14); g.lineTo(x + dx + w / 2, B); g.fill();
+        g.fillStyle = '#e8f0ff'; g.beginPath(); g.moveTo(x + dx - w * 0.15, B - h); g.lineTo(x + dx - w * 0.3, B - h + 26); g.lineTo(x + dx + w * 0.05, B - h + 20); g.lineTo(x + dx + w * 0.1, B - h + 14); g.fill();
+      }
+      break;
+    }
+    case 'tower': {
+      g.fillRect(x - 16, B - 190, 32, 190); roof(g, x - 22, B - 190, 44, 50);
+      g.fillRect(x - 40, B - 40, 80, 40);
+      const p = 0.6 + 0.4 * Math.sin(t * 2.2);
+      g.fillStyle = 'rgba(150,120,255,' + (0.25 * p) + ')'; g.beginPath(); g.arc(x, B - 252, 26, 0, 7); g.fill();
+      g.fillStyle = '#b8a0ff'; g.beginPath(); g.arc(x, B - 252, 6 + p * 2, 0, 7); g.fill(); g.fillStyle = TH.castle;
+      win(g, t, x - 4, B - 150, 0, 8, 12); win(g, t, x - 4, B - 100, 1, 8, 12);
+      break;
+    }
+    case 'cave': {
+      g.beginPath(); g.moveTo(x - 190, B); g.lineTo(x - 90, B - 120); g.lineTo(x - 30, B - 150); g.lineTo(x + 50, B - 120); g.lineTo(x + 170, B - 60); g.lineTo(x + 210, B); g.fill();
+      g.fillStyle = '#05030a'; g.beginPath(); g.ellipse(x, B - 26, 44, 34, 0, Math.PI, 0); g.fill(); g.fillRect(x - 44, B - 26, 88, 26);
+      const p = 0.7 + 0.3 * Math.sin(t * 1.6);
+      g.fillStyle = 'rgba(255,120,40,' + (0.35 * p) + ')'; g.beginPath(); g.ellipse(x, B - 14, 40, 24, 0, 0, 7); g.fill();
+      g.fillStyle = '#ffb040'; g.fillRect(x - 14, B - 34, 8, 4); g.fillRect(x + 8, B - 34, 8, 4);
+      break;
+    }
+    case 'crypt': {
+      g.fillRect(x - 70, B - 54, 140, 54); roof(g, x - 80, B - 54, 160, 34);
+      for (let i = -2; i <= 2; i++) g.fillRect(x + i * 28 - 4, B - 54, 8, 54);
+      g.fillStyle = '#05030a'; g.fillRect(x - 14, B - 40, 28, 40);
+      const p = 0.6 + 0.4 * Math.sin(t * 2);
+      g.fillStyle = 'rgba(120,255,120,' + (0.4 * p) + ')'; g.beginPath(); g.ellipse(x, B - 18, 18, 24, 0, 0, 7); g.fill();
+      g.fillStyle = TH.castle; g.fillRect(x - 3, B - 100, 6, 46); g.fillRect(x - 12, B - 90, 24, 5);
+      break;
+    }
+    default: break;                                            // none: open country
+  }
+}
+
+function drawProps(g, t) {
+  const list = [...graves].sort((a, b) => a.y - b.y);
+  const k = SC.props;
+  for (const o of list) {
+    const s = o.s;
+    if (k === 'graves') { drawGrave(g, o); continue; }
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(o.x - 6 * s, o.y - 1, 16 * s, 3);
+    if (k === 'craters') { g.fillStyle = 'rgba(8,4,8,0.55)'; g.beginPath(); g.ellipse(o.x, o.y, 14 * s, 5 * s, 0, 0, 7); g.fill(); if (o.kind === 0) { g.fillStyle = '#2a1a14'; g.fillRect(o.x - 2, o.y - 14 * s, 3, 14 * s); g.fillRect(o.x - 8 * s, o.y - 10 * s, 14 * s, 3); } }
+    else if (k === 'tents') { if (o.kind === 0) { g.fillStyle = '#6a6050'; g.beginPath(); g.moveTo(o.x - 12 * s, o.y); g.lineTo(o.x, o.y - 18 * s); g.lineTo(o.x + 12 * s, o.y); g.fill(); g.fillStyle = '#2a2a40'; g.fillRect(o.x - 2, o.y - 7 * s, 4, 7 * s); } else { g.fillStyle = '#5a4020'; g.fillRect(o.x - 6 * s, o.y - 9 * s, 12 * s, 9 * s); g.fillStyle = '#7a5a30'; g.fillRect(o.x - 6 * s, o.y - 9 * s, 12 * s, 2); } }
+    else if (k === 'rocks') { g.fillStyle = o.kind === 1 ? '#4a4858' : '#3c3a4a'; g.beginPath(); g.moveTo(o.x - 9 * s, o.y); g.lineTo(o.x - 5 * s, o.y - 9 * s); g.lineTo(o.x + 3 * s, o.y - 11 * s); g.lineTo(o.x + 9 * s, o.y); g.fill(); g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(o.x - 4 * s, o.y - 9 * s, 4 * s, 2); }
+    else if (k === 'pillars') { g.fillStyle = '#6a6678'; g.fillRect(o.x - 4 * s, o.y - (o.kind === 0 ? 24 : 12) * s, 8 * s, (o.kind === 0 ? 24 : 12) * s); g.fillStyle = '#8a869a'; g.fillRect(o.x - 5 * s, o.y - (o.kind === 0 ? 26 : 14) * s, 10 * s, 3); }
+    else if (k === 'snow') { g.fillStyle = '#e8f0fa'; g.beginPath(); g.ellipse(o.x, o.y, 15 * s, 5 * s, 0, 0, 7); g.fill(); if (o.kind === 2) { g.fillStyle = '#7a90b0'; g.fillRect(o.x - 3 * s, o.y - 9 * s, 6 * s, 9 * s); g.fillStyle = '#e8f0fa'; g.fillRect(o.x - 3 * s, o.y - 9 * s, 6 * s, 3); } }
+  }
+}
+
+function drawSceneTrees(g) {
+  const k = SC.trees;
+  if (k === 'none') return;
+  for (const tr of trees) {
+    if (k === 'dead') { drawTree(g, tr); continue; }
+    const x = tr.x, y = tr.y + 4, h = tr.h * 0.6;
+    g.fillStyle = TH.tree; g.fillRect(x - 3, y - h * 0.5, 6, h * 0.5);
+    if (k === 'pine') { for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(x - 20 + i * 4, y - h * 0.3 - i * h * 0.28); g.lineTo(x, y - h * 0.8 - i * h * 0.28); g.lineTo(x + 20 - i * 4, y - h * 0.3 - i * h * 0.28); g.fill(); } }
+    else { g.beginPath(); g.arc(x, y - h * 0.7, h * 0.42, 0, 7); g.arc(x - 14, y - h * 0.55, h * 0.3, 0, 7); g.arc(x + 14, y - h * 0.55, h * 0.3, 0, 7); g.fill(); }
+  }
+}
+
 const theme = (regionId) => (REGIONS.find((r) => r.id === regionId) || REGIONS[0]).theme;
 
 // Look of each region's battlefield.
@@ -473,7 +629,7 @@ let TH = THEMES.graveyard;
 
 function drawBackground(g, t) {
   const sky = g.createLinearGradient(0, 0, 0, 330);
-  sky.addColorStop(0, TH.skyTop); sky.addColorStop(1, TH.skyBot);
+  sky.addColorStop(0, SC.sky ? SC.sky[0] : TH.skyTop); sky.addColorStop(1, SC.sky ? SC.sky[1] : TH.skyBot);
   g.fillStyle = sky; g.fillRect(0, 0, FIELD_W, 330);
   if (TH.stars) {
     g.fillStyle = '#e8e0f0';
@@ -493,21 +649,21 @@ function drawBackground(g, t) {
     g.restore();
   }
   if (TH.halo) {
-    const hg = g.createRadialGradient(640, 90, 20, 640, 90, 150);
+    const hg = g.createRadialGradient(SC.orbX, 90, 20, SC.orbX, 90, 150);
     hg.addColorStop(0, TH.halo); hg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = hg; g.fillRect(470, 0, 340, 260);
+    g.fillStyle = hg; g.fillRect(SC.orbX - 170, 0, 340, 260);
   }
   if (TH.orbCut) {
     // A crescent: the moon disc with a circle cut out of it (clipped, so the sky shows through).
     g.save();
-    g.beginPath(); g.arc(640, 90, 34, 0, Math.PI * 2); g.clip();
-    g.fillStyle = TH.orb; g.beginPath(); g.rect(600, 50, 80, 80); g.arc(626, 80, 30, 0, Math.PI * 2); g.fill('evenodd');
+    g.beginPath(); g.arc(SC.orbX, 90, 34, 0, Math.PI * 2); g.clip();
+    g.fillStyle = SC.orbRed ? '#e87050' : TH.orb; g.beginPath(); g.rect(SC.orbX - 40, 50, 80, 80); g.arc(SC.orbX - 14, 80, 30, 0, Math.PI * 2); g.fill('evenodd');
     g.restore();
   } else {
-    const glow = g.createRadialGradient(640, 100, 10, 640, 100, 120);
+    const glow = g.createRadialGradient(SC.orbX, 100, 10, SC.orbX, 100, 120);
     glow.addColorStop(0, 'rgba(255,240,180,0.55)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
-    g.fillStyle = glow; g.fillRect(500, 0, 280, 240);
-    g.fillStyle = TH.orb; g.beginPath(); g.arc(640, 100, 40, 0, Math.PI * 2); g.fill();
+    g.fillStyle = glow; g.fillRect(SC.orbX - 140, 0, 280, 240);
+    g.fillStyle = TH.orb; g.beginPath(); g.arc(SC.orbX, 100, 40, 0, Math.PI * 2); g.fill();
   }
   // Drifting clouds
   g.fillStyle = TH.cloud;
@@ -529,8 +685,8 @@ function drawBackground(g, t) {
   g.beginPath(); g.moveTo(0, 330);
   for (let x = 0; x <= FIELD_W; x += 40) g.lineTo(x, 300 + Math.sin(x * 0.012) * 18 + Math.sin(x * 0.05) * 6);
   g.lineTo(FIELD_W, 330); g.fill();
-  drawCastle(g, t);
-  for (const tr of trees) drawTree(g, tr);
+  drawSkyline(g, t);
+  drawSceneTrees(g);
   // Bats
   g.fillStyle = '#0c0814';
   for (const b of TH.bats ? bats : []) {
@@ -555,9 +711,9 @@ function drawBackground(g, t) {
   // Grass tufts, graves, bones
   g.fillStyle = TH.tuft;
   for (const f of tufts) { g.fillRect(f.x, f.y - f.h, 1, f.h); g.fillRect(f.x + 2, f.y - f.h + 1, 1, f.h - 1); g.fillRect(f.x - 2, f.y - f.h + 1, 1, f.h - 1); }
-  for (const o of [...graves].sort((a, b) => a.y - b.y)) drawGrave(g, o);
+  drawProps(g, t);
   // Lamp posts: a small flame and a soft pool of light
-  for (const l of lamps) {
+  for (const l of SC.lamps.map((x, i) => ({ x, y: 356 + (i % 2) * 6 }))) {
     g.fillStyle = '#0c0814'; g.fillRect(l.x - 2, l.y - 40, 4, 40); g.fillRect(l.x - 6, l.y - 48, 12, 9);
     const fl = 0.75 + 0.25 * Math.sin(t * 9 + l.x) * Math.sin(t * 5.3 + l.x * 0.3);
     g.fillStyle = TH.lamp; g.fillRect(l.x - 3, l.y - 46, 6, 5);
@@ -878,6 +1034,7 @@ export function draw(g, battle, tier = 0) {
 function drawScene(g, battle, tier = 0) {
   const t = battle.time;
   TH = THEMES[theme(battle.zone.region)];
+  SC = sceneFor(battle.zone.id);
   drawBackground(g, t);
   drawNecro(g, t, tier, battle);
   const sorted = [...battle.units].sort((a, b) => a.y - b.y);
@@ -942,6 +1099,7 @@ function drawScene(g, battle, tier = 0) {
 export function drawIdle(g, t, tier = 0, save = {}) {
   GEAR_SAVE = save;
   TH = THEMES.graveyard;
+  SC = sceneFor(0);
   drawBackground(g, t);
   drawNecro(g, t, tier, null);
   drawForeground(g, t);
