@@ -352,10 +352,19 @@ function makeSprite(c, ax) {
 
 // Player units are composed from layers: a base body plus rects added by each finished HP/damage tier and ability.
 // look = { hs, ds, flags } from data.lookOf().
+// The summons have two looks: the newer painted art and the original pixel grids. A setting switches between them.
+let ART_ON = true;
+try { ART_ON = localStorage.getItem('necro_art') !== 'classic'; } catch (e) { /* ignore */ }
+export const artStyleOn = () => ART_ON;
+export function setArtStyle(on) {
+  ART_ON = on;
+  try { localStorage.setItem('necro_art', on ? 'new' : 'classic'); } catch (e) { /* ignore */ }
+  for (const k of Object.keys(cache)) delete cache[k];
+}
 function lookSprite(unit, look) {
-  const key = `${unit}:${look.hs}:${look.ds}:${look.flags.join(',')}`;
+  const key = `${unit}:${look.hs}:${look.ds}:${look.flags.join(',')}:${ART_ON ? 'n' : 'c'}`;
   if (cache[key]) return cache[key];
-  const ac = artCanvas(unit, look);          // the painted art, when there is some
+  const ac = ART_ON ? artCanvas(unit, look) : null;          // the painted art, when there is some
   if (ac) return (cache[key] = makeSprite(ac, ac.width / 2));
   const L = LOOKS[unit];
   const grid = L.gridFor ? L.gridFor(look.hs) : L.grid;
@@ -384,7 +393,7 @@ function lookSprite(unit, look) {
 
 // A Legion is a mob of its summon with a standard-bearer behind it: one sprite built from the summon's own art.
 function legionSprite(base, look) {
-  const key = 'legion:' + base + ':' + (look ? look.hs + ':' + look.ds + ':' + look.flags.join(',') : '');
+  const key = 'legion:' + (ART_ON ? 'n:' : 'c:') + base + ':' + (look ? look.hs + ':' + look.ds + ':' + look.flags.join(',') : '');
   if (cache[key]) return cache[key];
   const one = LOOKS[base] && look ? lookSprite(base, look) : sprite(UNITS[base].sprite);
   const w = one.w, h = one.h, cw = Math.round(w * 2.5), ch = Math.round(h * 1.55);

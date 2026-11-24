@@ -6,7 +6,7 @@ import {
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
 import { createWorldMap } from './worldmap.js';
-import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas, FIELD_H } from './render.js';
+import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas, FIELD_H, artStyleOn, setArtStyle } from './render.js';
 import { FIELD_W } from './data.js';
 import { loadSave, writeSave, resetSave } from './save.js';
 import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
@@ -470,4 +470,12 @@ window.__game = { setPaused, save, get battle() { return battle; }, startBattle,
   const gear = document.getElementById('btn-menu');
   gear.onclick = (e) => { e.stopPropagation(); app.classList.toggle('menu-open'); };
   window.addEventListener('pointerdown', (e) => { if (!e.target.closest || !e.target.closest('.mute')) app.classList.remove('menu-open'); });
+}
+
+// Unit art switch in the settings menu: the newer painted summons or the original pixel art
+{
+  const ab = document.getElementById('btn-art');
+  const paintArt = () => { ab.textContent = artStyleOn() ? 'NEW' : 'OLD'; ab.title = 'Unit art: ' + (artStyleOn() ? 'new' : 'original'); };
+  ab.onclick = () => { setArtStyle(!artStyleOn()); paintArt(); if (battle && !battle.result) buildSpellBar(); toast('Unit art: ' + (artStyleOn() ? 'new' : 'original')); };
+  paintArt();
 }

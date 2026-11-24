@@ -344,7 +344,8 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 #app.menu-open .mute.item.hidden { display: none; }
 .mute.snd { bottom: calc(var(--iy) + var(--u) * 40); }
 .mute.music { bottom: calc(var(--iy) + var(--u) * 80); }
-.mute.full { bottom: calc(var(--iy) + var(--u) * 120); }
+.mute.art { bottom: calc(var(--iy) + var(--u) * 120); font-size: 0.62em; font-weight: 700; }
+.mute.full { bottom: calc(var(--iy) + var(--u) * 160); }
 
 @supports (height: 100dvh) { #app { width: min(100vw, calc(100dvh * var(--aspect, 1.7778))); height: min(100dvh, calc(100vw / var(--aspect, 1.7778))); } }
 

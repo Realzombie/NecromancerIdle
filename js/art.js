@@ -146,28 +146,29 @@ function archer({ hs = 0, ds = 0, flags = [] }) {
 }
 
 function hound({ hs = 0, ds = 0 }) {
-  const p = new Pix(25, 14, 3), skin = hs === 0 ? '#7a8e72' : '#6f9468', far = mix(skin, '#5a7a5a', 0.12);
-  // a stocky, deep-chested zombie wolf: thick legs, a hunched back, a big square head with upright ears
-  for (const x of [5, 13]) p.R(x, 8, 2, 5, far);
-  p.R(3, 12, 4, 1, far); p.R(12, 12, 4, 1, far);
-  p.E(9, 6, 6.6, 3.6, skin); p.E(14, 7, 3.6, 4, skin);
-  for (const x of [4, 15]) p.R(x, 8, 2, 5, skin);
-  p.R(2, 12, 4, 1, mix(skin, '#000000', 0.15)); p.R(14, 12, 4, 1, mix(skin, '#000000', 0.15));
-  p.P([[14, 4], [17, 0], [20, 2], [18, 8], [14, 9]], skin);                                   // neck and shoulders
-  p.R(1, 3, 3, 4, skin); p.R(0, 1, 2, 3, skin);                                              // thick raised tail
-  p.E(19, 3, 3.2, 2.8, skin); p.R(20, 4, 4, 3, skin);                                        // head and broad muzzle
-  p.P([[17, 1], [17, -3], [19, 0]], mix(skin, '#9ab08a', 0.1)); p.P([[19, 0], [21, -3], [22, 1]], skin);   // upright ears
-  p.R(19, 2, 3, 2, '#ff5a3a', true); p.px(20, 2, '#ffe890', true);                           // glowing eye
-  p.px(23, 4, DARK, true);                                                                  // nose
-  p.R(20, 6, 4, 1, DARK, true); p.px(21, 7, '#f4ecd0', true); p.px(23, 7, '#f4ecd0', true); p.px(20, 5, '#f4ecd0', true);   // open jaw and fangs
-  for (const x of [7, 9, 11]) p.R(x, 5, 1, 3, BONE, true);                                  // ribs showing
-  p.R(6, 2, 3, 2, '#c8b080'); p.px(7, 3, DARK, true);                                       // a stitched patch
-  if (hs >= 1) { p.R(15, 3, 4, 1, '#4a3a2a'); p.px(15, 2, '#d0d0e0', true); p.px(17, 2, '#d0d0e0', true); }
-  if (hs >= 2) { p.R(6, 2, 7, 2, '#8a94aa'); p.px(7, 1, '#b8c0d0', true); p.px(10, 1, '#b8c0d0', true); }
-  if (hs >= 3) { p.R(5, 4, 8, 2, '#d8b050'); p.R(17, 1, 4, 1, '#9aa4b8'); }
-  if (ds >= 1) for (const x of [2, 5, 14, 17]) p.px(x + 1, 13, BONE, true);
-  if (ds >= 2) { p.px(21, 8, '#ffffff', true); p.px(23, 8, '#ffffff', true); }
-  if (ds >= 3) for (const x of [6, 8, 10]) p.P([[x, 2], [x + 1, 0], [x + 2, 2]], '#f4f0e0', true);
+  const p = new Pix(31, 17, 4), skin = hs === 0 ? '#7f9476' : '#729a6a', far = mix(skin, '#5a7a5a', 0.18), bone = BONE;
+  // a lean, long-legged zombie hound seen side-on: low back, deep chest, a neck, and a long muzzle with a black nose
+  for (const x of [7, 17]) { p.R(x, 10, 2, 6, far); p.R(x - 1, 16, 4, 1, far); }              // far legs
+  p.E(12, 8, 7.2, 3, skin);                                                                   // long body
+  p.E(18, 8.5, 3.6, 3.6, skin);                                                               // deep chest
+  p.E(6, 9, 3, 3, skin);                                                                      // haunch
+  for (const x of [4, 14, 20]) { p.R(x, 10, 2, 6, skin); p.R(x - 1, 16, 4, 1, mix(skin, '#000000', 0.15)); }   // near legs with paws
+  p.L(3, 6, 0, 3, skin); p.L(3, 7, 0, 4, skin); p.px(0, 2, skin);                              // whip tail curling up
+  p.P([[18, 7], [21, 2], [25, 3], [23, 10], [19, 11]], skin);                                  // thick neck
+  p.E(25, 4, 2.9, 2.6, skin);                                                                 // head
+  p.R(26, 5, 5, 3, skin);                                                                     // long muzzle
+  p.P([[22, 2], [22, -3], [25, 1]], skin); p.P([[25, 1], [26, -3], [28, 2]], far);             // ears
+  p.R(30 - 1, 5, 1, 2, '#1a1020', true);                                                       // black nose
+  p.R(24, 3, 3, 2, '#e8401a', true); p.px(25, 3, '#ffe890', true); p.px(24, 2, '#2a3a2a', true); p.px(25, 2, '#2a3a2a', true); p.px(26, 2, '#2a3a2a', true);   // red eye under a scowling brow
+  p.R(26, 8, 4, 1, '#1a1020', true); p.px(27, 9, '#f4ecd0', true); p.px(29 - 1, 9, '#f4ecd0', true); p.px(26, 7, '#f4ecd0', true);   // snarling jaw with fangs
+  for (const x of [8, 10, 12]) p.R(x, 6, 1, 4, bone, true);                                    // ribs
+  p.R(14, 6, 3, 2, '#c8b080'); p.px(15, 7, DARK, true); p.px(14, 6, DARK, true); p.px(16, 7, DARK, true);   // stitched patch
+  if (hs >= 1) { p.R(19, 8, 4, 1, '#4a3a2a'); p.px(19, 7, '#d0d0e0', true); p.px(21, 7, '#d0d0e0', true); p.px(22, 7, '#d0d0e0', true); }
+  if (hs >= 2) { p.R(8, 4, 8, 2, '#8a94aa'); p.px(9, 3, '#b8c0d0', true); p.px(12, 3, '#b8c0d0', true); p.px(15, 3, '#b8c0d0', true); }
+  if (hs >= 3) { p.R(7, 7, 9, 2, '#d8b050'); p.R(23, 1, 4, 1, '#9aa4b8'); }
+  if (ds >= 1) for (const x of [4, 7, 14, 17, 20]) p.px(x + 1, 17, bone, true);
+  if (ds >= 2) { p.px(28, 9, '#ffffff', true); p.px(27, 10, '#ffffff', true); p.px(26, 9, '#ffffff', true); }
+  if (ds >= 3) for (const x of [9, 12, 15]) p.P([[x, 4], [x + 1, 1], [x + 2, 4]], '#f4f0e0', true);
   return p.finish();
 }
 
