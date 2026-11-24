@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>Old art</title>
+<style>body{margin:0;background:#1a1426;color:#e8e0f0;font:12px system-ui}#s{display:flex;flex-wrap:wrap;gap:8px;padding:8px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:4px;text-align:center}.c canvas{image-rendering:pixelated;display:inline-block;margin:0 2px}</style>
+<div id="s"></div>
+<script type="module">
+import { lookCanvas, iconCanvas } from '../js/render.js';
+import { PLAYER_UNITS, UNITS } from '../js/data.js';
+const S = Number(new URLSearchParams(location.search).get('s')) || 2;
+const only = new URLSearchParams(location.search).get('u');
+for (const u of PLAYER_UNITS) {
+  if (only && !only.split(',').includes(u)) continue;
+  const d = document.createElement('div'); d.className = 'c';
+  for (const [hs, ds] of [[0, 0], [1, 1], [2, 2], [3, 3]]) {
+    const c = lookCanvas(u, { hs, ds, flags: [] }); c.style.width = c.width * S / 4 * 2 + 'px'; c.style.height = c.height * S / 4 * 2 + 'px'; d.appendChild(c);
+  }
+  d.insertAdjacentHTML('beforeend', '<div>' + UNITS[u].name + '</div>');
+  document.getElementById('s').appendChild(d);
+}
+</script>

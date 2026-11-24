@@ -1,5 +1,6 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
+import { artCanvas } from './art.js';
 import { ATTACK_TIME } from './sim.js';
 import { LOOKS } from './looks.js';
 import { RARITIES, SLOTS, rarityIndex, wornItem } from './gear.js';
@@ -354,6 +355,8 @@ function makeSprite(c, ax) {
 function lookSprite(unit, look) {
   const key = `${unit}:${look.hs}:${look.ds}:${look.flags.join(',')}`;
   if (cache[key]) return cache[key];
+  const ac = artCanvas(unit, look);          // the painted art, when there is some
+  if (ac) return (cache[key] = makeSprite(ac, ac.width / 2));
   const L = LOOKS[unit];
   const grid = L.gridFor ? L.gridFor(look.hs) : L.grid;
   const pal = { ...L.palette, ...(look.hs === 0 && L.rottenPalette ? L.rottenPalette : {}) };
