@@ -214,3 +214,33 @@ Put these in one `data` file so they are easy to change.
 
 - **Flying units (Nov 24):** units with `fly: true` hover above their lane position by `u.altNow` pixels (`alt` range in the def), drawn last and above everyone, with a small shadow on the ground (`drawUnit` in `js/render.js`). Ground melee units cannot target flyers (only flyers and ranged units can, see `reachesAir` in `updateUnit`); melee flyers swoop down to the ground to strike and climb back; flyers do not set off traps, are skipped by ground auras and cleave, and only push each other apart. New allies: **Vampire Bat** (fast, life steal 30%, special Blood Feast, hangs off the Hound in the web, needs 2 rebirths) and **Bone Drake** (ranged splash fire breath, special Inferno, after the Grave Priest, needs 6 rebirths). New enemies: **Griffin** (a melee swooper over the Crusader Reach, zones 6-8) and **Frost Wyvern** (a ranged breath attacker over the Heroes' Reach, zones 10-12). Both art styles: painters in `js/art.js` (`bat`, `drake`) and `js/enemyart.js` (`griffin`, `wyvern`), and one classic grid each in `SPRITES` in `js/render.js` (classic flyers have no tier evolution).
 - **Flyer balance (Nov 24):** `node tools/unitbench.mjs` now shows the Bone Drake at value 1.2 per raise-second (was 1.7, so it is toned down to 120 HP, 18 damage, 1.6s, 38s raise) in line with the other summons, and the Bat at 1.2. Melee flyers (bat, griffin) can be hit by ground melee only while they are swooping low (`altNow <= 40` in the target filter in `updateUnit`); everything high up can only be hit by ranged units and other flyers, so a melee-only horde needs archers against wyverns. Griffins now arrive from wave 3-4 at 1 + wave/5 or 6 per wave in zones 6-8 and wyverns from wave 3-4 at wave/3 or /4 in zones 10-12 (a first pass with more of them roughly doubled the bot's attempts on zones 6 and 7). Griffin HP 115, damage 14. The Endless Crypt also sends wyverns (wave/7) and griffins (wave/5): the bot now survives about 23-25 waves in 8-9 minutes (was 29-33). `rebirthsim` after tuning: first four zones about 175 bot-minutes, then roughly 300 minutes a rebirth with zone 6 a wall for the first rebirth.
+
+## Where we are (end of day, Nov 24)
+
+Everything below is pushed to `main` and live on GitHub Pages (service worker `CACHE` is around `necro-v66`; bump it on every change and list new files in `SHELL` in `sw.js`).
+
+**Game systems**
+- Auto-battle with 13 summons (zombie, skeleton warrior, archer, hound, mage, ghost, abomination, death knight, plague bearer, grave priest, gargoyle, vampire bat, bone drake), each with HP/damage tiers, a unique ability, and a Legion (a fully upgraded summon can raise one big unit worth ten, see `LEGION_MULT`).
+- 12 zones in 3 regions plus the Endless Crypt, field hazards (jaw traps from zone 2, war banners from zone 3) and flyers (griffins in zones 6-8, frost wyverns in zones 10-12 and Endless). Boss abilities, elites, gear, bestiary, achievements with live toasts, bounties.
+- Long game: zones, summons and upgrade tiers are gated behind rebirth counts; perks have prerequisites; each rebirth makes upgrades cheaper, kills richer and the horde a bit tougher (see the Nov 24 entries above for the numbers).
+- Skill web has fixed positions (pods hang down or grow up); the necromancer's look comes from his gear.
+
+**Art**
+- Two switchable looks, chosen with the NEW/OLD button in the gear menu (saved as `necro_art` in local storage, `ART_ON` in `js/render.js`). NEW: `js/art.js` (summons and the necromancer, painted from shapes with a light bevel pass), `js/enemyart.js` (all enemies and bosses from one `person()` builder plus the griffin and wyvern), `js/iconart.js` (icons, war banner, jaw traps). OLD: the original pixel grids in `SPRITES` in `js/render.js` and `js/looks.js` (the classic bat is built by `batGrid`, the classic drake is drawn front-on).
+- Preview pages (serve the folder, then open): `tools/oldsheet.html?s=4&u=zombie,bat` (summons at tiers 0-3), `tools/enemysheet.html?s=3&u=griffin`, `tools/iconsheet.html`, `tools/necrosheet.html`. They follow the current art setting; `?m=old` forces classic on the enemy sheet.
+- The installed-app icon is the new Bone Lord necromancer (`node tools/makeicons.mjs` regenerates `icons/`).
+
+**Phone behaviour**
+- Landscape, installable, fullscreen via manifest plus a tap and a fullscreen button, screen wake lock, wider battlefield on tall phones (`FIELD_W` in `js/data.js`, `?wide=2.22` previews a tall phone), controls kept clear of rounded corners, and a small settings menu (sound, music, art style, fullscreen).
+
+**Balance snapshot (bot, `node tools/rebirthsim.mjs 6`)**
+- First four zones about 140-210 bot-minutes, then about 300-450 minutes per rebirth; walls at zone 6 (first rebirth) and zone 7 (second), zone 12 a deliberate wall; Endless about 23-25 waves in 8-9 minutes. Bone Drake and Bat have unit-bench value about 1.2. Wyverns cost a strong horde about 10% of its progress in zones 10-12 (no change needed). These are bot numbers only.
+
+**To check on a real phone next**
+1. Fullscreen and wake lock after a fresh install, and the corner spacing of the HUD and gear menu.
+2. How zones 1-4 feel (the first hour, slower than before) and the first rebirth: does the Rebirth screen explain what it unlocks well enough?
+3. Griffin and wyvern fights: do ground melee units feel useless against wyverns without archers?
+4. The spell bar with 13 summons plus Legions (it wraps upwards), and the skill web zoom and pan with all pods open.
+5. Both art styles on the phone (gear menu NEW/OLD), especially enemies and the necromancer in OLD.
+
+**Ideas not done yet:** defences (removed on purpose, to come back later), tutorial hints, zone counter-attacks, shorter late-zone attempts, a Legion look that is more than a mob of the summon, flying bosses.
