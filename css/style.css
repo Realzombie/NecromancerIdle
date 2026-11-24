@@ -353,3 +353,9 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 .perk.locked { opacity: 0.5; }
 
 #home-note { white-space: pre-line; }
+
+/* Welcome-back pop-up */
+.welcome { position: absolute; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; background: rgba(8, 5, 14, 0.72); }
+.welcome .wcard { max-width: 72%; padding: 1.1em 1.5em; background: #241b33; border: 2px solid var(--gold); border-radius: 0.8em; text-align: center; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6); }
+.welcome .wtitle2 { color: var(--gold); font-size: 1.3em; font-weight: 700; margin-bottom: 0.4em; }
+.welcome .wbody { white-space: pre-line; line-height: 1.5; margin-bottom: 0.9em; font-size: 0.95em; }

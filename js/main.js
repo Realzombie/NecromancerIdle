@@ -66,8 +66,16 @@ function claimOffline() {
   const capped = away > capS;
   if (capped) note += '\nThe ' + offlineCapHours(save) + 'h cap was reached, so ' + fmt(away - capS) + ' of your time away earned nothing.';
   if ((capped || save.rebirths) && perk(save, 'restless') < PERKS.restless.max) note += '\nThe rebirth perk Restless Dead raises both the cap and the rate.';
-  homeNote = note;
+  showWelcome(note.replace(/^Welcome back! /, ''));
 }
+
+// The welcome-back report pops up over the home screen and goes away when tapped.
+function showWelcome(text) {
+  $('welcome-text').textContent = text;
+  $('welcome').classList.remove('hidden');
+}
+$('welcome-ok').onclick = () => { $('welcome').classList.add('hidden'); play('click'); };
+$('welcome').addEventListener('click', (e) => { if (e.target === $('welcome')) $('welcome').classList.add('hidden'); });
 
 function setBanks() {
   $('home-souls').textContent = Math.floor(save.souls);
