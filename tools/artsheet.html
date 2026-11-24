@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Art sheet</title>
+<style>body{margin:0;background:#1a1426;color:#e8e0f0;font:13px system-ui}h1{margin:8px 12px;font-size:16px}#sheet{display:flex;flex-wrap:wrap;gap:6px 10px;padding:8px 12px}.cell{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:6px;text-align:center}.cell canvas{display:block;margin:0 auto;image-rendering:pixelated}.row{display:flex;gap:10px;align-items:flex-end;justify-content:center}</style>
+<h1 id="t">HD summon designs</h1>
+<div id="sheet"></div>
+<script type="module">
+import { HD } from '../js/hdart.js';
+const params = new URLSearchParams(location.search);
+const S = Number(params.get('s')) || 4;
+const only = params.get('u');
+const names = { zombie: 'Zombie', skeleton: 'Skeleton Warrior', archer: 'Skeleton Archer', hound: 'Zombie Hound', mage: 'Bone Mage', ghost: 'Ghost', abomination: 'Abomination', deathknight: 'Death Knight', plaguebearer: 'Plague Bearer', gravepriest: 'Grave Priest', gargoyle: 'Gargoyle' };
+const sheet = document.getElementById('sheet');
+for (const u of Object.keys(HD)) {
+  if (only && !only.split(',').includes(u)) continue;
+  const cell = document.createElement('div'); cell.className = 'cell';
+  const row = document.createElement('div'); row.className = 'row';
+  for (const [hs, ds] of [[0, 0], [1, 1], [2, 2], [3, 3]]) {
+    const p = HD[u]({ hs, ds, flags: [] });
+    const c = p.toCanvas(S, u === 'ghost' ? 0.85 : 1);
+    row.appendChild(c);
+  }
+  cell.appendChild(row);
+  cell.insertAdjacentHTML('beforeend', '<div>' + names[u] + ' &middot; tiers 0 / 1 / 2 / 3</div>');
+  sheet.appendChild(cell);
+}
+</script>

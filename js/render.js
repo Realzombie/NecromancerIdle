@@ -379,13 +379,42 @@ function lookSprite(unit, look) {
   return (cache[key] = makeSprite(c, (gw * L.scale) / 2));
 }
 
+// A Legion is a mob of its summon with a standard-bearer behind it: one sprite built from the summon's own art.
+function legionSprite(base, look) {
+  const key = 'legion:' + base + ':' + (look ? look.hs + ':' + look.ds + ':' + look.flags.join(',') : '');
+  if (cache[key]) return cache[key];
+  const one = LOOKS[base] && look ? lookSprite(base, look) : sprite(UNITS[base].sprite);
+  const w = one.w, h = one.h, cw = Math.round(w * 2.5), ch = Math.round(h * 1.55);
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  // the standard: a pole with a tattered green banner and a skull
+  const px = Math.round(cw * 0.5), top = 4;
+  g.fillStyle = '#0a0710'; g.fillRect(px - 2, top, 5, ch - top - 6);
+  g.fillStyle = '#6a5030'; g.fillRect(px - 1, top, 3, ch - top - 6);
+  g.fillStyle = '#0a0710'; g.beginPath(); g.moveTo(px + 2, top + 2); g.lineTo(px + 34, top + 8); g.lineTo(px + 26, top + 18); g.lineTo(px + 34, top + 28); g.lineTo(px + 2, top + 30); g.fill();
+  g.fillStyle = '#3f7a38'; g.beginPath(); g.moveTo(px + 3, top + 4); g.lineTo(px + 31, top + 9); g.lineTo(px + 24, top + 18); g.lineTo(px + 31, top + 26); g.lineTo(px + 3, top + 28); g.fill();
+  g.fillStyle = '#c8e8b0'; g.fillRect(px + 9, top + 11, 9, 8); g.fillStyle = '#0a0710'; g.fillRect(px + 11, top + 13, 2, 3); g.fillRect(px + 15, top + 13, 2, 3);
+  // the mob: back row first, then the front row overlapping it
+  const spots = [[0.2, 0.36], [0.5, 0.3], [0.8, 0.36], [0.06, 0.78], [0.34, 0.92], [0.66, 0.92], [0.94, 0.78]];
+  spots.sort((a, b) => a[1] - b[1]);
+  for (const [fx, fy] of spots) {
+    const ox = Math.round(fx * (cw - w)), oy = Math.round(fy * (ch - h));
+    g.globalAlpha = 0.55 + 0.45 * fy; g.drawImage(one.img, ox, oy);
+  }
+  g.globalAlpha = 1;
+  return (cache[key] = makeSprite(c, cw / 2));
+}
+
 function unitSprite(u) {
+  if (u.def.legion) return legionSprite(u.def.legion, u.look);
   return u.look && LOOKS[u.type] ? lookSprite(u.type, u.look) : sprite(u.def.sprite);
 }
 
 // A fresh canvas of a unit as it looks with the given look, for the skill web.
 export function lookCanvas(unit, look) {
-  const s = lookSprite(unit, look);
+  const s = UNITS[unit] && UNITS[unit].legion ? legionSprite(UNITS[unit].legion, look) : lookSprite(unit, look);
   const c = document.createElement('canvas');
   c.width = s.w; c.height = s.h;
   c.getContext('2d').drawImage(s.img, 0, 0);

@@ -17,7 +17,7 @@ function spend() {
       for (const s of Object.keys(STATS)) {
         const l = level(save, s, u);
         if (l >= STATS[s].max) continue;
-        const c = statCost(s, u, l);
+        const c = statCost(s, u, l, save);
         if (save.souls >= c && (!best || c < best.c)) best = { u, s, c };
       }
     }

@@ -1,7 +1,8 @@
 // How much do rebirths speed things up? node tools/rebirthsim.mjs [runs]
 import { Battle, buyUnit, buyStat, buySpecial, buyPerk, rebirth } from '../js/sim.js';
 import { defaultSave } from '../js/save.js';
-import { ZONES, STATS, PLAYER_UNITS, SPECIAL_KEYS, PERK_KEYS, owned, level, statCost, specialReady, perk, perkCost, PERKS, essenceGain } from '../js/data.js';
+import { ZONES, STATS, PLAYER_UNITS, SPECIAL_KEYS, PERK_KEYS, owned, level, statCost, specialReady, perk, perkCost, PERKS, essenceGain, statNeeds, perkLock, rebirthsOf } from '../js/data.js';
+import { zoneUnlocked } from '../js/sim.js';
 
 const save = defaultSave();
 const runs = Number(process.argv[2]) || 3;
@@ -16,7 +17,8 @@ function spend() {
       for (const s of Object.keys(STATS)) {
         const l = level(save, s, u);
         if (l >= STATS[s].max) continue;
-        const c = statCost(s, u, l);
+        if (rebirthsOf(save) < statNeeds(s, l)) continue;
+        const c = statCost(s, u, l, save);
         if (save.souls >= c && (!best || c < best.c)) best = { u, s, c };
       }
     }
@@ -27,7 +29,7 @@ function spend() {
 function spendEssence() {
   for (;;) {
     let best = null;
-    for (const k of PERK_KEYS) { const l = perk(save, k); if (l >= PERKS[k].max) continue; const c = perkCost(k, l); if (save.essence >= c && (!best || c < best.c)) best = { k, c }; }
+    for (const k of PERK_KEYS) { const l = perk(save, k); if (l >= PERKS[k].max || perkLock(save, k)) continue; const c = perkCost(k, l); if (save.essence >= c && (!best || c < best.c)) best = { k, c }; }
     if (!best) return;
     buyPerk(save, best.k);
   }
@@ -38,8 +40,9 @@ for (let run = 1; run <= runs; run++) {
   const line = [];
   for (const zone of ZONES.filter((z) => !z.endless)) {
     if (save.cleared[zone.id]) { line.push('z' + zone.id + ':skip'); continue; }
+    if (!zoneUnlocked(save, zone.id)) { line.push('z' + zone.id + ':GATED'); break; }
     let attempts = 0;
-    while (attempts < 60) {
+    while (attempts < (Number(process.env.WALL) || 40)) {
       spend();
       attempts++;
       const b = new Battle(save, zone.id);

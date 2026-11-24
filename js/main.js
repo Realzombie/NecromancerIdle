@@ -1,7 +1,7 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
-  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldownFor, spellUnlocked, lookOf,
+  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldownFor, spellUnlocked, lookOf, rebirthsOf, statNeeds, perkLock, milestones, zoneRebirth,
 } from './data.js';
 import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
 import { createWeb } from './web.js';
@@ -77,7 +77,7 @@ function treeAvailable() {
     if (!owned(save, u)) { if (save.champSouls >= UNITS[u].unlockCost) n++; continue; }
     for (const s of Object.keys(STATS)) {
       const l = level(save, s, u);
-      if (l < STATS[s].max && save.souls >= statCost(s, u, l)) n++;
+      if (l < STATS[s].max && save.souls >= statCost(s, u, l, save) && rebirthsOf(save) >= statNeeds(s, l)) n++;
     }
   }
   for (const k of SPECIAL_KEYS) if (!hasSpecial(save, k) && specialReady(save, k) && save.souls >= SPECIALS[k].cost) n++;
@@ -115,12 +115,18 @@ function goHome() {
 // ---- Rebirth ----
 let rebirthArmed = null;
 function disarmRebirth() { clearTimeout(rebirthArmed); rebirthArmed = null; renderRebirth(); }
+function milestoneHtml() {
+  const ms = milestones(), r = save.rebirths || 0;
+  const next = Object.keys(ms).map(Number).filter((k) => k > r).sort((a, b) => a - b)[0];
+  if (next === undefined) return '<div class="msnote">Everything is unlocked. Push the Endless Crypt!</div>';
+  return '<div class="msnote">Rebirth ' + next + ' unlocks: ' + ms[next].join(", ") + '</div>';
+}
 function renderRebirth() {
   setBanks();
   const ok = canRebirth(save);
   const gain = essenceGain(save);
   $('rb-text').innerHTML =
-    '<div>Rebirths so far: <b>' + (save.rebirths || 0) + '</b></div>' +
+    '<div>Rebirths so far: <b>' + (save.rebirths || 0) + '</b></div>' + milestoneHtml() +
     (ok
       ? '<div>Rebirthing now pays <b>&#9672; ' + gain + '</b> essence.</div><div>You lose your souls, champion souls, skill tree and cleared zones, and keep your perks and essence.</div>'
       : '<div>Clear zone ' + REBIRTH_MIN_ZONE + ' to unlock Rebirth.</div><div>Essence is earned from the zones you have cleared and the upgrades you hold.</div>');
@@ -135,14 +141,15 @@ function renderRebirth() {
     const lvl = perk(save, key);
     const maxed = lvl >= P.max;
     const cost = perkCost(key, lvl);
-    const can = !maxed && (save.essence || 0) >= cost;
+    const lock = perkLock(save, key);
+    const can = !maxed && !lock && (save.essence || 0) >= cost;
     const el = document.createElement('button');
-    el.className = 'perk' + (can ? ' can' : '') + (maxed ? ' maxed' : '');
+    el.className = 'perk' + (can ? ' can' : '') + (maxed ? ' maxed' : '') + (lock ? ' locked' : '');
     el.disabled = !can;
     el.appendChild(iconCanvas(P.icon));
     el.insertAdjacentHTML('beforeend',
       '<div class="pname">' + P.name + '</div><div class="plvl">' + lvl + '/' + P.max + '</div>' +
-      '<div class="peff">' + P.effect(lvl) + (maxed ? '' : '<br>Next: ' + P.effect(lvl + 1)) + '</div>' +
+      '<div class="peff">' + P.effect(lvl) + (maxed ? '' : lock ? '<br>Needs: ' + lock : '<br>Next: ' + P.effect(lvl + 1)) + '</div>' +
       '<div class="pcost">' + (maxed ? 'MAX' : '<span class="ico3">&#9672;</span> ' + cost) + '</div>');
     el.onclick = () => { if (buyPerk(save, key)) { play('buy'); writeSave(save); renderRebirth(); } };
     box.appendChild(el);

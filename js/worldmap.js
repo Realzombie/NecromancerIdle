@@ -2,7 +2,7 @@
 // meadows, snow, ash), with rivers, bridges, forests, mountain ranges and landmarks on top. Zones you have conquered
 // burn and fall to ruin under an undead banner with glowing cracks, crows and marching dead; the next zone pulses and
 // unreached lands lie under drifting fog. Tap a zone for details and to fight.
-import { ZONES, REGIONS, UNITS, worldMul, playerRating, bossAbilityNames, hazardText } from './data.js';
+import { ZONES, REGIONS, UNITS, worldMul, playerRating, bossAbilityNames, hazardText, zoneRebirth } from './data.js';
 import { zoneUnlocked } from './sim.js';
 import { iconCanvas } from './render.js';
 
@@ -738,7 +738,8 @@ export function createWorldMap({ save, startBattle, play }) {
     panel.classList.remove('hidden');
     const boss = z.boss && UNITS[z.boss];
     const lines = [];
-    lines.push('<div class="wline">' + (st === 'locked' ? 'Locked: conquer the zone before it.' : z.blurb) + '</div>');
+    const rbNeed = zoneRebirth(z.id), rbShort = (save.rebirths || 0) < rbNeed;
+    lines.push('<div class="wline">' + (st === 'locked' ? (rbShort ? 'Locked: you need ' + rbNeed + ' rebirth' + (rbNeed > 1 ? 's' : '') + ' (you have ' + (save.rebirths || 0) + '). Rebirth from the home screen.' : 'Locked: conquer the zone before it.') : z.blurb) + '</div>');
     if (z.endless) lines.push('<div class="wline">Best: wave ' + (save.bestEndless || 0) + '. No boss, no end. New record waves pay essence, gear and a champion soul every 10 waves.</div>');
     else {
       if (st !== 'locked') lines.push('<div class="wline zrate ' + diff + '">Rating ' + need + ' (you ' + mine + ')</div>');

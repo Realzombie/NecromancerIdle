@@ -1,8 +1,8 @@
 // Pure battle simulation: no DOM, so it can be tested in node.
 import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
-  PLAYER_UNITS, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
-  PERKS, PACT_ORDER, worldMul, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
+  PLAYER_UNITS, legionOwned, legionReady, legionCost, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
+  PERKS, PACT_ORDER, worldMul, zoneRebirth, unitRebirthOk, statNeeds, perkLock, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
   gateMet, bestiaryBonus, BOSS_ABILITIES, hazardsFor,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
@@ -184,7 +184,8 @@ export class Battle {
   spawn(type, x, y, flat) {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
-    if (def.team === 'player' && !def.static) { const m = statMods(this.save, type); hpMul = m.hp * (1 + this.gm.hp) * (1 + this.bb.hp); dmgMul = m.dmg * (1 + this.gm.dmg) * (1 + this.bb.dmg); }
+    const base = def.legion || type;   // a Legion shares the upgrades of its summon
+    if (def.team === 'player' && !def.static) { const m = statMods(this.save, base); hpMul = m.hp * (1 + this.gm.hp) * (1 + this.bb.hp); dmgMul = m.dmg * (1 + this.gm.dmg) * (1 + this.bb.dmg); }
     else {
       const w = worldMul(this.save);
       const s = def.boss || flat ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
@@ -210,9 +211,9 @@ export class Battle {
     }
     if (def.summon) u.sumCd = def.summon.every * 0.7;
     if (def.team === 'player' && !def.static) {
-      u.look = lookOf(this.save, type);
+      u.look = lookOf(this.save, base);
       u.sp = {};
-      for (const k of SPECIAL_KEYS) if (SPECIALS[k].unit === type && hasSpecial(this.save, k)) u.sp[k] = true;
+      for (const k of SPECIAL_KEYS) if (SPECIALS[k].unit === base && hasSpecial(this.save, k)) u.sp[k] = true;
     }
     if (def.rally) this.pickHome(u, true);
     this.units.push(u);
@@ -237,9 +238,13 @@ export class Battle {
     return n;
   }
 
-  raiseTypes() { return PLAYER_UNITS.filter((t) => owned(this.save, t)); }
+  raiseTypes() {
+    const out = PLAYER_UNITS.filter((t) => owned(this.save, t));
+    for (const t of PLAYER_UNITS) if (owned(this.save, t) && legionOwned(this.save, t)) out.push('legion_' + t);
+    return out;
+  }
 
-  raiseInterval(type) { return UNITS[type].raise * statMods(this.save, type).cooldown * raiseMul(this.save); }
+  raiseInterval(type) { return UNITS[type].raise * statMods(this.save, UNITS[type].legion || type).cooldown * raiseMul(this.save); }
 
   // Raise Dead: a free burst of one summon type on a long cooldown (needs the unlock from the skill web).
   spellReady(type) { return !this.result && spellUnlocked(this.save) && (this.spellCds[type] ?? 10) <= 0; }
@@ -660,13 +665,21 @@ export class Battle {
 }
 
 // ---- Skill tree actions ----
-export function zoneUnlocked(save, zoneId) { return zoneId === 1 || !!save.cleared[zoneId - 1]; }
+export function zoneUnlocked(save, zoneId) { return (zoneId === 1 || !!save.cleared[zoneId - 1]) && (save.rebirths || 0) >= zoneRebirth(zoneId); }
 
 export function buyUnit(save, unit) {
   const def = UNITS[unit];
-  if (owned(save, unit) || save.champSouls < def.unlockCost || !gateMet(save, unit)) return false;
+  if (owned(save, unit) || save.champSouls < def.unlockCost || !gateMet(save, unit) || !unitRebirthOk(save, unit)) return false;
   save.champSouls -= def.unlockCost;
   save.nodes['unit_' + unit] = 1;
+  return true;
+}
+
+export function buyLegion(save, unit) {
+  const cost = legionCost(save, unit);
+  if (!legionReady(save, unit) || legionOwned(save, unit) || save.souls < cost) return false;
+  save.souls -= cost;
+  save.nodes['legion_' + unit] = 1;
   return true;
 }
 
@@ -680,8 +693,8 @@ export function buySpecial(save, key) {
 
 export function buyStat(save, stat, unit) {
   const lvl = level(save, stat, unit);
-  if (!owned(save, unit) || lvl >= STATS[stat].max) return false;
-  const cost = statCost(stat, unit, lvl);
+  if (!owned(save, unit) || lvl >= STATS[stat].max || (save.rebirths || 0) < statNeeds(stat, lvl)) return false;
+  const cost = statCost(stat, unit, lvl, save);
   if (save.souls < cost) return false;
   save.souls -= cost;
   save.nodes[stat + '_' + unit] = lvl + 1;
@@ -691,7 +704,7 @@ export function buyStat(save, stat, unit) {
 // ---- Rebirth ----
 export function buyPerk(save, key) {
   const lvl = perk(save, key);
-  if (lvl >= PERKS[key].max) return false;
+  if (lvl >= PERKS[key].max || perkLock(save, key)) return false;
   const cost = perkCost(key, lvl);
   if (save.essence < cost) return false;
   save.essence -= cost;

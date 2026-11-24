@@ -82,6 +82,8 @@ export function bossAbilityNames(def) {
 export const TUNING = {
   startZombies: 4,
   failPayout: 0.5,           // share of earned souls banked on a failed attempt
+  soulScale: 0.8,            // every soul drop is multiplied by this (rebirths and perks bring the real rate back up)
+  costScale: 1.15,           // every soul upgrade cost is multiplied by this (rebirths and Thrift bring it back down)
   raiseCooldownFactor: 0.88, // each Rise level multiplies that unit's cooldown by this
   statPerLevel: 0.2,         // HP and damage bonus per level
   wavePause: 3,
@@ -227,6 +229,27 @@ export function statEffect(stat, lvl, unit) {
 
 export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === 'player' && !UNITS[k].static);
 
+// ---- Legions ----
+// Once a summon is fully upgraded you can pay a huge sum to teach the necromancer to raise its Legion: one big unit
+// with its own look that is worth about ten of them, raised on a much longer cooldown. Legions share the upgrades of
+// the summon they come from. They are generated from the base definitions so every summon gets one.
+export const LEGION_MULT = 10;      // health and damage compared with a single summon
+export const LEGION_RAISE = 7;      // raise cooldown compared with a single summon
+for (const u of PLAYER_UNITS) {
+  const d = UNITS[u];
+  UNITS['legion_' + u] = {
+    ...d, name: d.name + ' Legion', legion: u, heavy: true,
+    hp: d.hp * LEGION_MULT, dmg: d.dmg * LEGION_MULT, radius: Math.round(d.radius * 1.8), raise: d.raise * LEGION_RAISE,
+    range: d.range > 40 ? d.range * 1.15 : d.range + 14, unlockCost: 0,
+    ...(d.heal ? { heal: { ...d.heal, amt: d.heal.amt * LEGION_MULT * 0.6 } } : {}),
+    ...(d.aura ? { aura: { r: d.aura.r * 1.6, dps: d.aura.dps * 6 } } : {}),
+    ...(d.splash ? { splash: d.splash * 1.4 } : {}),
+    ...(d.cleave ? { cleave: d.cleave * 1.4 } : {}),
+    blurb: 'A whole horde of them fused into one terrifying unit. Worth about ten.',
+  };
+}
+export const LEGION_KEYS = PLAYER_UNITS.map((u) => 'legion_' + u);
+
 // ---- Field hazards ----
 // Traps (the code calls them mines) are laid between the lines at the start of each wave and spring under your horde (zone 2 onwards).
 // War banners appear from zone 3 on every third wave and buff the enemies near them until cut down.
@@ -256,21 +279,57 @@ export function level(save, stat, unit) {
   if ((stat === 'hp' || stat === 'dmg') && owned(save, unit)) return Math.max(base, perk(save, 'head'));
   return base;
 }
-export function statCost(stat, unit, lvl) {
+// Each rebirth makes upgrades 7% cheaper (down to 40%), and Thrift takes another 4% a level off.
+export function costMul(save) {
+  if (!save) return TUNING.costScale;
+  return TUNING.costScale * Math.max(0.4, Math.pow(0.93, save.rebirths || 0)) * (1 - 0.04 * perk(save, 'thrift'));
+}
+export function statCost(stat, unit, lvl, save) {
   const tierJump = stat === 'rise' ? 1 : Math.pow(TIER.jump, Math.floor(lvl / TIER.levels));
-  return Math.ceil(STATS[stat].base * UNITS[unit].costMul * Math.pow(STATS[stat].growth, lvl) * tierJump);
+  return Math.ceil(STATS[stat].base * UNITS[unit].costMul * Math.pow(STATS[stat].growth, lvl) * tierJump * costMul(save));
 }
 
+// ---- The long game: what each rebirth opens up ----
+// Zones, summons and upgrade tiers are gated behind how many times you have been reborn, so a single run only goes so far.
+export const zoneRebirth = (id) => (id <= 4 ? 0 : id === 13 ? 6 : Math.floor((id - 3) / 2));
+export const UNIT_REBIRTH = { zombie: 0, skeleton: 0, hound: 0, archer: 0, plaguebearer: 1, deathknight: 1, mage: 2, abomination: 2, ghost: 3, gravepriest: 4, gargoyle: 5 };
+export const TIER_REBIRTH = [0, 1, 3];                 // the second and third tier of HP and damage upgrades
+// Rebirths needed before the next level of this stat can be bought (0 = no lock).
+export function statNeeds(stat, lvl) {
+  if (stat === 'rise') return lvl >= 6 ? 3 : lvl >= 4 ? 1 : 0;
+  return TIER_REBIRTH[Math.floor(lvl / TIER.levels)] || 0;
+}
+export const rebirthsOf = (save) => (save && save.rebirths) || 0;
+export function unitRebirthOk(save, unit) { return rebirthsOf(save) >= (UNIT_REBIRTH[unit] || 0); }
+// What each rebirth unlocks, for the Rebirth screen.
+export function milestones() {
+  const out = {};
+  const add = (r, t) => { (out[r] = out[r] || []).push(t); };
+  for (let id = 5; id <= 13; id++) { const z = ZONES.find((q) => q.id === id); if (z) add(zoneRebirth(id), 'Zone: ' + z.name); }
+  for (const u of Object.keys(UNIT_REBIRTH)) if (UNIT_REBIRTH[u] > 0) add(UNIT_REBIRTH[u], 'Summon: ' + UNITS[u].name);
+  add(1, 'Second tier of HP and damage upgrades, Rise Faster past level 4');
+  add(3, 'Third tier of HP and damage upgrades, Rise Faster past level 6');
+  return out;
+}
+
+// Legions: shown once the summon is fully upgraded, and very expensive.
+export function legionReady(save, unit) {
+  return owned(save, unit) && ['hp', 'dmg', 'rise'].every((s) => level(save, s, unit) >= STATS[s].max);
+}
+export const legionOwned = (save, unit) => (save.nodes['legion_' + unit] || 0) > 0;
+export function legionCost(save, unit) { return Math.ceil(9000 * UNITS[unit].costMul * costMul(save)); }
 export function hasSpecial(save, key) { return (save.nodes['sp_' + key] || 0) > 0; }
 export function specialReady(save, key) {
   const sp = SPECIALS[key];
   return owned(save, sp.unit) && tiersDone(level(save, sp.needs.stat, sp.unit)) >= sp.needs.tiers;
 }
 
+// Rebirths make your whole horde a little tougher for good (5% each), and the Might perk adds more.
+export function mightMul(save) { return 1 + 0.05 * (save.rebirths || 0) + 0.04 * perk(save, 'might'); }
 export function statMods(save, unit) {
   return {
-    hp: 1 + statBonus(level(save, 'hp', unit)),
-    dmg: 1 + statBonus(level(save, 'dmg', unit)),
+    hp: (1 + statBonus(level(save, 'hp', unit))) * mightMul(save),
+    dmg: (1 + statBonus(level(save, 'dmg', unit))) * mightMul(save),
     cooldown: Math.pow(TUNING.raiseCooldownFactor, level(save, 'rise', unit)),
   };
 }
@@ -294,7 +353,8 @@ export function playerRating(save) {
   const specials = SPECIAL_KEYS.filter((k) => hasSpecial(save, k)).length;
   const gm = gearMods(save);
   const gear = (gm.dmg + gm.hp) * 50 + (gm.rise + gm.souls + gm.crit + gm.lifesteal + gm.thorns + gm.spell) * 30 + Object.keys(gm.fx).length * 10;
-  return Math.round(10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + gear);
+  const legions = PLAYER_UNITS.filter((u) => legionOwned(save, u)).length;
+  return Math.round((10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + legions * 60 + gear) * mightMul(save));
 }
 
 // The necromancer's rank and look come from the gear he wears (see gearScore).
@@ -319,15 +379,17 @@ export function zoneById(id) { return ZONES.find((z) => z.id === id); }
 // that change how every future run starts.
 export const REBIRTH_MIN_ZONE = 3;       // best zone you must have cleared this run
 export const PERKS = {
-  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 6,  growth: 1.5, max: 6,  effect: (l) => 'Start with ' + (TUNING.startZombies + l) + ' zombies' },
-  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.55, max: 8, effect: (l) => '+' + l * 15 + '% souls from kills' },
-  quick:    { name: 'Quickening',      icon: 'icon_raise', base: 10, growth: 1.6, max: 8, effect: (l) => '-' + l * 4 + '% raise cooldowns' },
-  head:     { name: 'Prepared Dead',   icon: 'icon_hp',  base: 12, growth: 1.8, max: 5,  effect: (l) => 'Units start with +' + l + ' level of HP and damage' },
-  pact:     { name: 'Eternal Pact',    icon: 'skeleton', base: 15, growth: 1.9, max: 6,  effect: (l) => 'Keep ' + l + ' unit unlock' + (l === 1 ? '' : 's') },
-  conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
-  restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4,  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
-  echo:     { name: "Champion's Echo", icon: 'icon_fire', base: 15, growth: 1.7, max: 5,  effect: (l) => '+' + l * 10 + '% champion soul chance on replays' },
-  ritual:   { name: 'Dark Ritual',     icon: 'icon_burst', base: 10, growth: 1.6, max: 6, effect: (l) => 'Raise Dead brings ' + (3 + l) + ' minions, ' + Math.round(45 * Math.pow(0.9, l)) + 's cooldown' },
+  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 6,  growth: 1.5, max: 6, needs: {},  effect: (l) => 'Start with ' + (TUNING.startZombies + l) + ' zombies' },
+  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.55, max: 8, needs: {}, effect: (l) => '+' + l * 15 + '% souls from kills' },
+  quick:    { name: 'Quickening',      icon: 'icon_raise', base: 10, growth: 1.6, max: 8, needs: { horde: 2 }, effect: (l) => '-' + l * 4 + '% raise cooldowns' },
+  head:     { name: 'Prepared Dead',   icon: 'icon_hp',  base: 12, growth: 1.8, max: 5, needs: { horde: 3 },  effect: (l) => 'Units start with +' + l + ' level of HP and damage' },
+  pact:     { name: 'Eternal Pact',    icon: 'skeleton', base: 15, growth: 1.9, max: 6, needs: { head: 2 },  effect: (l) => 'Keep ' + l + ' unit unlock' + (l === 1 ? '' : 's') },
+  conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, needs: { pact: 2, souls: 3 }, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
+  restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4, needs: { thrift: 2 },  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
+  echo:     { name: "Champion's Echo", icon: 'icon_fire', base: 15, growth: 1.7, max: 5, needs: { ritual: 1 },  effect: (l) => '+' + l * 10 + '% champion soul chance on replays' },
+  thrift:   { name: 'Thrift',          icon: 'icon_shield', base: 8, growth: 1.6, max: 8, needs: { souls: 2 }, effect: (l) => '-' + l * 4 + '% upgrade costs' },
+  might:    { name: 'Necrotic Might',  icon: 'icon_fire', base: 14, growth: 1.7, max: 8, needs: { head: 1 }, effect: (l) => '+' + l * 4 + '% health and damage' },
+  ritual:   { name: 'Dark Ritual',     icon: 'icon_burst', base: 10, growth: 1.6, max: 6, needs: { quick: 2 }, effect: (l) => 'Raise Dead brings ' + (3 + l) + ' minions, ' + Math.round(45 * Math.pow(0.9, l)) + 's cooldown' },
 };
 export const PERK_KEYS = Object.keys(PERKS);
 // Unit unlocks that Eternal Pact keeps, in the order they are kept.
@@ -335,6 +397,11 @@ export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abom
 
 export function perk(save, key) { return (save.perks && save.perks[key]) || 0; }
 export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow(PERKS[key].growth, lvl)); }
+// The perks (and levels) you still need before this one opens, as text, or '' when it is open.
+export function perkLock(save, key) {
+  const miss = Object.entries(PERKS[key].needs || {}).filter(([k, l]) => perk(save, k) < l);
+  return miss.map(([k, l]) => PERKS[k].name + ' ' + l).join(', ');
+}
 
 // ---- Bestiary ----
 // Finding things pays tiny permanent bonuses: each enemy kind defeated adds a little to souls (bosses more), and each
@@ -370,14 +437,14 @@ export function firstZoneOf(type) {
   return 13;
 }
 
-export function soulMul(save) { return (1 + 0.15 * perk(save, 'souls')) * (1 + 0.05 * (save.rebirths || 0)) * (1 + gearMods(save).souls) * (1 + bestiaryBonus(save).souls); }
+export function soulMul(save) { return TUNING.soulScale * (1 + 0.15 * perk(save, 'souls')) * (1 + 0.1 * (save.rebirths || 0)) * (1 + gearMods(save).souls) * (1 + bestiaryBonus(save).souls); }
 export function raiseMul(save) { return Math.max(0.2, 1 - 0.04 * perk(save, 'quick') - gearMods(save).rise); }
 export function offlineCapHours(save) { return TUNING.offlineCapHours + 4 * perk(save, 'restless'); }
 // Raise Dead: an unlock bought in the skill web. Once unlocked, every summon you own gets its own button.
 export const SPELL_UNLOCK_COST = 300;
 export function spellUnlocked(save) { return (save.nodes.unlock_spell || 0) > 0; }
-export function spellCooldownFor(save, type) { return 40 * (UNITS[type].heavy ? 1.6 : 1) * Math.pow(0.9, perk(save, 'ritual')) * (1 - gearMods(save).spell); }
-export function spellCountFor(save, type) { return UNITS[type].heavy ? 1 + Math.floor(perk(save, 'ritual') / 3) : 3 + perk(save, 'ritual'); }
+export function spellCooldownFor(save, type) { return 40 * (UNITS[type].legion ? 3.5 : UNITS[type].heavy ? 1.6 : 1) * Math.pow(0.9, perk(save, 'ritual')) * (1 - gearMods(save).spell); }
+export function spellCountFor(save, type) { return UNITS[type].legion ? 1 : UNITS[type].heavy ? 1 + Math.floor(perk(save, 'ritual') / 3) : 3 + perk(save, 'ritual'); }
 
 // Essence you would earn by rebirthing now.
 export function essenceGain(save) {
@@ -390,7 +457,7 @@ export function canRebirth(save) { return save.bestZone >= REBIRTH_MIN_ZONE; }
 // Each rebirth makes the world fight back harder, so a stronger necromancer still has a challenge.
 export function worldMul(save) {
   const r = save.rebirths || 0;
-  return { hp: Math.pow(2.2, r), dmg: Math.pow(1.5, r), rating: Math.pow(1.8, r) };
+  return { hp: Math.pow(1.5, r), dmg: Math.pow(1.2, r), rating: Math.pow(1.35, r) };
 }
 
 // ---- Unit tree ----

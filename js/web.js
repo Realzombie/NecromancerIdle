@@ -2,9 +2,9 @@
 import {
   UNITS, STATS, TIER, TIER_NAMES, SPECIALS, SPECIAL_KEYS, PLAYER_UNITS, NECRO_TIERS,
   owned, level, statCost, statEffect, tiersDone, hasSpecial, specialReady, lookOf, necroTier, playerRating,
-  UNIT_TREE, gateProgress, gateMet, unitVisible, spellUnlocked, SPELL_UNLOCK_COST,
+  UNIT_TREE, gateProgress, gateMet, unitVisible, spellUnlocked, SPELL_UNLOCK_COST, UNIT_REBIRTH, LEGION_MULT, unitRebirthOk, statNeeds, rebirthsOf, legionReady, legionOwned, legionCost,
 } from './data.js';
-import { buyUnit, buyStat, buySpecial } from './sim.js';
+import { buyUnit, buyStat, buySpecial, buyLegion } from './sim.js';
 import { iconCanvas, lookCanvas } from './render.js';
 
 
@@ -77,13 +77,14 @@ export function createWeb({ save, play, onChange }) {
           prev = n;
         }
       }
+      if (legionReady(save, u)) links.push([nodes.find((q) => q.id === 'rise:' + u), add({ id: 'legion:' + u, x, y: y + sg * ROW * 2, kind: 'legion', unit: u })]);   // the slot below Rise Faster is kept free for it
       let slot = 0;
       for (const stat of ['hp', 'dmg']) {
         if (level(save, stat, u) < 1) continue;
         for (const key of SPECIAL_KEYS) {
           const sp = SPECIALS[key];
           if (sp.unit !== u || sp.needs.stat !== stat) continue;
-          links.push([first[stat], add({ id: 'sp:' + key, x, y: y + sg * ROW * (2 + slot++), kind: 'special', key, unit: u })]);
+          links.push([first[stat], add({ id: 'sp:' + key, x, y: y + sg * ROW * (3 + slot++), kind: 'special', key, unit: u })]);
         }
       }
     }
@@ -110,12 +111,21 @@ export function createWeb({ save, play, onChange }) {
       const def = UNITS[n.unit];
       const have = owned(save, n.unit);
       const gate = gateProgress(save, n.unit), gated = !have && !gateMet(save, n.unit);
-      const canBuy = !have && !gated && save.champSouls >= def.unlockCost;
+      const rbLocked = !have && !unitRebirthOk(save, n.unit), canBuy = !have && !gated && !rbLocked && save.champSouls >= def.unlockCost;
       return {
         icon: have ? lookCanvas(n.unit, lookOf(save, n.unit)) : iconCanvas(def.sprite), label: def.name,
-        badge: have ? 'owned' : gated ? `${gate.have}/${gate.need} lvls` : `♛ ${def.unlockCost}`, state: have ? 'owned' : (canBuy ? 'avail' : gated ? 'locked' : 'ready'),
-        title: def.name, lines: [def.blurb, have ? 'Its upgrades are shown around it.' : gated ? `Spend ${gate.need - gate.have} more upgrade level${gate.need - gate.have > 1 ? 's' : ''} on ${UNIT_TREE[n.unit].gate.units.map((u) => UNITS[u].name + 's').join(' and ')} to unlock it.` : `Unlock with ${def.unlockCost} champion soul${def.unlockCost > 1 ? 's' : ''}.`],
-        buy: have || gated ? null : { label: `Unlock ♛ ${def.unlockCost}`, enabled: canBuy, fn: () => buyUnit(save, n.unit) },
+        badge: have ? 'owned' : rbLocked ? `Rebirth ${UNIT_REBIRTH[n.unit]}` : gated ? `${gate.have}/${gate.need} lvls` : `♛ ${def.unlockCost}`, state: have ? 'owned' : (canBuy ? 'avail' : gated || rbLocked ? 'locked' : 'ready'),
+        title: def.name, lines: [def.blurb, have ? 'Its upgrades are shown around it.' : rbLocked ? `Rebirth ${UNIT_REBIRTH[n.unit]} times to unlock this summon (you have ${rebirthsOf(save)}).` : gated ? `Spend ${gate.need - gate.have} more upgrade level${gate.need - gate.have > 1 ? 's' : ''} on ${UNIT_TREE[n.unit].gate.units.map((u) => UNITS[u].name + 's').join(' and ')} to unlock it.` : `Unlock with ${def.unlockCost} champion soul${def.unlockCost > 1 ? 's' : ''}.`],
+        buy: have || gated || rbLocked ? null : { label: `Unlock ♛ ${def.unlockCost}`, enabled: canBuy, fn: () => buyUnit(save, n.unit) },
+      };
+    }
+    if (n.kind === 'legion') {
+      const have = legionOwned(save, n.unit), cost = legionCost(save, n.unit), can = !have && save.souls >= cost, def = UNITS['legion_' + n.unit];
+      return {
+        icon: lookCanvas('legion_' + n.unit, lookOf(save, n.unit)), label: def.name, badge: have ? 'owned' : '☠ ' + cost.toLocaleString(),
+        state: have ? 'maxed' : can ? 'avail' : 'ready',
+        title: def.name, lines: [`One huge unit worth about ${LEGION_MULT} ${UNITS[n.unit].name}s, with all your upgrades. It is raised on a much longer cooldown (${Math.round(def.raise)}s) and gets its own Raise Dead button.`, have ? 'Unlocked.' : 'The reward for fully upgrading this summon.'],
+        buy: have ? null : { label: `Raise the Legion ☠ ${cost.toLocaleString()}`, enabled: can, fn: () => buyLegion(save, n.unit) },
       };
     }
     if (n.kind === 'special') {
@@ -135,33 +145,34 @@ export function createWeb({ save, play, onChange }) {
     const S = STATS[stat];
     const L = level(save, stat, unit);
     if (stat === 'rise') {
-      const maxed = L >= S.max, cost = statCost(stat, unit, L), can = !maxed && save.souls >= cost;
+      const maxed = L >= S.max, cost = statCost(stat, unit, L, save), need = statNeeds('rise', L), rbLock = !maxed && rebirthsOf(save) < need, can = !maxed && !rbLock && save.souls >= cost;
       return {
-        icon: iconCanvas('icon_raise'), label: S.name, badge: maxed ? 'MAX' : `${L}/${S.max}`, state: maxed ? 'maxed' : can ? 'avail' : 'ready',
-        title: `${S.name} (${UNITS[unit].name})`, lines: [`Now: ${statEffect('rise', L, unit)}`, maxed ? 'Fully upgraded.' : `Next: ${statEffect('rise', L + 1, unit)}`],
-        buy: maxed ? null : { label: `Upgrade ☠ ${cost}`, enabled: can, fn: () => buyStat(save, 'rise', unit) },
+        icon: iconCanvas('icon_raise'), label: S.name, badge: maxed ? 'MAX' : `${L}/${S.max}`, state: maxed ? 'maxed' : rbLock ? 'locked' : can ? 'avail' : 'ready',
+        title: `${S.name} (${UNITS[unit].name})`, lines: [`Now: ${statEffect('rise', L, unit)}`, maxed ? 'Fully upgraded.' : rbLock ? `The next level needs ${need} rebirths (you have ${rebirthsOf(save)}).` : `Next: ${statEffect('rise', L + 1, unit)}`],
+        buy: maxed || rbLock ? null : { label: `Upgrade ☠ ${cost}`, enabled: can, fn: () => buyStat(save, 'rise', unit) },
       };
     }
     const names = TIER_NAMES[unit];
     const done = L >= (tier + 1) * TIER.levels;
-    const locked = L < tier * TIER.levels;
+    const needR = statNeeds(stat, tier * TIER.levels), rbLock = rebirthsOf(save) < needR, locked = L < tier * TIER.levels;
     const p = Math.max(0, Math.min(TIER.levels, L - tier * TIER.levels));
-    const cost = statCost(stat, unit, L);
-    const can = !locked && !done && save.souls >= cost;
+    const cost = statCost(stat, unit, L, save);
+    const can = !locked && !rbLock && !done && save.souls >= cost;
     const cur = lookOf(save, unit);
     const after = { ...cur, [stat === 'hp' ? 'hs' : 'ds']: tier + 1 };
     const lookName = (stat === 'hp' ? names.hpLook : names.dmgLook)[tier + 1];
     const lines = [];
-    if (locked) lines.push(`Finish ${names[stat][tier - 1]} first.`);
+    if (rbLock) lines.push(`Needs ${needR} rebirth${needR > 1 ? 's' : ''} (you have ${rebirthsOf(save)}).`);
+    else if (locked) lines.push(`Finish ${names[stat][tier - 1]} first.`);
     else if (done) lines.push('Tier complete.');
     else lines.push(`Now: ${statEffect(stat, L, unit)}`, `Next: ${statEffect(stat, L + 1, unit)}`);
     lines.push(`Finishing it evolves the look: ${lookName}.`);
     return {
-      icon: iconCanvas('icon_' + S.icon), label: names[stat][tier], badge: done ? 'done' : `${p}/${TIER.levels}`,
-      state: done ? 'maxed' : locked ? 'locked' : can ? 'avail' : 'ready',
+      icon: iconCanvas('icon_' + S.icon), label: names[stat][tier], badge: done ? 'done' : rbLock ? `Rebirth ${needR}` : `${p}/${TIER.levels}`,
+      state: done ? 'maxed' : locked || rbLock ? 'locked' : can ? 'avail' : 'ready',
       title: `${names[stat][tier]} (${UNITS[unit].name})`, lines,
       preview: done ? null : lookCanvas(unit, after),
-      buy: locked || done ? null : { label: `Upgrade ☠ ${cost}`, enabled: can, fn: () => buyStat(save, stat, unit) },
+      buy: locked || rbLock || done ? null : { label: `Upgrade ☠ ${cost}`, enabled: can, fn: () => buyStat(save, stat, unit) },
     };
   }
 

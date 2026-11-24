@@ -347,3 +347,6 @@ button.big.alt2:active { box-shadow: 0 2px 0 #6e4a20; }
 .mute.full { bottom: calc(var(--iy) + var(--u) * 120); }
 
 @supports (height: 100dvh) { #app { width: min(100vw, calc(100dvh * var(--aspect, 1.7778))); height: min(100dvh, calc(100vw / var(--aspect, 1.7778))); } }
+
+.msnote { margin: 0.3em 0; padding: 0.4em 0.7em; border: 1px solid var(--gold); border-radius: 0.5em; color: #f0d890; font-size: 0.9em; }
+.perk.locked { opacity: 0.5; }
