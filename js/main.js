@@ -9,7 +9,7 @@ import { createWorldMap } from './worldmap.js';
 import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas, FIELD_H, artStyleOn, setArtStyle } from './render.js';
 import { FIELD_W } from './data.js';
 import { loadSave, writeSave, resetSave } from './save.js';
-import { unlock, play, isMuted, setMuted, isMusicOn, setMusic } from './audio.js';
+import { unlock, play, isMuted, setMuted, isMusicOn, setMusic, setMusicTheme } from './audio.js';
 import { createArmoury } from './armoury.js';
 import { checkAchievements, rewardText, reportBattle, bountyText } from './records.js';
 import { RARITIES, rarityIndex } from './gear.js';
@@ -47,6 +47,7 @@ function show(id) {
   if (worldMap && id !== 'screen-map') worldMap.stop();
   for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
   $('hud').classList.toggle('hidden', id !== null);
+  setMusicTheme(id === null && battle ? 'z' + battle.zone.id : 'home');   // each zone has its own music
   spellBar.classList.toggle('hidden', id !== null || !spellBtns.length);
 }
 

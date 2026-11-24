@@ -95,7 +95,23 @@ const SOUNDS = {
     noise({ dur: 0.12, vol: 0.1, f0: 2500, f1: 600, q: 1.2, kind: 'bandpass' });
     tone({ type: 'square', f0: 180, f1: 90, dur: 0.1, vol: 0.06 });
     tone({ type: 'sine', f0: 130, f1: 40, dur: 0.28, vol: 0.14 });
+    tone({ type: 'triangle', f0: 1400, f1: 500, dur: 0.12, vol: 0.05 });
   },
+  // flyers: a slow wing beat, a bird-of-prey screech, a bat squeak, a dive whoosh, a gout of breath, and a trap being set
+  flap: () => { noise({ dur: 0.16, vol: 0.05, f0: 520, f1: 180, q: 0.6, kind: 'lowpass' }); noise({ dur: 0.16, vol: 0.04, f0: 480, f1: 170, q: 0.6, kind: 'lowpass', delay: 0.2 }); },
+  screech: () => {
+    tone({ type: 'sawtooth', f0: 1500, f1: 820, dur: 0.38, vol: 0.05, attack: 0.02 });
+    tone({ type: 'square', f0: 2200, f1: 1100, dur: 0.3, vol: 0.02, attack: 0.02, delay: 0.03 });
+    noise({ dur: 0.3, vol: 0.03, f0: 3500, q: 1.5, kind: 'highpass' });
+  },
+  squeak: () => { tone({ type: 'sine', f0: 2600, f1: 3400, dur: 0.07, vol: 0.04 }); tone({ type: 'sine', f0: 3300, f1: 2400, dur: 0.07, vol: 0.035, delay: 0.08 }); },
+  swoop: () => noise({ dur: 0.28, vol: 0.08, f0: 350, f1: 2600, q: 0.9, kind: 'bandpass' }),
+  breath: () => {
+    noise({ dur: 0.7, vol: 0.1, f0: 900, f1: 260, q: 0.7, kind: 'bandpass' });
+    tone({ type: 'triangle', f0: 130, f1: 60, dur: 0.6, vol: 0.09, attack: 0.05 });
+    noise({ dur: 0.5, vol: 0.04, f0: 5000, f1: 1500, q: 1.2, kind: 'highpass', delay: 0.05 });
+  },
+  trapset: () => { tone({ type: 'square', f0: 900, f1: 700, dur: 0.04, vol: 0.03 }); tone({ type: 'triangle', f0: 420, dur: 0.07, vol: 0.04, delay: 0.05 }); },
   drop: () => [660, 880, 1320].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.07, delay: i * 0.07 })),
   ach: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.26, vol: 0.07, delay: i * 0.09 })),
   click: () => tone({ type: 'square', f0: 640, f1: 520, dur: 0.05, vol: 0.04 }),
@@ -106,7 +122,7 @@ const SOUNDS = {
 };
 
 // Minimum gap between plays (ms) so a big fight stays a murmur rather than a wall of noise.
-const GAP = { swing: 70, hit: 45, shoot: 90, die: 90, raise: 200, trap: 150 };
+const GAP = { swing: 70, hit: 45, shoot: 90, die: 90, raise: 200, trap: 150, flap: 650, screech: 500, squeak: 350, swoop: 140, breath: 250, trapset: 400 };
 const last = {};
 
 export function play(name, e = {}) {
@@ -117,11 +133,11 @@ export function play(name, e = {}) {
   SOUNDS[name](e);
 }
 
-// ---- Ambient music: a slow minor-key pad with sparse bell notes, scheduled just ahead of the clock ----
-let music = true, musicGain = null, musicTimer = null, nextChord = 0, chordIdx = 0;
+// ---- Music: every zone has its own generative theme (see music.js); the home screen keeps the original piece ----
+import { THEMES, scheduleBlock } from './music.js';
+let music = true, musicGain = null, musicTimer = null, nextChord = 0, blockIdx = 0;
+let theme = 'home', themeNode = null;
 try { music = localStorage.getItem('necro_music') !== '0'; } catch (e) { /* ignore */ }
-const CHORDS = [[110, 165, 220, 262], [87.3, 131, 175, 220], [73.4, 110, 147, 175], [82.4, 123, 165, 208]];   // Am F Dm E
-const BELLS = [440, 523, 587, 659, 784, 880];
 
 export function isMusicOn() { return music; }
 export function setMusic(on) {
@@ -131,38 +147,25 @@ export function setMusic(on) {
   if (on) startMusic();
 }
 
-function pad(freq, t, dur) {
-  for (const det of [-4, 4]) {
-    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-    o.type = 'triangle'; o.frequency.value = freq; o.detune.value = det;
-    f.type = 'lowpass'; f.frequency.value = 700;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.035, t + dur * 0.4);
-    g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    o.connect(f); f.connect(g); g.connect(musicGain);
-    o.start(t); o.stop(t + dur + 0.05);
-  }
+// Switch to another theme with a short crossfade.
+export function setMusicTheme(key) {
+  if (!THEMES[key] || key === theme) return;
+  theme = key; blockIdx = 0;
+  if (!ctx || !musicGain) return;
+  const old = themeNode, now = ctx.currentTime;
+  if (old) { old.gain.setValueAtTime(old.gain.value, now); old.gain.linearRampToValueAtTime(0.0001, now + 2.5); setTimeout(() => { try { old.disconnect(); } catch (e) { /* ignore */ } }, 9000); }
+  themeNode = ctx.createGain(); themeNode.gain.setValueAtTime(0.0001, now); themeNode.gain.linearRampToValueAtTime(1, now + 2.5); themeNode.connect(musicGain);
+  nextChord = Math.max(nextChord, now + 0.1);
 }
-function bell(freq, t) {
-  const o = ctx.createOscillator(), g = ctx.createGain();
-  o.type = 'sine'; o.frequency.value = freq;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.linearRampToValueAtTime(0.03, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
-  o.connect(g); g.connect(musicGain);
-  o.start(t); o.stop(t + 1.7);
-}
+
 export function startMusic() {
   if (!ctx || !music || musicTimer) return;
   if (!musicGain) { musicGain = ctx.createGain(); musicGain.gain.value = 0.5; musicGain.connect(master); }
+  if (!themeNode) { themeNode = ctx.createGain(); themeNode.connect(musicGain); }
   nextChord = ctx.currentTime + 0.1;
   musicTimer = setInterval(() => {
     while (nextChord < ctx.currentTime + 1.5) {
-      const dur = 5;
-      for (const f of CHORDS[chordIdx % CHORDS.length]) pad(f, nextChord, dur + 1.5);
-      for (let i = 0; i < 3; i++) if (Math.random() < 0.7) bell(BELLS[Math.floor(Math.random() * BELLS.length)], nextChord + 0.5 + i * 1.6 + Math.random() * 0.5);
-      chordIdx++;
-      nextChord += dur;
+      nextChord += scheduleBlock(ctx, themeNode, THEMES[theme], nextChord, Math.random, noiseBuf, blockIdx++);
     }
   }, 400);
 }

@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Render audio</title>
+<body style="background:#1a1426;color:#e8e0f0;font:13px system-ui;padding:12px">
+<div id="log">rendering...</div>
+<script type="module">
+// Renders the game's generative music themes (js/music.js) to WAV files offline and posts them to a local receiver on
+// port 9911 so they can be listened to outside the game. ?all=1 renders every theme, ?theme=z3 renders one. ?s= is seconds.
+import { THEMES, THEME_NAMES, scheduleBlock } from '../js/music.js';
+const q = new URLSearchParams(location.search);
+const seconds = Number(q.get('s')) || 75, rate = 16000;
+const log = (t) => { document.getElementById('log').innerHTML += '<br>' + t; };
+
+async function renderTheme(key, seed) {
+  let rs = seed;
+  const rnd = () => (rs = (rs * 16807) % 2147483647) / 2147483647;
+  const ctx = new OfflineAudioContext(1, rate * seconds, rate);
+  const nb = ctx.createBuffer(1, rate, rate);
+  const nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = rnd() * 2 - 1;
+  const master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination);
+  const music = ctx.createGain(); music.gain.value = 0.5; music.connect(master);
+  let t = 0.1, idx = 0;
+  while (t < seconds - 1) t += scheduleBlock(ctx, music, THEMES[key], t, rnd, nb, idx++);
+  const buf = await ctx.startRendering();
+  const d = buf.getChannelData(0);
+  let peak = 0; for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+  const gain = peak > 0 ? 0.85 / peak : 1, fade = rate * 3;
+  const out = new DataView(new ArrayBuffer(44 + d.length * 2));
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) out.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); out.setUint32(4, 36 + d.length * 2, true); w(8, 'WAVE'); w(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
+  out.setUint32(24, rate, true); out.setUint32(28, rate * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); w(36, 'data'); out.setUint32(40, d.length * 2, true);
+  for (let i = 0; i < d.length; i++) { const f = Math.min(1, i / fade, (d.length - i) / fade); out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i] * gain * f)) * 32767, true); }
+  return out.buffer;
+}
+
+const keys = q.get('all') ? Object.keys(THEMES) : [q.get('theme') || 'home'];
+for (const key of keys) {
+  const n = key === 'home' ? '00' : key.slice(1).padStart(2, '0');
+  const name = (key === 'home' ? '00-home-and-graveyard-original' : n + '-' + THEME_NAMES[key].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '.wav';
+  const body = await renderTheme(key, 7 + keys.indexOf(key) * 13);
+  const res = await fetch('http://localhost:9911/' + encodeURIComponent(name), { method: 'POST', body });
+  log(await res.text());
+}
+log('done');
+</script>

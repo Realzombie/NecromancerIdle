@@ -203,7 +203,7 @@ export class Battle {
       ht: this.rand(1, 4),
       age: 0, fresh: true,
     };
-    if (def.fly) { u.alt = this.rand(def.alt[0], def.alt[1]); u.altNow = u.alt; u.flap = this.rand(0, 6); }
+    if (def.fly) { u.alt = this.rand(def.alt[0], def.alt[1]); u.altNow = u.alt; u.flap = this.rand(0, 6); this.emit(def.team === 'enemy' ? 'screech' : 'squeak', def.team); }
     if (def.team === 'enemy') { const e = this.save.seen[type] || (this.save.seen[type] = {}); e.seen = true; }
     u.status = {};
     // Elites: a rare, bigger and meaner enemy that drops triple souls and may carry gear.
@@ -317,6 +317,10 @@ export class Battle {
         this.pause = TUNING.wavePause;
       }
     }
+
+    // A slow wing beat while anything is flying
+    this.flapT = (this.flapT || 0) - dt;
+    if (this.flapT <= 0) { this.flapT = 0.8; if (this.units.some((q) => q.def.fly)) this.emit('flap'); }
 
     // Units
     for (const u of this.units) this.updateUnit(u, dt);
@@ -494,7 +498,7 @@ export class Battle {
         u.cd = u.def.atk * (u.enraged ? 0.8 : 1);
         u.attackAnim = ATTACK_TIME;
         u.swing = { delay: SWING_DELAY, target };
-        this.emit(u.def.range > 40 ? 'shoot' : 'swing', u.team);
+        this.emit(u.def.fly ? (u.def.range > 40 ? 'breath' : 'swoop') : u.def.range > 40 ? 'shoot' : 'swing', u.team);
       }
       return;
     }
