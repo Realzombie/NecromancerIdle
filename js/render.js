@@ -395,15 +395,16 @@ function lookSprite(unit, look) {
   }
   for (const f of look.flags) rects.push(...((L.flags && L.flags[f]) || []));
   const gw = Math.max(...grid.map((r) => r.length));
+  const up = Math.max(0, -Math.min(0, ...rects.map((q) => q[1])));          // rows added on top for anything that rises above the grid (spear tips, horns)
   const c = document.createElement('canvas');
-  c.width = (gw + L.pad) * L.scale; c.height = grid.length * L.scale;
+  c.width = (gw + L.pad) * L.scale; c.height = (grid.length + up) * L.scale;
   const g = c.getContext('2d');
   grid.forEach((row, y) => [...row].forEach((ch, x) => {
     if (ch === '.') return;
     g.fillStyle = pal[ch];
-    g.fillRect(x * L.scale, y * L.scale, L.scale, L.scale);
+    g.fillRect(x * L.scale, (y + up) * L.scale, L.scale, L.scale);
   }));
-  for (const [x, y, color, w = 1, h = 1] of rects) { g.fillStyle = color; g.fillRect(x * L.scale, y * L.scale, w * L.scale, h * L.scale); }
+  for (const [x, y, color, w = 1, h = 1] of rects) { g.fillStyle = color; g.fillRect(x * L.scale, (y + up) * L.scale, w * L.scale, h * L.scale); }
   return (cache[key] = makeSprite(c, (gw * L.scale) / 2));
 }
 

@@ -4,10 +4,10 @@
 // tintable damage rects turn green when the unit has poison.
 
 const ZOMBIE_GRID = [
-  '..gGGGg.',
-  '.gGGGGGg',
-  '.GEGGEGG',
-  '.GGGRGG.',
+  '..gGGg..',
+  '.gGGGGg.',
+  '.GEGGEG.',
+  '.GGRRGG.',
   '..GGGG..',
   'GBBBBBBG',
   'GBBKBBBG',
@@ -112,10 +112,11 @@ export const LOOKS = {
       { rects: [[2, 0, '#a8a8b8', 4], [1, 1, '#a8a8b8'], [6, 1, '#a8a8b8'], [3, 1, '#c8c8d8', 2], [2, 5, '#8a8a9a', 4, 2], [3, 5, '#c8c8d8', 2], [0, 5, '#8a8a9a'], [7, 5, '#8a8a9a']] },
       { palette: { E: '#b8ff90', B: '#7a3040' }, rects: [[2, 0, '#c8a040', 4], [3, 5, '#c8a040', 2], [2, 8, '#c8a040', 4]] },
     ],
+    // weapons instead of claws: bare hands, then a small club, a battered pitchfork and a full spear (held in the right hand)
     dmg: [
-      { tintable: true, rects: [[8, 6, '#d8d0b0']] },
-      { tintable: true, rects: [[8, 5, '#e0e0d0', 2], [8, 7, '#e0e0d0', 2]] },
-      { tintable: true, rects: [[8, 4, '#f0f8e0', 3], [8, 6, '#f0f8e0', 3], [8, 8, '#f0f8e0', 3], [10, 4, '#b8ff90'], [10, 6, '#b8ff90'], [10, 8, '#b8ff90']] },
+      { rects: [[8, 4, '#6a4a28', 1, 3], [8, 2, '#8a6038', 2, 2], [9, 3, '#5a3a1c']] },
+      { rects: [[8, 1, '#6a4a28', 1, 7], [7, 0, '#8a8a98', 3, 1], [7, -2, '#8a8a98', 1, 2], [9, -1, '#8a8a98', 1, 1], [10, -2, '#6e6e7c', 1, 1], [8, 0, '#6e6e7c']] },
+      { rects: [[8, 0, '#7a5230', 1, 9], [8, -4, '#e8eef8', 1, 3], [7, -1, '#c8a040', 3, 1], [9, 0, '#c04040', 1, 2]] },
     ],
     flags: {
       poison: [[3, 3, '#9dff7a'], [5, 3, '#9dff7a'], [4, 4, '#b8ff7a'], [4, 5, '#9dff7a']],
