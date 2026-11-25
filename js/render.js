@@ -1,6 +1,7 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
-import { artCanvas, necroCanvas } from './art.js';
+import { artCanvas, necroCanvas, mix } from './art.js';
+import { necroGridCanvas } from './necro.js';
 import { ENEMY, enemyCanvas } from './enemyart.js';
 import { ICON_ART, iconArtCanvas } from './iconart.js';
 import { ATTACK_TIME } from './sim.js';
@@ -335,6 +336,7 @@ function sprite(name) {
   if (cache[name]) return cache[name];
   if (ART_ON && (name === 'bat' || name === 'drake')) { const fc = artCanvas(name); return (cache[name] = makeSprite(fc, fc.width / 2)); }
   if (ART_ON && /^necro[0-4]$/.test(name)) { const nc = necroCanvas(Number(name.slice(5))); const sp = makeSprite(nc, nc.width / 2); sp.orb = nc.orb; return (cache[name] = sp); }
+  if (!ART_ON && /^necro[0-4]$/.test(name)) { const nc = necroGridCanvas(Number(name.slice(5))); const sp = makeSprite(nc, nc.width / 2); sp.orb = nc.orb; return (cache[name] = sp); }
   if (ICON_ART[name] && ART_ON) { const ic = iconArtCanvas(name); return (cache[name] = makeSprite(ic, name === 'banner' ? 12 : ic.axPx)); }   // icons are always the new art; the banner follows the setting
   if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
   if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
@@ -796,6 +798,50 @@ function drawFog(g, t) {
 // ---- The necromancer ----
 let GEAR_SAVE = {};   // whose gear to draw on the necromancer (set by draw and drawIdle)
 
+// Draws a list of [x, y, w, h, colour] parts relative to (ox, oy) with a dark outline: all outlines first, then the fills.
+function drawParts(g, ox, oy, parts) {
+  g.fillStyle = '#0a0710';
+  for (const [x, y, w, h] of parts) g.fillRect(Math.round(ox + x) - 1, Math.round(oy + y) - 1, w + 2, h + 2);
+  for (const [x, y, w, h, c] of parts) { g.fillStyle = c; g.fillRect(Math.round(ox + x), Math.round(oy + y), w, h); }
+}
+
+// A small skull used on the staff and in the orbiting ring. Faces right when `right` is set.
+function drawMiniSkull(g, cx, cy, right) {
+  const e = right ? 1 : -1;
+  drawParts(g, cx, cy, [
+    [-5, -5, 10, 7, '#e8e4d0'], [-3, 2, 6, 3, '#d4cfb8'], [-5, 0, 3, 2, '#b8b4a0'],
+    [-4, -2, 3, 3, '#14101a'], [1, -2, 3, 3, '#14101a'], [e > 0 ? 1 : -3, -1, 2, 2, '#9dff7a'], [-1, 1, 2, 2, '#14101a'], [-1, 3, 1, 2, '#14101a'], [1, 3, 1, 2, '#14101a'],
+  ]);
+}
+
+// The head of the staff follows the staff he wields: a claw holding an orb, then a skull, a horned skull and a crowned skull
+// wreathed in flame. (r = rarity index, -1 for no staff.)
+function drawStaffHead(g, ox, oy, r, t, cast, glow) {
+  const wood = r >= 3 ? '#d8d0b0' : '#6a4a28';
+  const cy = r >= 2 ? oy - 17 : oy - 9;                                    // centre of the head
+  const pulse = 0.35 + 0.25 * Math.sin(t * 4) + cast;
+  g.globalAlpha = Math.min(1, pulse); g.fillStyle = glow;
+  g.beginPath(); g.arc(ox, cy, 9 + Math.max(0, r) * 2.5 + cast * 10, 0, Math.PI * 2); g.fill();
+  g.globalAlpha = 1;
+  if (r < 2) {                                                             // claw cradling an orb
+    drawParts(g, ox, oy, [[-4, -4, 8, 4, wood], [-8, -10, 3, 8, wood], [-6, -13, 3, 4, wood], [5, -10, 3, 8, wood], [3, -13, 3, 4, wood]]);
+    g.fillStyle = glow; g.beginPath(); g.arc(ox, cy - 1, 5 + Math.max(0, r), 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffffff'; g.globalAlpha = 0.55; g.fillRect(Math.round(ox - 3), Math.round(cy - 5), 2, 2); g.globalAlpha = 1;
+    return;
+  }
+  const parts = [[-4, -5, 8, 5, wood]];                                    // socket
+  if (r >= 3) parts.push([-11, -26, 4, 5, '#cfc6a8'], [-13, -31, 3, 6, '#cfc6a8'], [-12, -34, 2, 4, '#e8e0c8'], [7, -26, 4, 5, '#cfc6a8'], [10, -31, 3, 6, '#cfc6a8'], [10, -34, 2, 4, '#e8e0c8']);
+  if (r >= 4) parts.push([-8, -29, 16, 3, '#d8b050'], [-8, -33, 3, 4, '#d8b050'], [-2, -35, 4, 6, '#ffd060'], [5, -33, 3, 4, '#d8b050']);
+  drawParts(g, ox, oy, parts);
+  drawMiniSkull(g, ox, oy - 15, true);
+  g.fillStyle = glow; g.globalAlpha = 0.9; g.fillRect(Math.round(ox + 1), Math.round(oy - 16), 2, 2); g.fillRect(Math.round(ox - 3), Math.round(oy - 16), 2, 2); g.globalAlpha = 1;
+  if (r >= 4) for (let i = 0; i < 5; i++) {                                // flames licking up from the crown
+    const k = (t * 1.6 + i * 0.37) % 1;
+    g.globalAlpha = 1 - k; g.fillStyle = i % 2 ? '#ffd060' : '#ff7a20';
+    g.fillRect(Math.round(ox - 8 + i * 4 + Math.sin(t * 6 + i) * 2), Math.round(oy - 36 - k * 16), 3, 4); g.globalAlpha = 1;
+  }
+}
+
 // A floating spell book beside the necromancer. Better rarities glow and shimmer.
 function drawTome(g, cx, cy, t, r) {
   const col = ['#6a5a7a', '#3a5a9a', '#8a6a20', '#6a2a8a', '#a04010'][r];
@@ -805,12 +851,13 @@ function drawTome(g, cx, cy, t, r) {
     g.globalAlpha = 0.18 + 0.1 * Math.sin(t * 3); g.fillStyle = glow;
     g.beginPath(); g.arc(0, 0, 19 + r * 2, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
   }
-  g.fillStyle = '#0a0710'; g.fillRect(-13, -11, 26, 21);
-  g.fillStyle = col; g.fillRect(-12, -10, 24, 19);
-  g.fillStyle = '#e8e0c8'; g.fillRect(-11, 6, 22, 2);
-  g.fillStyle = glow; g.fillRect(-4, -5, 8, 8);
-  g.fillStyle = '#0a0710'; g.fillRect(-1, -3, 2, 4);
-  if (r >= 3) { g.globalAlpha = 0.5 + 0.4 * Math.sin(t * 5); g.fillStyle = glow; g.fillRect(-10, -8, 3, 2); g.fillRect(7, -8, 3, 2); g.fillRect(-10, 3, 3, 2); g.fillRect(7, 3, 3, 2); g.globalAlpha = 1; }
+  const gold = r >= 1 ? '#d8b050' : '#a8a098';
+  drawParts(g, 0, 0, [[-13, -11, 26, 22, col], [-13, -11, 4, 22, mix(col, '#000000', 0.35)], [-9, 8, 22, 3, '#e8e0c8'], [12, -9, 1, 17, '#cfc8b0']]);
+  g.fillStyle = gold;                                                      // corner caps and clasp
+  g.fillRect(-13, -11, 4, 3); g.fillRect(-13, 8, 4, 3); g.fillRect(9, -11, 4, 3); g.fillRect(9, 8, 4, 3); g.fillRect(11, -2, 3, 5);
+  g.fillStyle = glow; g.fillRect(-4, -6, 8, 8);                            // rune: a glowing eye
+  g.fillStyle = '#0a0710'; g.fillRect(-1, -4, 2, 4); g.fillRect(-5, -3, 1, 2); g.fillRect(4, -3, 1, 2);
+  if (r >= 3) { g.globalAlpha = 0.5 + 0.4 * Math.sin(t * 5); g.fillStyle = glow; g.fillRect(-8, -9, 3, 2); g.fillRect(6, -9, 3, 2); g.fillRect(-8, 3, 3, 2); g.fillRect(6, 3, 3, 2); g.globalAlpha = 1; }
   g.restore();
   if (r === 4) for (let i = 0; i < 3; i++) {
     const a = t * 2 + i * 2.1;
@@ -869,21 +916,13 @@ function drawNecro(g, t, tier, battle) {
   g.drawImage(s.img, Math.round(x - s.w / 2 - 4), Math.round(base - s.h + bob));
   // Staff orb pulse
   const ox = x - s.w / 2 - 4 + (s.orb ? s.orb[0] : s.w * 0.8), oy = base - s.h + bob + (s.orb ? s.orb[1] : s.w / 10);
-  g.fillStyle = staff ? RARITIES[ri(staff)].color : '#9a9a70';
-  g.globalAlpha = 0.35 + 0.25 * Math.sin(t * 4) + cast;
-  g.beginPath(); g.arc(ox, oy, 8 + Math.max(0, ri(staff)) * 2 + cast * 10, 0, Math.PI * 2); g.fill();
-  g.globalAlpha = 1;
-  if (ri(staff) >= 2) { // a skull on top of the staff
-    g.fillStyle = '#e8e8d8'; g.fillRect(ox - 4, oy - 19, 8, 7); g.fillRect(ox - 3, oy - 12, 6, 3);
-    g.fillStyle = '#101010'; g.fillRect(ox - 3, oy - 17, 2, 2); g.fillRect(ox + 1, oy - 17, 2, 2);
-  }
+  drawStaffHead(g, ox, oy, staff ? ri(staff) : -1, t, cast, staff ? RARITIES[ri(staff)].color : '#9a9a70');
   if (tome) drawTome(g, x + 56, base - 66 + Math.sin(t * 1.8) * 4, t, ri(tome));
   if ([robe, staff, tome, fam].some((it) => ri(it) === 4)) { // legendary: orbiting skulls
     for (let i = 0; i < 3; i++) {
       const a2 = t * 1.4 + (i * Math.PI * 2) / 3;
-      const sx = x + Math.cos(a2) * 34, sy = base - 44 + Math.sin(a2) * 12;
-      g.fillStyle = '#e8e8d8'; g.fillRect(sx - 4, sy - 4, 8, 7); g.fillRect(sx - 3, sy + 3, 6, 3);
-      g.fillStyle = '#101010'; g.fillRect(sx - 3, sy - 2, 2, 2); g.fillRect(sx + 1, sy - 2, 2, 2);
+      const sx = x + Math.cos(a2) * 40, sy = base - 52 + Math.sin(a2) * 14;
+      drawMiniSkull(g, sx, sy, Math.sin(a2) > 0);
     }
   }
   if (fam) drawFamiliar(g, x, base, t, ri(fam));

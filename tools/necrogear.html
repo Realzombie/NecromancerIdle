@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>Necromancer gear</title>
+<style>body{margin:0;background:#120c1c;color:#e8e0f0;font:12px system-ui}#s{display:flex;flex-wrap:wrap;gap:8px;padding:8px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:4px;text-align:center}canvas{display:block}</style>
+<div id="s"></div>
+<script type="module">
+// Draws the necromancer on the home backdrop wearing a full set of one rarity (0-4) so each look can be checked.
+// ?r=0,2,4 picks the rarities, ?m=hd shows HD, ?crop=1 crops to the necromancer, ?t= sets the animation time.
+import { drawIdle, setArtStyle } from '../js/render.js';
+const q = new URLSearchParams(location.search);
+if (q.get('m') === 'hd') setArtStyle(true);
+const rs = (q.get('r') || '0,1,2,3,4').split(',').map(Number), T = Number(q.get('t')) || 1.3, crop = q.get('crop') !== '0';
+const slots = ['weapon', 'armour', 'charm', 'familiar'], ids = ['common', 'magic', 'rare', 'epic', 'legendary'];
+const mk = (r) => ({ gear: slots.map((s) => ({ id: s, slot: s, rarity: ids[r] })), equipped: Object.fromEntries(slots.map((s) => [s, s])) });
+for (const r of rs) {
+  const cv = document.createElement('canvas'); cv.width = 960; cv.height = 540;
+  drawIdle(cv.getContext('2d'), T, r, mk(r));
+  const out = document.createElement('canvas');
+  const sx = crop ? 0 : 0, sy = crop ? 270 : 0, sw = crop ? 250 : 960, sh = crop ? 220 : 540;
+  out.width = sw * 1.6; out.height = sh * 1.6;
+  const og = out.getContext('2d'); og.imageSmoothingEnabled = false; og.drawImage(cv, sx, sy, sw, sh, 0, 0, sw * 1.6, sh * 1.6);
+  const el = document.createElement('div'); el.className = 'c'; el.appendChild(out);
+  el.insertAdjacentHTML('beforeend', ids[r]); document.getElementById('s').appendChild(el);
+}
+</script>
