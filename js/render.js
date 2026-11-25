@@ -808,7 +808,12 @@ function drawParts(g, ox, oy, parts) {
 // A small skull used on the staff and in the orbiting ring. Faces right when `right` is set.
 function drawMiniSkull(g, cx, cy, right) {
   // deliberately plain, like the rest of the sprites: a pale block, two dark dot eyes and a dark line for a mouth
-  drawParts(g, cx, cy, [[-5, -5, 10, 9, '#e8e4d0'], [-3, -3, 2, 2, '#14101a'], [1, -3, 2, 2, '#14101a'], [-3, 1, 6, 1, '#14101a']]);
+  drawParts(g, cx, cy, [
+    [-5, -5, 10, 10, '#e8e4d0'],
+    [-4, -3, 3, 3, '#14101a'], [1, -3, 3, 3, '#14101a'],                  // eye sockets
+    [-1, 1, 2, 2, '#14101a'],                                              // nose, in the middle
+    [-3, 4, 6, 1, '#14101a'], [-2, 3, 1, 1, '#14101a'], [1, 3, 1, 1, '#14101a'],   // mouth line with teeth marks
+  ]);
 }
 
 // The head of the staff follows the staff he wields: a claw holding an orb, then a skull, a horned skull and a crowned skull
