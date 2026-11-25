@@ -5,7 +5,7 @@
 import { lookCanvas, setArtStyle } from '../js/render.js';
 import { PLAYER_UNITS, UNITS } from '../js/data.js';
 const q = new URLSearchParams(location.search); const only = q.get('u');
-if (q.get('m') === 'old') setArtStyle(false);
+if (q.get('m') === 'hd') setArtStyle(true); else if (q.get('m') === 'old') setArtStyle(false);
 for (const u of PLAYER_UNITS) {
   if (only && !only.split(',').includes(u)) continue;
   const c = lookCanvas('legion_' + u, { hs: 3, ds: 3, flags: [] }); const z = Number(q.get('z')) || 0.6; c.style.width = c.width * z + 'px'; c.style.height = c.height * z + 'px';

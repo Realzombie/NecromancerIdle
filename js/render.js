@@ -213,15 +213,8 @@ const SPRITES = {
   },
   hound: {
     scale: 4,
-    palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', D: '#3a2f48', R: '#a04848' },
-    grid: [
-      '.......GG.',
-      '.GGGGGGGGE',
-      'GGGGGGGGGR',
-      '.gGGGGGGg.',
-      '.G.G..G.G.',
-      '.D.D..D.D.',
-    ],
+    palette: { G: '#7fa86a', g: '#5f8a52', E: '#ff5a3a', D: '#2f2838', W: '#f4ecd0' },
+    grid: ['.........G..G..', '.........GGGGG.', '.G.....GGGGEGGD', '.GGGGGGGGGGGWDW', '..gGGGGGGGGGG..', '..GGG.....GGG..', '..G.G.....G.G..', '..G.G.....G.G..', '.DD.DD...DD.DD.'],
   },
   // Upgrade-card icons
   icon_raise: {
@@ -346,14 +339,15 @@ function sprite(name) {
   if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
   if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
   const s = SPRITES[name];
+  const sc = /^(icon_|gear_)/.test(name) ? s.scale : boosted(s.scale);
   const w = Math.max(...s.grid.map((r) => r.length));
   const c = document.createElement('canvas');
-  c.width = w * s.scale; c.height = s.grid.length * s.scale;
+  c.width = w * sc; c.height = s.grid.length * sc;
   const g = c.getContext('2d');
   s.grid.forEach((row, y) => [...row].forEach((ch, x) => {
     if (ch === '.') return;
     g.fillStyle = s.palette[ch];
-    g.fillRect(x * s.scale, y * s.scale, s.scale, s.scale);
+    g.fillRect(x * sc, y * sc, sc, sc);
   }));
   return (cache[name] = makeSprite(c, c.width / 2));
 }
@@ -369,12 +363,15 @@ function makeSprite(c, ax) {
 // Player units are composed from layers: a base body plus rects added by each finished HP/damage tier and ability.
 // look = { hs, ds, flags } from data.lookOf().
 // The summons have two looks: the newer painted art and the original pixel grids. A setting switches between them.
-let ART_ON = true;
-try { ART_ON = localStorage.getItem('necro_art') !== 'classic'; } catch (e) { /* ignore */ }
+let ART_ON = false;   // false = Normal (the original pixel look, now the default), true = HD
+try { ART_ON = localStorage.getItem('necro_art2') === 'hd'; } catch (e) { /* ignore */ }
+// Normal sprites are drawn a size bigger than they used to be.
+const NORMAL_BOOST = 1.4;
+const boosted = (sc) => Math.max(1, Math.round(sc * NORMAL_BOOST));
 export const artStyleOn = () => ART_ON;
 export function setArtStyle(on) {
   ART_ON = on;
-  try { localStorage.setItem('necro_art', on ? 'new' : 'classic'); } catch (e) { /* ignore */ }
+  try { localStorage.setItem('necro_art2', on ? 'hd' : 'normal'); } catch (e) { /* ignore */ }
   for (const k of Object.keys(cache)) delete cache[k];
 }
 function lookSprite(unit, look) {
@@ -383,7 +380,7 @@ function lookSprite(unit, look) {
   const ac = ART_ON ? artCanvas(unit, look) : null;          // the painted art, when there is some
   if (ac) return (cache[key] = makeSprite(ac, ac.width / 2));
   if (!LOOKS[unit]) return sprite(UNITS[unit].sprite);   // newer summons have only one classic look
-  const L = LOOKS[unit];
+  const L = { ...LOOKS[unit], scale: boosted(LOOKS[unit].scale) };
   const grid = L.gridFor ? L.gridFor(look.hs, look.ds) : L.grid;
   const pal = { ...L.palette, ...(look.hs === 0 && L.rottenPalette ? L.rottenPalette : {}) };
   const rects = [];
@@ -871,7 +868,7 @@ function drawNecro(g, t, tier, battle) {
   const bob = Math.sin(t * 2) * 1.5;
   g.drawImage(s.img, Math.round(x - s.w / 2 - 4), Math.round(base - s.h + bob));
   // Staff orb pulse
-  const ox = x - s.w / 2 - 4 + (s.orb ? s.orb[0] : 8 * 6), oy = base - s.h + bob + (s.orb ? s.orb[1] : 6);
+  const ox = x - s.w / 2 - 4 + (s.orb ? s.orb[0] : s.w * 0.8), oy = base - s.h + bob + (s.orb ? s.orb[1] : s.w / 10);
   g.fillStyle = staff ? RARITIES[ri(staff)].color : '#9a9a70';
   g.globalAlpha = 0.35 + 0.25 * Math.sin(t * 4) + cast;
   g.beginPath(); g.arc(ox, oy, 8 + Math.max(0, ri(staff)) * 2 + cast * 10, 0, Math.PI * 2); g.fill();

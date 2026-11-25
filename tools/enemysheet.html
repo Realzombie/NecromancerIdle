@@ -7,7 +7,7 @@ import { UNITS } from '../js/data.js';
 const q = new URLSearchParams(location.search);
 const S = Number(q.get('s')) || 1, only = q.get('u');
 const mode = q.get('m');
-if (mode === 'old') setArtStyle(false);
+if (mode === 'hd') setArtStyle(true); else if (mode === 'old') setArtStyle(false);
 for (const k of Object.keys(UNITS)) {
   const d = UNITS[k]; if (d.team !== 'enemy' || d.static) continue;
   if (only && !only.split(',').includes(k)) continue;

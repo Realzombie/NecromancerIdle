@@ -2,9 +2,10 @@
 <style>body{margin:0;background:#1a1426;color:#e8e0f0;font:12px system-ui}#s{display:flex;flex-wrap:wrap;gap:8px;padding:8px}.c{background:#241b33;border:1px solid #4a3a66;border-radius:6px;padding:4px;text-align:center}.c canvas{image-rendering:pixelated;display:inline-block;margin:0 2px}</style>
 <div id="s"></div>
 <script type="module">
-import { lookCanvas, iconCanvas } from '../js/render.js';
+import { lookCanvas, iconCanvas, setArtStyle } from '../js/render.js';
 import { PLAYER_UNITS, UNITS } from '../js/data.js';
 const S = Number(new URLSearchParams(location.search).get('s')) || 2;
+if (new URLSearchParams(location.search).get('m') === 'hd') setArtStyle(true);
 const only = new URLSearchParams(location.search).get('u');
 for (const u of PLAYER_UNITS) {
   if (only && !only.split(',').includes(u)) continue;

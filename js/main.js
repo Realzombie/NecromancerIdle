@@ -490,7 +490,7 @@ window.__game = { claimOffline, renderHome, setPaused, save, get battle() { retu
 // Unit art switch in the settings menu: the newer painted summons or the original pixel art
 {
   const ab = document.getElementById('btn-art');
-  const paintArt = () => { ab.textContent = artStyleOn() ? 'NEW' : 'OLD'; ab.title = 'Unit art: ' + (artStyleOn() ? 'new' : 'original'); };
-  ab.onclick = () => { setArtStyle(!artStyleOn()); paintArt(); if (battle && !battle.result) buildSpellBar(); toast('Unit art: ' + (artStyleOn() ? 'new' : 'original')); };
+  const paintArt = () => { ab.textContent = artStyleOn() ? 'HD' : 'NORM'; ab.title = 'Unit art: ' + (artStyleOn() ? 'HD' : 'Normal'); };
+  ab.onclick = () => { setArtStyle(!artStyleOn()); paintArt(); if (battle && !battle.result) buildSpellBar(); toast('Unit art: ' + (artStyleOn() ? 'HD' : 'Normal')); };
   paintArt();
 }

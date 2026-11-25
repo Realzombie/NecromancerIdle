@@ -4,7 +4,7 @@
 <script type="module">
 import { iconCanvas, setArtStyle } from '../js/render.js';
 const q = new URLSearchParams(location.search); const S = Number(q.get('s')) || 3;
-if (q.get('m') === 'old') setArtStyle(false);
+if (q.get('m') === 'hd') setArtStyle(true); else if (q.get('m') === 'old') setArtStyle(false);
 const names = ['Grave Robber', 'Hexer', 'Bone Lord', 'Lich', 'Epic robes'];
 [0, 1, 2, 3, 4].forEach((i) => { const c = iconCanvas('necro' + i); c.style.width = c.width * S / 4 * 2 + 'px'; c.style.height = c.height * S / 4 * 2 + 'px'; const el = document.createElement('div'); el.className = 'c'; el.appendChild(c); el.insertAdjacentHTML('beforeend', names[i]); document.getElementById('s').appendChild(el); });
 </script>
