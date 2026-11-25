@@ -68,7 +68,7 @@ const SPRITES = {
   griffin: { scale: 5, palette: { Y: '#8a5a2a', W: '#f4f0e4', O: '#d8a020', F: '#c8b890', E: '#202020', T: '#5a4020' },
     grid: ['...F.F.F..W...', '..FFFFFFF.WWW.', '..FFFFFFFWWEWW', '...FFFFYYYWWWO', '..YYYYYYYYWW..', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YT....', '..YY....TT....', '.TTT...TTT....'] },
   gryphonlord: { scale: 8, palette: { Y: '#6a4a2a', W: '#f4f0e4', O: '#d8a020', F: '#d8c8a0', E: '#202020', T: '#3a2a18' },
-    grid: ['...F.F.F..W...', '..FFFFFFF.WTW.', '..FFFFFFFWWEWW', '...FFFFYYYWWWO', '..YYYYYYYYWW..', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YT....', '..YY....TT....', '.TTT...TTT....'] },
+    grid: ['...F.F.F..W...', '..FFFFFFF.WWW.', '..FFFFFFFWWEWW', '...FFFFYYYWWWO', '..YYYYYYYYWW..', '..YYYYYYYY....', '..YYYYYYYY....', '..YY....YT....', '..YY....TT....', '.TTT...TTT....'] },
   frostwyrm: { scale: 8, palette: { B: '#3a5a90', L: '#a8d8f8', W: '#2a4a78', E: '#40e0ff', H: '#ffffff' },
     grid: ['....WW.WW...H..', '...WWWWWWW.HLL.', '...WWWWWWW.LLEL', '....WWWW..LLLLL', '..BBBBBBBBLL...', '...BBBBBBBB....', '...BBBBBBB.....', '..LBB..BB......', '.LL.B..BL......', 'LL.............'] },
   wyvern: { scale: 5, palette: { B: '#6a8ab0', L: '#a8c8e8', W: '#4a6a90', E: '#e8f8ff', H: '#e8f0ff' },
