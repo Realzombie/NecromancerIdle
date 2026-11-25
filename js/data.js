@@ -167,8 +167,8 @@ export const STATS = {
 
 // Names for each tier node, and for the look you get once that tier is finished (index = finished tiers).
 export const TIER_NAMES = {
-  zombie:   { hp: ['Rotten Flesh', 'Stitched Flesh', 'Iron Plating'],   dmg: ['Ragged Claws', 'Sharpened Claws', 'Razor Claws'],
-              hpLook: ['Rotten', 'Stitched', 'Armoured', 'Warplated'],  dmgLook: ['Ragged', 'Clawed', 'Razor-clawed', 'Bone-bladed'] },
+  zombie:   { hp: ['Rotten Flesh', 'Stitched Flesh', 'Iron Plating'],   dmg: ['Wooden Club', 'Battered Pitchfork', 'Iron Spear'],
+              hpLook: ['Rotten', 'Stitched', 'Armoured', 'Warplated'],  dmgLook: ['Bare-handed', 'Club', 'Pitchfork', 'Spear'] },
   archer:   { hp: ['Leather Cap', 'Chain Coif', 'Plate Helm'],          dmg: ['Reinforced Bow', 'Nocked Arrows', 'Fire-Tipped Arrows'],
               hpLook: ['Bare', 'Capped', 'Coifed', 'Helmed'],           dmgLook: ['Plain bow', 'Reinforced', 'Armed', 'Fire-tipped'] },
   skeleton: { hp: ['Iron Shield', 'Steel Helm', 'Gilded Shield'],       dmg: ['Keen Blade', 'Runed Blade', 'Flaming Blade'],

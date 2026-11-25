@@ -11,7 +11,7 @@ for (const u of PLAYER_UNITS) {
   if (only && !only.split(',').includes(u)) continue;
   const d = document.createElement('div'); d.className = 'c';
   for (const [hs, ds] of [[0, 0], [1, 1], [2, 2], [3, 3]]) {
-    const c = lookCanvas(u, { hs, ds, flags: [] }); c.style.width = c.width * S / 4 * 2 + 'px'; c.style.height = c.height * S / 4 * 2 + 'px'; d.appendChild(c);
+    const c = lookCanvas(u, { hs, ds, flags: (new URLSearchParams(location.search).get('f') || '').split(',').filter(Boolean) }); c.style.width = c.width * S / 4 * 2 + 'px'; c.style.height = c.height * S / 4 * 2 + 'px'; d.appendChild(c);
   }
   d.insertAdjacentHTML('beforeend', '<div>' + UNITS[u].name + '</div>');
   document.getElementById('s').appendChild(d);

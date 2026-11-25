@@ -388,14 +388,18 @@ function lookSprite(unit, look) {
   const rects = [];
   const poison = look.flags.includes('poison');
   for (let i = 0; i < look.hs; i++) { Object.assign(pal, L.hp[i].palette || {}); rects.push(...(L.hp[i].rects || [])); }
-  const dmgRects = [];
+  const dmgRects = [], glows = [];
   for (let i = 0; i < look.ds; i++) {
     const st = L.dmg[i];
     Object.assign(pal, st.palette || {});
-    if (st.replace) dmgRects.length = 0;                                   // a stage that swaps the previous one out (zombie weapons)
-    for (const r of st.rects || []) dmgRects.push(poison && st.tintable ? [r[0], r[1], '#9dff7a', r[3], r[4]] : r);
+    if (st.replace) { dmgRects.length = 0; glows.length = 0; }             // a stage that swaps the previous one out (zombie weapons)
+    for (const r of st.rects || []) {
+      // poison: claws turn green; weapons get a green halo and their metal parts glow (rects marked 'm')
+      if (poison && st.glow) glows.push([r[0] - 0.5, r[1] - 0.5, 'rgba(157,255,122,0.38)', (r[3] || 1) + 1, (r[4] || 1) + 1]);
+      dmgRects.push(poison && st.tintable ? [r[0], r[1], '#9dff7a', r[3], r[4]] : poison && st.glow && r[5] === 'm' ? [r[0], r[1], '#b8ff90', r[3], r[4]] : r);
+    }
   }
-  rects.push(...dmgRects);
+  rects.push(...glows, ...dmgRects);
   for (const f of look.flags) rects.push(...((L.flags && L.flags[f]) || []));
   const gw = Math.max(...grid.map((r) => r.length));
   const up = Math.max(0, -Math.min(0, ...rects.map((q) => q[1])));          // rows added on top for anything that rises above the grid (spear tips, horns)
