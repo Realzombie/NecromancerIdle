@@ -366,7 +366,7 @@ function makeSprite(c, ax) {
 let ART_ON = false;   // false = Normal (the original pixel look, now the default), true = HD
 try { ART_ON = localStorage.getItem('necro_art2') === 'hd'; } catch (e) { /* ignore */ }
 // Normal sprites are drawn a size bigger than they used to be.
-const NORMAL_BOOST = 1.4;
+const NORMAL_BOOST = 1;   // Normal sprites are back at their original size (was 1.4 for a while); raise to enlarge them again
 const boosted = (sc) => Math.max(1, Math.round(sc * NORMAL_BOOST));
 export const artStyleOn = () => ART_ON;
 export function setArtStyle(on) {

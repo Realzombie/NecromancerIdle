@@ -255,3 +255,6 @@ Everything below is pushed to `main` and live on GitHub Pages (service worker `C
 ## Nov 25: Normal is the default, and bigger
 - Will prefers the original pixel look in combat, so **Normal** (the old art) is now the default and the new painted art is called **HD** (gear menu button HD / NORM, stored as `necro_art2`; old choices did not carry over). Normal sprites are now drawn 1.4x bigger (`NORMAL_BOOST` in `js/render.js`, rounded per sprite scale; the small UI icons are not boosted). The Normal zombie hound was redrawn as a proper dog (long legs, ears, snout, fangs) because the old grid read as a pig.
 - Preview pages show the current setting (Normal by default); add `?m=hd` to see HD.
+
+## Nov 25 (later): Normal back to original size, archer bow
+- Will preferred Normal at its original size, so `NORMAL_BOOST` in `js/render.js` is back to 1 (set it above 1 to enlarge again). The Normal skeleton archer was redrawn with a proper curved bow, string and arrow (`archer` in `js/looks.js`, grid now 12 wide). A painterly dark-fantasy HD experiment (modelled on a Legion Breaker style reference) was tried on the Skeleton Warrior and dropped; Will is focusing on refining the Normal models for now.
