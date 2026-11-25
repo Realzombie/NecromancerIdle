@@ -9,25 +9,25 @@ const ZOMBIE_GRID = [
   '.GEGGEGG',
   '.GGGRGG.',
   '..GGGG..',
-  'GBBBBBB.',
   'GBBBBBBG',
+  'GBBKBBBG',
   '.BBBBBB.',
   '.BBDDBB.',
   '.GG..GG.',
   '.DD..DD.',
 ];
 const ZOMBIE_ROTTEN = [
-  '..gGg...',
+  '..gGGg..',
   '.gGGGGg.',
-  '.GEGgEG.',
+  '.GEGGEG.',
   '.GGRRGG.',
-  '...gGg..',
-  '.BB.BB..',
-  'GB.BBBB.',
-  '.BBB.B..',
-  '.BB.DB..',
-  '.G...G..',
-  '.D..DD..',
+  '..gGGg..',
+  'GBBKBBB.',
+  'GBBKKBBG',
+  '.BB.BBB.',
+  '.BBDDB..',
+  '.GG..G..',
+  '.DD..DD.',
 ];
 
 // Classic flyers. The drake is drawn front-on (wings spread, skull on top, ribs and a tail) so it reads clearly at this size.
@@ -105,8 +105,8 @@ export const LOOKS = {
   zombie: {
     scale: 4, pad: 3,
     gridFor: (hs) => (hs === 0 ? ZOMBIE_ROTTEN : ZOMBIE_GRID),
-    palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848' },
-    rottenPalette: { G: '#8a9a7a', g: '#6a7a5c', B: '#4a4050', D: '#2f2838', R: '#6a2a2a' },
+    palette: { G: '#7fa86a', g: '#5f8a52', E: '#e8e0a0', B: '#5a4a6a', D: '#3a2f48', R: '#a04848', K: '#cfc6a8' },
+    rottenPalette: { G: '#96a886', g: '#6e8062', B: '#5a4a62', D: '#2f2838', R: '#8a3030', K: '#d8d0b0' },
     hp: [
       { palette: { B: '#6a5a7a' }, rects: [[3, 5, '#2a2030'], [4, 6, '#2a2030'], [3, 7, '#2a2030'], [6, 1, '#2a2030'], [1, 3, '#2a2030']] },
       { rects: [[2, 0, '#a8a8b8', 4], [1, 1, '#a8a8b8'], [6, 1, '#a8a8b8'], [3, 1, '#c8c8d8', 2], [2, 5, '#8a8a9a', 4, 2], [3, 5, '#c8c8d8', 2], [0, 5, '#8a8a9a'], [7, 5, '#8a8a9a']] },
