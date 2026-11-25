@@ -13,16 +13,16 @@ const GRID = [
   '..HHhHHHHHHhHH..T.',
   '..HhHDDDDDDHhH..T.',
   '..HhDDEDDEDDhH..T.',
-  '..HHDDDKDDDDHH..T.',
-  '..HHDKKKKKKDHH..T.',
-  '...HHDKDKDKDHH..T.',
+  '..HHDDDDDDDDHH..T.',
+  '..HHDKDKDKDDHH..T.',
+  '...HHDDDDDDDHH..T.',
   '...HRRRRRRRRRH..T.',
   '..RRrRRRRRRRRrR.T.',
   '.RRrRRRLLRRRrRRRT.',
   '.RRrRRRLLRRRrRNNT.',
   '.RRrRRRLLRRRrRNNT.',
-  '.NRrRBBBGBBBRrRRT.',
-  '.NRrRRRRKRRRRrRRT.',
+  '.NRrBBBGGBBBRrRRT.',
+  '.NRrRRRKKRRRRrRRT.',
   '..RrRRRLLRRRRrRRT.',
   '..RrRRRLLRRRRrRRT.',
   '.RRrRRRLLRRRRrRRT.',
@@ -45,13 +45,13 @@ const RANKS = [
     pal: { H: '#3a2a5a', h: '#6a56a0', D: '#0c0818', E: '#8fe66a', K: '#e0d8c0', W: '#e8e0d0', R: '#2e2250', r: '#4a3a7a', L: '#6a56a0', B: '#5a3a20', G: '#d8b050', N: '#d8d0b8', T: '#6a4a28' },
     over: [[4, 9, 'h', 9, 1], [3, 10, 'h', 2, 1], [11, 10, 'h', 2, 1]],
   },
-  { // Bone Lord: bone pauldrons and collar, a spiked bone crown, gold trim
+  { // Bone Lord: bone pauldrons and collar, a spiked bone circlet on the brow, gold trim
     pal: { H: '#2a1a4a', h: '#7a5ab8', D: '#0a0614', E: '#b8f090', K: '#e8e0c8', W: '#f0e8d8', R: '#241a3c', r: '#5a3a8a', L: '#c8a040', B: '#4a2a18', G: '#e8c050', N: '#e0d8c0', T: '#8a6a30' },
-    over: [[4, 9, 'K', 9, 1], [1, 9, 'K', 3, 2], [13, 9, 'K', 3, 2], [1, 11, 'K', 2, 1], [14, 11, 'K', 1, 1], [6, 0, 'K'], [8, 0, 'K'], [10, 0, 'K'], [6, 1, 'K', 5, 1], [4, 14, 'G', 1, 1], [12, 14, 'G', 1, 1]],
+    over: [[4, 9, 'K', 9, 1], [1, 9, 'K', 3, 2], [13, 9, 'K', 3, 2], [1, 11, 'K', 2, 1], [14, 11, 'K', 1, 1], [5, 4, 'K', 6, 1], [6, 3, 'K'], [9, 3, 'K']],     // the bone circlet sits on the brow, inside the hood
   },
-  { // Lich: black robes with green trim, a bare skull and a gold circlet
+  { // Lich: black robes with green trim and a gold circlet (the face always stays hidden in the hood)
     pal: { H: '#101014', h: '#2a2a38', D: '#04040a', E: '#b8f090', K: '#e8e8d8', W: '#f0f0e0', R: '#0c0c12', r: '#1a2a20', L: '#4aa860', B: '#101010', G: '#d8c060', N: '#e8e8d8', T: '#d8d0b0' },
-    over: [[5, 3, 'W', 7, 5], [6, 5, 'D', 2, 2], [9, 5, 'D', 2, 2], [7, 6, 'E'], [10, 6, 'E'], [8, 7, 'D'], [6, 8, 'W', 1, 1], [4, 2, 'G', 9, 1], [8, 1, 'G', 1, 1], [4, 9, 'L', 9, 1], [1, 9, 'h', 2, 2], [14, 9, 'h', 2, 2]],
+    over: [[5, 4, 'G', 6, 1], [7, 4, 'E', 2, 1], [4, 9, 'L', 9, 1], [1, 9, 'h', 2, 2], [14, 9, 'h', 2, 2]],     // the gold circlet is worn on the brow, in the shade of the hood
   },
   { // Crimson (epic robes): red and gold with curved bone horns
     pal: { H: '#4a1020', h: '#9a2c44', D: '#0c0408', E: '#ffd060', K: '#e8dcc0', W: '#f0e4d0', R: '#3a0c18', r: '#7a2038', L: '#e8b848', B: '#2a0c10', G: '#ffd060', N: '#e0d0b8', T: '#8a5a30' },

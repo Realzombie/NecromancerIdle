@@ -807,11 +807,8 @@ function drawParts(g, ox, oy, parts) {
 
 // A small skull used on the staff and in the orbiting ring. Faces right when `right` is set.
 function drawMiniSkull(g, cx, cy, right) {
-  const e = right ? 1 : -1;
-  drawParts(g, cx, cy, [
-    [-5, -5, 10, 7, '#e8e4d0'], [-3, 2, 6, 3, '#d4cfb8'], [-5, 0, 3, 2, '#b8b4a0'],
-    [-4, -2, 3, 3, '#14101a'], [1, -2, 3, 3, '#14101a'], [e > 0 ? 1 : -3, -1, 2, 2, '#9dff7a'], [-1, 1, 2, 2, '#14101a'], [-1, 3, 1, 2, '#14101a'], [1, 3, 1, 2, '#14101a'],
-  ]);
+  // deliberately plain, like the rest of the sprites: a pale block, two dark dot eyes and a dark line for a mouth
+  drawParts(g, cx, cy, [[-5, -5, 10, 9, '#e8e4d0'], [-3, -3, 2, 2, '#14101a'], [1, -3, 2, 2, '#14101a'], [-3, 1, 6, 1, '#14101a']]);
 }
 
 // The head of the staff follows the staff he wields: a claw holding an orb, then a skull, a horned skull and a crowned skull
@@ -834,7 +831,6 @@ function drawStaffHead(g, ox, oy, r, t, cast, glow) {
   if (r >= 4) parts.push([-8, -29, 16, 3, '#d8b050'], [-8, -33, 3, 4, '#d8b050'], [-2, -35, 4, 6, '#ffd060'], [5, -33, 3, 4, '#d8b050']);
   drawParts(g, ox, oy, parts);
   drawMiniSkull(g, ox, oy - 15, true);
-  g.fillStyle = glow; g.globalAlpha = 0.9; g.fillRect(Math.round(ox + 1), Math.round(oy - 16), 2, 2); g.fillRect(Math.round(ox - 3), Math.round(oy - 16), 2, 2); g.globalAlpha = 1;
   if (r >= 4) for (let i = 0; i < 5; i++) {                                // flames licking up from the crown
     const k = (t * 1.6 + i * 0.37) % 1;
     g.globalAlpha = 1 - k; g.fillStyle = i % 2 ? '#ffd060' : '#ff7a20';
