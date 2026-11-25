@@ -14,7 +14,7 @@ const GRID = [
   '..HhHDDDDDDHhH..T.',
   '..HhDDEDDEDDhH..T.',
   '..HHDDDDDDDDHH..T.',
-  '..HHDKKKKKKDHH..T.',
+  '..HHDKKKKKDDHH..T.',
   '...HHKDKDKDDHH..T.',
   '...HRRRRRRRRRH..T.',
   '..RRrRRRRRRRRrR.T.',
