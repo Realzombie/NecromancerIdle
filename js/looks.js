@@ -125,16 +125,16 @@ export const LOOKS = {
   archer: {
     scale: 4, pad: 2,
     grid: [
-      '..BBBB...',
-      '.BBBBBB..',
-      '.BEBBEB..',
-      '..BBBB...',
-      '..bBBb.WS',
-      '.BBBBBBW.',
-      '.b.BB.bWS',
-      '..BBBB.W.',
-      '..B..B.WS',
-      '..B..B...',
+      '..BBBB......',
+      '.BBBBBB.W...',
+      '.BEBBEB.SW..',
+      '..BBBB..SW..',
+      '..bBBb..S.W.',
+      '.BBBBBBBBBW.',
+      '.b.BB.b.SW..',
+      '..BBBB..SW..',
+      '..B..B..W...',
+      '..B..B......',
     ],
     palette: { B: '#e8e0c8', b: '#b8b09a', E: '#2a2030', W: '#8a5a2a', S: '#d8d0b0' },
     hp: [
@@ -144,10 +144,10 @@ export const LOOKS = {
     ],
     dmg: [
       { palette: { W: '#c8a040' }, rects: [] },
-      { rects: [[6, 6, '#d8d0b0', 3]] },
-      { palette: { W: '#c04020' }, rects: [[8, 6, '#ff8030'], [9, 5, '#ffc060'], [9, 6, '#ff8030']] },
+      { rects: [[6, 4, '#d8d0b0', 5], [11, 4, '#ffffff']] },
+      { palette: { W: '#c04020' }, rects: [[11, 4, '#ff8030'], [11, 3, '#ffc060'], [10, 3, '#ff8030']] },
     ],
-    flags: { fire: [[8, 3, '#ff8030'], [8, 2, '#ffc060']] },
+    flags: { fire: [[11, 3, '#ffc060'], [11, 4, '#ff8030']] },
   },
 
   skeleton: {
