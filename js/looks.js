@@ -115,8 +115,8 @@ export const LOOKS = {
     // weapons instead of claws: bare hands, then a small club, a battered pitchfork and a full spear (held in the right hand)
     dmg: [
       { rects: [[8, 4, '#6a4a28', 1, 3], [8, 2, '#8a6038', 2, 2], [9, 3, '#5a3a1c']] },
-      { rects: [[8, 1, '#6a4a28', 1, 7], [7, 0, '#8a8a98', 3, 1], [7, -2, '#8a8a98', 1, 2], [9, -1, '#8a8a98', 1, 1], [10, -2, '#6e6e7c', 1, 1], [8, 0, '#6e6e7c']] },
-      { rects: [[8, 0, '#7a5230', 1, 9], [8, -4, '#e8eef8', 1, 3], [7, -1, '#c8a040', 3, 1], [9, 0, '#c04040', 1, 2]] },
+      { replace: true, rects: [[8, 1, '#6a4a28', 1, 7], [7, 0, '#8a8a98', 3, 1], [7, -2, '#8a8a98', 1, 2], [9, -1, '#8a8a98', 1, 1], [10, -2, '#6e6e7c', 1, 1], [8, 0, '#6e6e7c']] },
+      { replace: true, rects: [[8, 0, '#7a5230', 1, 9], [8, -4, '#e8eef8', 1, 3], [7, -1, '#c8a040', 3, 1], [9, 0, '#c04040', 1, 2]] },
     ],
     flags: {
       poison: [[3, 3, '#9dff7a'], [5, 3, '#9dff7a'], [4, 4, '#b8ff7a'], [4, 5, '#9dff7a']],

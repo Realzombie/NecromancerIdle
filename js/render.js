@@ -388,11 +388,14 @@ function lookSprite(unit, look) {
   const rects = [];
   const poison = look.flags.includes('poison');
   for (let i = 0; i < look.hs; i++) { Object.assign(pal, L.hp[i].palette || {}); rects.push(...(L.hp[i].rects || [])); }
+  const dmgRects = [];
   for (let i = 0; i < look.ds; i++) {
     const st = L.dmg[i];
     Object.assign(pal, st.palette || {});
-    for (const r of st.rects || []) rects.push(poison && st.tintable ? [r[0], r[1], '#9dff7a', r[3], r[4]] : r);
+    if (st.replace) dmgRects.length = 0;                                   // a stage that swaps the previous one out (zombie weapons)
+    for (const r of st.rects || []) dmgRects.push(poison && st.tintable ? [r[0], r[1], '#9dff7a', r[3], r[4]] : r);
   }
+  rects.push(...dmgRects);
   for (const f of look.flags) rects.push(...((L.flags && L.flags[f]) || []));
   const gw = Math.max(...grid.map((r) => r.length));
   const up = Math.max(0, -Math.min(0, ...rects.map((q) => q[1])));          // rows added on top for anything that rises above the grid (spear tips, horns)
