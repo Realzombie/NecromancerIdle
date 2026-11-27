@@ -46,7 +46,7 @@ const BASES = {
   familiar: ['Severed Hand', 'Skeletal Hand', 'Crawling Claw', 'Ghostly Hand'],
 };
 // Gear is meant to feel earned: the best rarity a zone can drop climbs slowly, and the power stays with your summons.
-export const rarityCap = (zone) => (zone <= 2 ? 0 : zone <= 4 ? 1 : zone <= 6 ? 2 : zone <= 9 ? 3 : 4);
+export const rarityCap = (zone) => (zone <= 4 ? 0 : zone <= 10 ? 1 : zone <= 18 ? 2 : zone <= 28 ? 3 : 4);
 const CAP_ODDS = [[100], [72, 28], [58, 30, 12], [46, 30, 17, 7], [40, 30, 20, 8, 2]];
 const GEAR_POWER = 0.75;
 const PREFIX = {
@@ -76,7 +76,7 @@ function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
 
 // Roll a rarity for a drop in the given zone. Harder zones and bosses push the odds towards better gear.
 export function rollRarity(rng, zone, boss, minIndex = 0) {
-  const push = 1 + 0.08 * zone + (boss ? 0.8 : 0);
+  const push = 1 + 0.025 * zone + (boss ? 0.8 : 0);
   const w = RARITIES.map((r, i) => (i < minIndex ? 0 : r.weight * (i === 0 ? 1 : Math.pow(push, i))));
   let t = rng() * w.reduce((a, b) => a + b, 0);
   for (let i = 0; i < w.length; i++) { t -= w[i]; if (t <= 0) return i; }
@@ -86,7 +86,7 @@ export function rollRarity(rng, zone, boss, minIndex = 0) {
 export function makeItem(save, rng, zone, rarityIdx, slot) {
   const R = RARITIES[rarityIdx];
   slot = slot || pick(rng, SLOTS);
-  const scale = 1 + 0.1 * (zone - 1);
+  const scale = 1 + 0.025 * (zone - 1);
   const roll = () => 0.8 + rng() * 0.4;
   const stats = [{ k: SLOT_MAIN[slot], v: STAT_DEFS[SLOT_MAIN[slot]].base * R.mult * scale * roll() * GEAR_POWER }];
   const pool = EXTRA_POOL[slot].filter((k) => k !== SLOT_MAIN[slot]);
@@ -96,7 +96,7 @@ export function makeItem(save, rng, zone, rarityIdx, slot) {
   }
   let fx = null;
   if (rarityIdx === 4 || (rarityIdx === 3 && rng() < 0.4)) fx = pick(rng, FX_KEYS);
-  const tier = Math.min(3, Math.floor((zone - 1) / 3));
+  const tier = Math.min(3, Math.floor((zone - 1) / 10));
   const pre = pick(rng, PREFIX[R.id]);
   save.gearSeq = (save.gearSeq || 0) + 1;
   return {
@@ -109,7 +109,7 @@ export function makeItem(save, rng, zone, rarityIdx, slot) {
 export function rerollExtras(item, rng) {
   const R = rarityOf(item);
   const main = item.stats[0];
-  const scale = 1 + 0.1 * (item.zone - 1);
+  const scale = 1 + 0.025 * (item.zone - 1);
   const pool = EXTRA_POOL[item.slot].filter((k) => k !== main.k);
   item.stats = [main];
   for (let i = 0; i < R.extras && pool.length; i++) {
@@ -258,7 +258,7 @@ export function rollDrops(save, rng, zone, { cleared, first, count: forced }) {
     out.push(makeItem(save, rng, zone, idx));
   }
   if (cleared && first) {
-    const idx = cap === 4 ? (zone >= 12 ? 4 : 3) : cap;
+    const idx = cap === 4 ? (zone >= 36 ? 4 : 3) : cap;
     save.pity = 0;
     out.push(makeItem(save, rng, zone, idx));
   }

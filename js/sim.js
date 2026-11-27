@@ -4,6 +4,8 @@ import {
   PLAYER_UNITS, legionOwned, legionReady, legionCost, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
   LEGION_MULT, playerRating, PERKS, PACT_ORDER, worldMul, zoneRebirth, unitRebirthOk, statNeeds, perkLock, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
   gateMet, bestiaryBonus, BOSS_ABILITIES, hazardsFor,
+  WAVES, BOSS_WAVE, ENDLESS_ID, composeWave, waveCurve, waveMul, waveSouls, threat, BOSS_BASE,
+  ARMY_SLOTS, armyCap, armyUsed, armyRoster, tidyArmy, musterCap, musterCost,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
 
@@ -11,35 +13,42 @@ let nextId = 1;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const ATTACK_TIME = 0.32;   // length of the attack animation
 const SWING_DELAY = 0.13;          // the hit lands this far into the animation
+const SURGES = 4;                  // a wave arrives in this many groups
+const SURGE_WAIT = 17;             // seconds before the next group comes anyway
 
 export class Battle {
-  constructor(save, zoneId = 1, rng = Math.random) {
+  constructor(save, zoneId = 1, wave = 1, rng = Math.random) {
     this.save = save;
     this.rng = rng;
     this.zone = zoneById(zoneId);
     this.zoneId = zoneId;
+    this.startWave = this.zone.endless ? 1 : clamp(wave, 1, BOSS_WAVE);
+    this.wave = this.startWave;
+    this.bossWave = !this.zone.endless && this.wave >= BOSS_WAVE;
     this.bossSpawned = false;
+    this.replay = !this.zone.endless && this.wave <= ((save.progress || {})[zoneId] || 0);
     this.units = [];
     this.projectiles = [];
     this.floaters = [];
     this.fx = [];              // slashes and sparks (visual only)
     this.events = [];          // sound cues, drained by the UI
     this.time = 0;
-    this.wave = 0;
     this.spawnQueue = [];
     this.spawnTimer = 0;
+    this.surges = [];
+    this.surgeWait = 0;
+    this.surge = 0;
     this.pause = 2;
     this.cast = 0;             // >0 while the necromancer is casting (visual)
-    this.raiseTimers = {};     // seconds since each unit type was last raised
     this.result = null;        // 'fail' | 'clear'
     this.kills = 0;
-    this.earned = 0;           // souls banked when the attempt ends
+    this.earned = 0;           // souls collected before the end-of-wave share
     this.payout = 0;
-    this.champDrop = 0;        // champion souls gained from the boss
+    this.champDrop = 0;
     this.spellCds = {};        // Raise Dead cooldown left for each summon type (seconds)
     this.gm = gearMods(save);
     this.bb = bestiaryBonus(save);
-    this.newFinds = [];       // enemy kinds defeated for the first time this attempt
+    this.newFinds = [];        // enemy kinds defeated for the first time this attempt
     save.seen = save.seen || {};
     this.mines = [];           // field hazards laid by the enemy (see layMines)
     this.timers = [];          // delayed effects such as boss attack wind-ups
@@ -48,12 +57,37 @@ export class Battle {
     this.deepest = FIELD_W;    // how far left any enemy got (for the attempt log)
     this.peakHorde = 0;
     this.lost = 0;             // summons that died
-    const startZombies = TUNING.startZombies + perk(save, 'horde');
-    for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
-    for (const t of this.raiseTypes()) { this.raiseTimers[t] = this.raiseInterval(t) * 0.5; this.spellCds[t] = 10; }
+
+    this.roster = armyRoster(save);     // what the necromancer keeps on the field
+    this.next = null;                   // the summon being raised to replace a loss
+    this.raising = 0;
+    for (const [type, n] of Object.entries(this.roster)) {
+      const [lo, hi] = UNITS[type].rally;
+      for (let i = 0; i < n; i++) this.spawn(type, this.rand(lo - 150, hi - 150));
+      this.spellCds[type] = 8;
+    }
+    this.planWave();
   }
 
-  get totalWaves() { return this.zone.waves; }
+  // Work out this wave's enemies, how strong they are and what each is worth, and split them into surges.
+  planWave() {
+    const list = composeWave(this.zone, this.wave);
+    this.curve = waveCurve(this.zone, this.wave);
+    if (this.bossWave) list.length = Math.ceil(list.length * 0.6);     // the boss brings a smaller escort
+    this.mul = waveMul(this.zone, this.wave, list);
+    const souls = waveSouls(this.zone, this.wave);
+    this.soulsPerThreat = (souls * (this.bossWave ? 0.5 : 1)) / list.reduce((a, t) => a + threat(UNITS[t]), 0);
+    this.bossBounty = souls * 0.5;
+    const mixed = list.sort(() => this.rng() - 0.5);
+    const groups = this.bossWave ? 2 : SURGES;
+    this.surges = Array.from({ length: groups }, (_, i) => mixed.slice(Math.floor((i * mixed.length) / groups), Math.floor(((i + 1) * mixed.length) / groups)));
+    this.surge = 0;
+    this.surgeWait = 0;
+    this.layMines();
+  }
+
+  get totalWaves() { return this.zone.endless ? Infinity : WAVES; }
+  get wavesDone() { return this.surge >= this.surges.length && !this.spawnQueue.length && (!this.bossWave || this.bossSpawned); }
 
   later(delay, fn) { this.timers.push({ t: delay, fn }); }
 
@@ -136,7 +170,7 @@ export class Battle {
     const H = hazardsFor(this.zone, this.wave);
     for (let i = 0; i < H.mines; i++) {
       if (this.mines.length >= 16) break;
-      this.mines.push({ x: this.rand(330, 800), y: this.rand(LANE_TOP + 6, LANE_BOTTOM - 6), arm: 1 + i * 0.1, pulse: this.rand(0, 3), flat: H.mineFlat, pct: H.minePct, boom: 0 });
+      this.mines.push({ x: this.rand(430, 800), y: this.rand(LANE_TOP + 6, LANE_BOTTOM - 6), arm: 3 + i * 0.1, pulse: this.rand(0, 3), flat: 4 * H.mineK, pct: H.minePct, boom: 0 });
     }
     for (let i = 0; i < H.banners; i++) {
       const u = this.spawn('warbanner', FIELD_W - 110 - i * 70, LANE_TOP + (LANE_BOTTOM - LANE_TOP) * (H.banners === 1 ? 0.5 : (i + 0.5) / H.banners), true);
@@ -188,14 +222,14 @@ export class Battle {
     const def = UNITS[type];
     let hpMul = 1, dmgMul = 1;
     const base = def.legion || type;   // a Legion shares the upgrades of its summon
-    if (def.team === 'player' && !def.static) { const m = statMods(this.save, base); hpMul = m.hp * (1 + this.gm.hp) * (1 + this.bb.hp); dmgMul = m.dmg * (1 + this.gm.dmg) * (1 + this.bb.dmg); }
-    else {
-      const w = worldMul(this.save);
-      const s = def.boss || flat ? 1 : Math.pow(this.zone.scale, Math.max(0, this.wave - 1));
-      hpMul = s * w.hp; dmgMul = s * w.dmg;
-    }
+    if (def.team === 'player') { const m = statMods(this.save, base); hpMul = m.hp * (1 + this.gm.hp) * (1 + this.bb.hp); dmgMul = m.dmg * (1 + this.gm.dmg) * (1 + this.bb.dmg); }
+    else if (def.boss) {
+      const heft = def.hp >= 850 ? 1.25 : 1;
+      hpMul = (BOSS_BASE.hp * this.curve * heft) / def.hp; dmgMul = (BOSS_BASE.dmg * this.curve) / def.dmg;
+    } else if (def.static) { hpMul = this.curve * 0.8; dmgMul = 1; }
+    else { hpMul = dmgMul = this.mul || 1; }
     const u = {
-      id: nextId++, type, def, team: def.team,
+      id: nextId++, type, def, team: def.team, hpK: hpMul,
       x, y: y !== undefined ? y : this.rand(LANE_TOP, LANE_BOTTOM),
       hp: def.hp * hpMul, maxHp: def.hp * hpMul, dmg: def.dmg * dmgMul,
       cd: this.rng() * def.atk, flash: 0, attackAnim: 0, moving: false, engaged: false, swing: null,
@@ -210,14 +244,15 @@ export class Battle {
     if (def.team === 'enemy') { const e = this.save.seen[type] || (this.save.seen[type] = {}); e.seen = true; }
     u.status = {};
     // Elites: a rare, bigger and meaner enemy that drops triple souls and may carry gear.
-    if (def.team === 'enemy' && !def.boss && !flat && this.wave >= 3 && this.rng() < 0.05) {
+    if (def.team === 'enemy' && !def.boss && !flat && (this.wave >= 3 || this.zoneId > 2) && this.rng() < 0.04) {
       u.elite = true; u.hp = u.maxHp = u.maxHp * 2.2; u.dmg *= 1.3;
     }
     if (def.summon) u.sumCd = def.summon.every * 0.7;
+    if (def.team === 'enemy' && !def.static) u.bounty = def.boss ? this.bossBounty : threat(def) * (this.soulsPerThreat || 0) * (flat ? 0.2 : 1);
     if (def.team === 'player' && !def.static) {
       u.look = lookOf(this.save, base);
       u.sp = {};
-      for (const k of SPECIAL_KEYS) if (SPECIALS[k].unit === base && hasSpecial(this.save, k)) u.sp[k] = true;
+      for (const k of SPECIAL_KEYS) if (SPECIALS[k].unit === base && hasSpecial(this.save, k)) { u.sp[k] = true; if (SPECIALS[k].effect) u.sp[SPECIALS[k].effect] = true; }
     }
     if (def.rally) this.pickHome(u, true);
     this.units.push(u);
@@ -242,11 +277,8 @@ export class Battle {
     return n;
   }
 
-  // What the necromancer raises: once a Legion is learned it is raised INSTEAD of the single summon, to keep the field clear.
-  // (The free starting zombies, and any raised by gear, are always ordinary ones.)
-  raiseTypes() {
-    return PLAYER_UNITS.filter((t) => owned(this.save, t)).map((t) => (legionOwned(this.save, t) ? 'legion_' + t : t));
-  }
+  // The summons in this army (legions standing in where learned). Each has a Raise Dead button.
+  raiseTypes() { return Object.keys(this.roster); }
 
   // How many hounds hunt together (a hound Legion is a whole pack).
   packSize() {
@@ -255,7 +287,31 @@ export class Battle {
     return n;
   }
 
-  raiseInterval(type) { return UNITS[type].raise * statMods(this.save, UNITS[type].legion || type).cooldown * raiseMul(this.save); }
+  // Seconds to replace one fallen summon: bigger ones take longer. A Legion takes as long as eight of its summon.
+  raiseInterval(type) {
+    const base = UNITS[type].legion || type;
+    return TUNING.reinforceBase * Math.pow(ARMY_SLOTS[base], 0.8) * (UNITS[type].legion ? 8 : 1) * statMods(this.save, base).cooldown * raiseMul(this.save);
+  }
+
+  // The necromancer raises one replacement at a time and never takes the army above what you set.
+  reinforce(dt) {
+    const alive = {};
+    for (const u of this.units) if (u.team === 'player') alive[u.type] = (alive[u.type] || 0) + 1;
+    const short = (t) => this.roster[t] - (alive[t] || 0);
+    if (!this.next || short(this.next) <= 0) {
+      this.next = null; this.raising = 0;
+      let best = 0;
+      for (const t of Object.keys(this.roster)) { const share = short(t) / this.roster[t]; if (share > best) { best = share; this.next = t; } }
+      if (!this.next) return;
+    }
+    this.raising += dt;
+    if (this.raising >= this.raiseInterval(this.next)) {
+      this.spawn(this.next, NECRO_X + 55);
+      this.next = null; this.raising = 0;
+      this.cast = 0.5;
+      this.emit('raise');
+    }
+  }
 
   // Raise Dead: a free burst of one summon type on a long cooldown (needs the unlock from the skill web).
   spellReady(type) { return !this.result && spellUnlocked(this.save) && (this.spellCds[type] ?? 10) <= 0; }
@@ -271,7 +327,7 @@ export class Battle {
   }
 
   raiseProgress(type) {
-    return clamp((this.raiseTimers[type] || 0) / this.raiseInterval(type), 0, 1);
+    return type === this.next ? clamp(this.raising / this.raiseInterval(type), 0, 1) : 0;
   }
 
   update(dt) {
@@ -285,46 +341,39 @@ export class Battle {
     this.timers = this.timers.filter((tm) => tm.t > 0);
     this.corpses = this.corpses.filter((c) => c.t < 0.7);
 
-    // The necromancer raises each unit type on its own cooldown.
-    for (const type of this.raiseTypes()) {
-      const t = (this.raiseTimers[type] ?? 0) + dt;
-      if (t >= this.raiseInterval(type)) {
-        this.raiseTimers[type] = 0;
-        this.spawn(type, NECRO_X + 55);
-        this.cast = 0.5;
-        this.emit('raise');
-      } else {
-        this.raiseTimers[type] = t;
-      }
-    }
+    this.reinforce(dt);
 
-    // Waves
+    // Surges: the next group arrives when the field is nearly clear, or after a while anyway.
+    this.surgeWait -= dt;
     if (this.spawnQueue.length) {
       this.spawnTimer -= dt;
       if (this.spawnTimer <= 0) {
         this.spawn(this.spawnQueue.shift(), FIELD_W - 30);
         this.spawnTimer = TUNING.spawnGap;
       }
+    } else if (this.surge < this.surges.length) {
+      if ((this.surge === 0 && this.time >= 1.5) || (this.surge > 0 && (this.surgeWait <= 0 || this.alive('enemy') <= 2))) {
+        this.spawnQueue = [...this.surges[this.surge]];
+        this.surge++;
+        this.surgeWait = SURGE_WAIT + this.spawnQueue.length * TUNING.spawnGap;
+        this.spawnTimer = 0;
+        this.emit('wave');
+      }
+    } else if (this.bossWave && !this.bossSpawned) {
+      if (this.surgeWait <= 0 || this.alive('enemy') <= 2) {
+        this.bossSpawned = true;
+        this.emit('boss');
+        this.spawn(this.zone.boss, FIELD_W - 30);
+        this.pause = 0.8;
+      }
     } else if (this.alive('enemy') === 0) {
       if (this.units.some((u) => u.def.banner)) { for (const u of this.units) if (u.def.banner) { u.hp = 0; u.retreat = true; } }
       this.pause -= dt;
       if (this.pause <= 0) {
-        if (this.wave >= this.totalWaves) {
-          if (this.bossSpawned) { this.finish('clear'); return; }
-          this.bossSpawned = true;
-          this.emit('boss');
-          this.spawn(this.zone.boss, FIELD_W - 30);
-          this.layMines();
-          this.pause = 0.8;     // the beat between the last death and the victory screen
-          return;
-        }
-        this.wave++;
-        this.emit('wave');
-        this.layMines();
-        // Shuffle so mixed waves arrive in a random order.
-        this.spawnQueue = this.zone.compose(this.wave).sort(() => this.rng() - 0.5);
-        this.spawnTimer = 0;
-        this.pause = TUNING.wavePause;
+        if (!this.zone.endless) { this.finish('clear'); return; }
+        this.wave++;                 // the Endless Crypt never stops
+        this.pause = 2;
+        this.planWave();
       }
     }
 
@@ -397,12 +446,12 @@ export class Battle {
         const se = this.save.seen[u.type] || (this.save.seen[u.type] = {});
         se.kills = (se.kills || 0) + 1;
         if (se.kills === 1) this.newFinds.push(u.type);
-        const drop = u.def.drop * soulMul(this.save) * (u.elite ? 3 : 1);
+        const drop = (u.bounty || 0) * soulMul(this.save) * (u.elite ? 3 : 1);
         this.earned += drop;
         this.kills++;
         if (u.elite) { this.eliteKills = (this.eliteKills || 0) + 1; this.fx.push({ k: 'ring', x: u.x, y: u.y - 8, t: 0, life: 0.5, color: '#ffd060' }); }
-        this.floaters.push({ x: u.x, y: u.y - 30, text: '+' + Math.round(drop), t: 0 });
-        if (this.gm.fx.reaper && !u.def.boss && this.rng() < 0.12 && this.alive('player') < 90) {
+        this.floaters.push({ x: u.x, y: u.y - 30, text: '+' + Math.max(1, Math.round(drop)), t: 0 });
+        if (this.gm.fx.reaper && !u.def.boss && this.rng() < 0.1 && this.alive('player') < armyCap(this.save) + 6) {
           const z = this.spawn('zombie', clamp(u.x, 120, FIELD_W - 80), u.y);
           this.fx.push({ k: 'ring', x: z.x, y: z.y - 6, t: 0, life: 0.4, color: '#8fd16a' });
         }
@@ -510,7 +559,9 @@ export class Battle {
 
     u.engaged = !!(target && best <= u.def.range + target.def.radius);
     if (u.def.fly) {
-      const want = u.engaged && u.def.range <= 40 ? 14 : u.alt;
+      // Enemy flyers that fight from range dip low every few seconds, so a horde with no archers can still reach them.
+      const dipping = u.team === 'enemy' && u.def.range > 40 && u.age % 10 > 6.5;
+      const want = dipping || (u.engaged && u.def.range <= 40) ? 14 : u.alt;
       u.altNow += Math.sign(want - u.altNow) * Math.min(Math.abs(want - u.altNow), (u.engaged ? 260 : 90) * dt);
     }
     if (u.engaged) {
@@ -587,19 +638,29 @@ export class Battle {
     this.result = result;
     this.emit(result === 'clear' ? 'win' : 'lose');
     const s = this.save;
-    if (result === 'clear') {
-      const first = !s.cleared[this.zoneId];
-      s.cleared[this.zoneId] = true;
-      s.bestZone = Math.max(s.bestZone, this.zoneId);
-      if (first || this.rng() < TUNING.repeatSoulChance + 0.1 * perk(this.save, 'echo')) { this.champDrop = 1; s.champSouls += 1; }
-      this.firstClear = first;
+    s.progress = s.progress || {};
+    const prev = s.progress[this.zoneId] || 0;
+    this.firstWin = false;
+    this.zoneTaken = false;
+    this.firstClear = false;
+    if (result === 'clear' && !this.zone.endless) {
+      if (this.wave > prev) { s.progress[this.zoneId] = this.wave; this.firstWin = true; }
+      if (this.bossWave) {
+        this.zoneTaken = true;
+        this.firstClear = !s.cleared[this.zoneId];
+        s.cleared[this.zoneId] = true;
+        s.bestZone = Math.max(s.bestZone, this.zoneId);
+        if (this.firstClear || this.rng() < TUNING.repeatSoulChance + 0.05 * perk(s, 'echo')) { this.champDrop = 1; s.champSouls += 1; }
+      }
     }
-    this.payout = Math.floor(this.earned * (result === 'clear' ? 1 : TUNING.failPayout));
+    const share = result !== 'clear' ? TUNING.failPayout * (this.replay ? TUNING.replayPay : 1) : this.replay ? TUNING.replayPay : this.firstWin ? 1 + TUNING.firstWinBonus : 1;
+    this.payout = Math.floor(this.earned * (this.zone.endless ? 1 : share));
     s.souls += this.payout;
     const st = (s.stats = s.stats || {});
     const bump = (k, n = 1) => { st[k] = (st[k] || 0) + n; };
     bump('attempts'); bump('kills', this.kills); bump('soulsEarned', this.payout);
     bump(result === 'clear' ? 'clears' : 'fails');
+    if (this.firstClear) bump('zones');
     if (result === 'clear') st.fastestClear = Math.min(st.fastestClear || 1e9, this.time);
     if (this.zone.endless) {
       // Endless: the score is the number of waves fully survived. New records pay essence, champion souls and gear.
@@ -614,12 +675,14 @@ export class Battle {
         s.champSouls += this.endless.champ;
       }
       this.drops = rollDrops(s, this.rng, 12 + Math.floor(waves / 5), { cleared: false, count: Math.floor(waves / 8), first: false });
+    } else if (this.bossWave) {
+      this.drops = rollDrops(s, this.rng, this.zoneId, { cleared: result === 'clear', first: this.firstClear });
     } else {
-      this.drops = rollDrops(s, this.rng, this.zoneId, { cleared: result === 'clear', first: !!this.firstClear });
+      this.drops = result === 'clear' && this.rng() < (this.firstWin ? 0.16 : 0.05) ? rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }) : [];
     }
     // Each elite killed has a 12% chance to carry a piece of gear.
     const bonus = [];
-    for (let i = 0; i < Math.min(3, this.eliteKills || 0); i++) if (this.rng() < 0.12) bonus.push(...rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }));
+    for (let i = 0; i < Math.min(2, this.eliteKills || 0); i++) if (this.rng() < 0.05) bonus.push(...rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }));
     this.drops.push(...bonus);
     for (const it of this.drops) equipIfBetter(s, it);
     this.logAttempt(result);
@@ -632,7 +695,7 @@ export class Battle {
     const log = (s.log = s.log || []);
     log.push({
       at: Math.round(Date.now() / 1000), zone: this.zoneId, rebirths: s.rebirths || 0, won: result === 'clear' ? 1 : 0,
-      wave: this.wave, boss: this.bossSpawned ? 1 : 0, secs: Math.round(this.time), power: playerRating(s),
+      wave: this.wave, replay: this.replay ? 1 : 0, army: { ...this.roster }, secs: Math.round(this.time), power: playerRating(s),
       kills: this.kills, souls: this.payout, peak: this.peakHorde, lost: this.lost,
       danger: Math.round(100 * clamp((FIELD_W - this.deepest) / (FIELD_W - GATE_X), 0, 1)),   // 100 = they reached the gate
     });
@@ -653,7 +716,7 @@ export class Battle {
   tryHeal(u, dt) {
     u.healCd = (u.healCd === undefined ? u.def.heal.every * 0.5 : u.healCd) - dt;
     if (u.healCd > 0) return;
-    const amt = u.def.heal.amt * (u.team === 'player' && u.def.dmg ? u.dmg / u.def.dmg : 1);
+    const amt = u.def.heal.amt * (u.team === 'player' && u.def.dmg ? u.dmg / u.def.dmg : u.hpK || 1);
     if (u.sp && u.sp.mend) {
       let any = false;
       for (const o of this.units) {
@@ -715,7 +778,35 @@ export class Battle {
 }
 
 // ---- Skill tree actions ----
-export function zoneUnlocked(save, zoneId) { return (zoneId === 1 || !!save.cleared[zoneId - 1]) && (save.rebirths || 0) >= zoneRebirth(zoneId); }
+export function zoneUnlocked(save, zoneId) {
+  const before = zoneId === ENDLESS_ID ? !!save.cleared[12] : zoneId === 1 || !!save.cleared[zoneId - 1];
+  return before && (save.rebirths || 0) >= zoneRebirth(zoneId);
+}
+// You may fight any wave up to the first one you have not beaten.
+export const nextWave = (save, zoneId) => Math.min(BOSS_WAVE, ((save.progress || {})[zoneId] || 0) + 1);
+
+export function addToArmy(save, type, n = 1) {
+  const a = tidyArmy(save);
+  if (n > 0) {
+    if (!owned(save, type) || armyUsed(save) + n * ARMY_SLOTS[type] > armyCap(save)) return false;
+    a[type] = (a[type] || 0) + n;
+  } else {
+    if (!a[type]) return false;
+    a[type] = Math.max(0, a[type] + n);
+    if (!a[type]) delete a[type];
+  }
+  return true;
+}
+// One more army space, bought with souls. It is filled with a zombie until you change it.
+export function buyMuster(save) {
+  const lvl = save.nodes.muster || 0, cost = musterCost(save);
+  if (lvl >= musterCap(save) || save.souls < cost) return false;
+  tidyArmy(save);
+  save.souls -= cost;
+  save.nodes.muster = lvl + 1;
+  addToArmy(save, 'zombie', 1);
+  return true;
+}
 
 export function buyUnit(save, unit) {
   const def = UNITS[unit];
@@ -777,8 +868,15 @@ export function rebirth(save) {
   save.nodes = {};
   for (const u of kept) save.nodes['unit_' + u] = 1;
   save.cleared = {};
-  const conquered = perk(save, 'conquest');
+  save.progress = {};
+  save.army = {};
+  // Conquered Lands can only skip zones you could reach anyway.
+  const conquered = Math.min(perk(save, 'conquest'), save.bestEver);
   for (let z = 1; z <= conquered; z++) save.cleared[z] = true;
+  save.skipped = conquered;
   save.bestZone = conquered;
+  // Skipped zones still hand over their spoils: a champion soul each and most of the souls their waves would have paid.
+  save.champSouls = conquered;
+  for (let z = 1; z <= conquered; z++) for (let w = 1; w <= BOSS_WAVE; w++) save.souls += Math.floor(waveSouls(zoneById(z), w) * soulMul(save));
   return gain;
 }

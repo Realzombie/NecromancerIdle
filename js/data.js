@@ -1,5 +1,7 @@
 // All tunable game numbers live here.
 import { gearMods, gearScore } from './gear.js';
+import { ZONES, REGIONS, NEW_ENEMIES, WAVES, BOSS_WAVE, ENDLESS_ID, LAST_ZONE, composeWave, waveSize } from './zones.js';
+export { ZONES, REGIONS, WAVES, BOSS_WAVE, ENDLESS_ID, LAST_ZONE, composeWave, waveSize };
 export const GATE_X = 78;          // enemies reaching this x end the attempt
 export const NECRO_X = 44;         // where the necromancer stands
 // Logical battlefield size. Tall phones (about 20:9) get a wider field so the game fills the screen.
@@ -29,8 +31,14 @@ export const UNITS = {
   drake:        { name: 'Bone Drake',     hp: 120, dmg: 18, atk: 1.6, speed: 42, range: 170, radius: 15, raise: 38, rally: [260, 420], sprite: 'drake', team: 'player', unlockCost: 5, costMul: 3.6, fly: true, alt: [120, 160], splash: 42, blurb: 'A skeletal dragon that circles overhead and burns the ranks below with bone fire.' },
   gargoyle:     { name: 'Gargoyle',       hp: 150, dmg: 9,  atk: 1.3, speed: 34, range: 24,  radius: 12, raise: 34, rally: [420, 600], sprite: 'gargoyle', team: 'player', unlockCost: 4, costMul: 3.2, armor: 0.2, blurb: 'Living stone. Shrugs off a fifth of every blow.' },
 
+  wight:        { name: 'Barrow Wight',   hp: 95,  dmg: 11, atk: 1.0, speed: 44, range: 26, radius: 11, raise: 24, rally: [400, 580], sprite: 'wight', team: 'player', unlockCost: 3, costMul: 2.8, lifesteal: 0.25, blurb: 'An ancient barrow lord who drinks the life from what it strikes.' },
+  mummy:        { name: 'Mummy',          hp: 200, dmg: 7,  atk: 1.4, speed: 26, range: 24, radius: 11, raise: 28, rally: [420, 600], sprite: 'mummy', team: 'player', unlockCost: 3, costMul: 2.8, armor: 0.1, blurb: 'Wrapped, dried and very hard to put down.' },
+  spider:       { name: 'Grave Spider',   hp: 40,  dmg: 7,  atk: 0.8, speed: 72, range: 22, radius: 10, raise: 14, rally: [420, 660], sprite: 'spider', team: 'player', unlockCost: 3, costMul: 2.5, blurb: 'Quick and venomous. Its webs can slow whatever it bites.' },
+  banshee:      { name: 'Banshee',        hp: 55,  dmg: 14, atk: 2.0, speed: 46, range: 150, radius: 9, raise: 30, rally: [240, 400], sprite: 'banshee', team: 'player', unlockCost: 4, costMul: 3, fly: true, alt: [105, 145], splash: 55, blurb: 'Floats above the fight and wails, hurting everything bunched together.' },
+  bonegolem:    { name: 'Bone Golem',     hp: 520, dmg: 24, atk: 2.1, speed: 20, range: 32, radius: 18, raise: 48, rally: [400, 540], sprite: 'bonegolem', team: 'player', unlockCost: 5, costMul: 4, armor: 0.25, heavy: true, cleave: 46, blurb: 'A walking ossuary. The finest wall the dead can build.' },
+  reaper:       { name: 'Soul Reaper',    hp: 190, dmg: 38, atk: 1.5, speed: 48, range: 34, radius: 13, raise: 44, rally: [380, 540], sprite: 'reaper', team: 'player', unlockCost: 6, costMul: 4.2, cleave: 48, ghostly: true, dodge: 0.2, blurb: 'Death itself, on loan. Its scythe sweeps through whole ranks.' },
 
-  // Enemies. drop = souls banked per kill.
+  // Enemies. How strong they are in a wave comes from the difficulty curve below.
   // The War Banner is a field hazard: a standing banner that buffs the enemies around it (see hazardsFor).
   warbanner:{ name: 'War Banner', hp: 150, dmg: 0, atk: 9, speed: 0, range: 0, radius: 10, drop: 0, sprite: 'banner', team: 'enemy', static: true, wall: true, banner: { r: 210, dmg: 1.35 } },
   peasant:  { name: 'Peasant',            hp: 20,  dmg: 3,  atk: 1.2, speed: 35, range: 22,  radius: 10, drop: 3,   sprite: 'peasant',  team: 'enemy' },
@@ -69,13 +77,14 @@ export const UNITS = {
   slayer:   { name: 'The Dragonslayer',   hp: 20000, dmg: 160, atk: 1.2, speed: 28, range: 40, radius: 20, drop: 7000, sprite: 'slayer', team: 'enemy', boss: true, abil: ['slam','leap','volley'] },
   herokind: { name: 'The Hero King',      hp: 40000, dmg: 200, atk: 1.2, speed: 28, range: 42, radius: 21, drop: 10000, sprite: 'herokind', team: 'enemy', boss: true, abil: ['smite','guard'], summon: { type: 'berserker', n: 1, every: 16 }, heal: { amt: 300, every: 5, range: 240 } },
   avenger:  { name: 'The Holy Avenger',   hp: 9500, dmg: 90, atk: 1.2, speed: 28, range: 38, radius: 19, drop: 2400, sprite: 'avenger',  team: 'enemy', boss: true, fly: true, alt: [95, 125], abil: ['leap','guard'] },
+  ...NEW_ENEMIES,
 };
 
 // Boss abilities. Each boss lists some in its `abil`. Slam, leap and smite show a red warning first so they can be seen coming.
 export const BOSS_ABILITIES = {
   slam:   { name: 'Ground Slam',  every: 14, windup: 0.9, radius: 72, dmgMul: 1.3 },
   leap:   { name: 'Leap',         every: 17, windup: 0.6, radius: 58, dmgMul: 1.1 },
-  smite:  { name: 'Smite',        every: 13, windup: 1.0, targets: 2, radius: 34, dmgMul: 2.2 },
+  smite:  { name: 'Smite',        every: 13, windup: 1.0, targets: 2, radius: 30, dmgMul: 1.4 },
   volley: { name: 'Volley',       every: 12, count: 6, dmgMul: 0.7 },
   guard:  { name: 'Guard Stance', every: 22, duration: 3.5, reduce: 0.7 },
   curse:  { name: 'Binding Chains', every: 19, duration: 4 },
@@ -91,67 +100,102 @@ export function bossAbilityNames(def) {
 }
 
 export const TUNING = {
-  startZombies: 4,
+  mightPerRebirth: 1.09,     // permanent health and damage growth, compounding each rebirth
+  startArmy: 8,              // army space before any upgrades
+  reinforceBase: 6,          // seconds for the necromancer to replace a one-slot summon
+  replayPay: 0.5,            // share of the souls paid for a wave you have already beaten
+  firstWinBonus: 0.6,        // extra share paid the first time a wave falls
   failPayout: 0.5,           // share of earned souls banked on a failed attempt
   soulScale: 0.8,            // every soul drop is multiplied by this (rebirths and perks bring the real rate back up)
   costScale: 1.15,           // every soul upgrade cost is multiplied by this (rebirths and Thrift bring it back down)
-  raiseCooldownFactor: 0.88, // each Rise level multiplies that unit's cooldown by this
+  raiseCooldownFactor: 0.94, // each Rise level multiplies that unit's cooldown by this
   statPerLevel: 0.2,         // HP and damage bonus per level
   wavePause: 3,
   spawnGap: 0.35,
   aggroRange: 800,           // once enemies are on the field, every unit within this range charges them; with none, the horde mills about mid-field
   separation: 1.25,          // personal space as a fraction of combined radius (below 1 they overlap)
-  repeatSoulChance: 0.25,    // chance of a champion soul from a boss you have already beaten
-  offlineSoulsPerMin: 2,     // x (highest zone cleared)^offlineExp
-  offlineExp: 1.3,
+  repeatSoulChance: 0.07,    // chance of a champion soul from a boss you have already beaten
+  offlineWavesPerMin: 0.05,  // offline souls a minute, as a share of what a wave in your best zone is worth
   offlineCapHours: 8,
   offlineMinSeconds: 60,
 };
 
-// The first region. compose(n) lists the enemy types in wave n.
-const rep = (type, n) => Array(Math.max(0, n)).fill(type);
-export const ZONES = [
-  { id: 1, region: 1, name: 'Graveyard Fields', blurb: 'Peasants stumble in from the village.', waves: 8, scale: 1.06, rating: 38, boss: 'champion',
-    compose: (n) => rep('peasant', 2 + n) },
-  { id: 2, region: 1, name: 'Burned Farmstead', blurb: 'The militia has taken up spears.', waves: 8, scale: 1.13, rating: 105, boss: 'captain',
-    compose: (n) => [...rep('peasant', 3 + n), ...rep('militia', 2 + Math.floor(n / 2)), ...rep('firebrand', n >= 4 ? Math.floor(n / 4) : 0)] },
-  { id: 3, region: 1, name: 'Chapel Hill', blurb: 'Slingers pelt your horde from the pews.', waves: 10, scale: 1.15, rating: 200, boss: 'priest',
-    compose: (n) => [...rep('peasant', 2 + Math.floor(n / 2)), ...rep('militia', 2 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 3)), ...rep('firebrand', Math.floor(n / 3))] },
-  { id: 4, region: 1, name: 'Castle Gatehouse', blurb: 'Armoured knights hold the gate.', waves: 10, scale: 1.15, rating: 340, boss: 'commander',
-    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 2)), ...rep('knight', 1 + Math.floor(n / 3)), ...rep('firebrand', Math.floor(n / 4)), ...rep('flagellant', Math.floor(n / 5))] },
+// ---- Difficulty ----
+// One smooth curve sets how strong every wave is, so there are no sudden walls. An enemy's own numbers only set its
+// shape (tough or sharp, near or far): the whole wave is scaled so its average member matches the curve.
+// The strength of each zone, fitted to how strong a player really is when they get there (measured with
+// tools/pacing.mjs). [zone, strength]; zones in between are filled in smoothly.
+export const CURVE = { anchors: [[1, 1], [3, 1.42], [4, 1.85], [5, 2.7], [6, 4.2], [8, 8.5], [10, 14], [13, 34], [18, 100], [24, 235], [32, 520], [40, 1050]], wave: 1.07, boss: 1.1, scale: 1 };
+export function zoneStrength(id) {
+  const A = CURVE.anchors;
+  let i = 0;
+  while (i < A.length - 2 && id > A[i + 1][0]) i++;
+  const [z0, s0] = A[i], [z1, s1] = A[i + 1];
+  const v = s0 * Math.pow(s1 / s0, (id - z0) / (z1 - z0));
+  return id <= 3 ? v : v * CURVE.scale;
+}
+export const waveCurve = (zone, wave) => {
+  if (zone.endless) return zoneStrength(20) * Math.pow(1.075, wave - 1);
+  return zoneStrength(zone.id) * Math.pow(CURVE.wave, Math.min(WAVES, wave) - 1) * (wave >= BOSS_WAVE ? CURVE.boss : 1);
+};
+// A rough size of a fighter: health against damage per second, with a little extra for reach and area attacks.
+export function threat(def) {
+  const dps = (def.dmg / def.atk) * (def.range > 40 ? 1.25 : 1) * (def.splash || def.cleave ? 1.35 : 1);
+  const hp = def.hp / (1 - (def.armor || 0)) / (1 - (def.dodge || 0) * 0.7);
+  return Math.sqrt(hp * Math.max(0.5, dps));
+}
+const BASE_THREAT = threat({ hp: 20, dmg: 3, atk: 1.2, range: 22 });       // a zone 1 peasant
+// The multiplier for every ordinary enemy in a wave. Later zones also allow tougher kinds to be a little tougher.
+export function waveMul(zone, wave, list) {
+  const avg = list.reduce((a, t) => a + threat(UNITS[t]), 0) / Math.max(1, list.length);
+  const flavour = Math.pow(avg / BASE_THREAT, 0.18);      // a wave of knights stays a bit harder than a wave of peasants
+  return waveCurve(zone, wave) * (BASE_THREAT / avg) * flavour;
+}
+export const BOSS_BASE = { hp: 300, dmg: 9 };
+// Souls a whole wave is worth if every enemy falls (before the soul bonuses).
+export const waveSouls = (zone, wave) => 34 * (zone.endless ? Math.pow(1.13, 24) * Math.pow(1.05, wave - 1) : Math.pow(1.13, zone.id - 1) * (1 + 0.14 * (wave - 1))) * (wave >= BOSS_WAVE && !zone.endless ? 1.3 : 1);
 
-  // Region 2
-  { id: 5, region: 2, name: 'Pilgrim Road', blurb: 'Crusaders and crossbowmen march to purge you.', waves: 8, scale: 1.26, rating: 370, boss: 'inquisitor',
-    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('crusader', 1 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('flagellant', Math.floor(n / 3)), ...rep('firebrand', Math.floor(n / 4))] },
-  { id: 6, region: 2, name: 'Cathedral Steps', blurb: 'Clerics mend the wounded faster than you can cut them down.', waves: 8, scale: 1.33, rating: 470, boss: 'templar',
-    compose: (n) => [...rep('gryphonlord', n === 5 ? 1 : 0), ...rep('griffin', n >= 5 ? 1 : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2), ...rep('flagellant', Math.floor(n / 3))] },
-  { id: 7, region: 2, name: 'Hallowed Ground', blurb: 'Paladins in blessed plate hold the line.', waves: 10, scale: 1.25, rating: 580, boss: 'archbishop',
-    compose: (n) => [...rep('gryphonlord', n === 6 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5)), ...rep('flagellant', Math.floor(n / 4)), ...rep('bombard', n === 5 || n === 8 ? 1 : 0)] },
-  { id: 8, region: 2, name: 'The Holy Citadel', blurb: 'The last bastion of the faithful.', waves: 10, scale: 1.3, rating: 770, boss: 'avenger',
-    compose: (n) => [...rep('gryphonlord', n === 7 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3)), ...rep('flagellant', Math.floor(n / 4)), ...rep('bombard', n >= 5 && n % 2 === 1 ? 1 : 0)] },
+// Souls a minute while away (before the offline perk).
+export const offlineRate = (save) => TUNING.offlineWavesPerMin * waveSouls(ZONES[Math.max(0, Math.min(LAST_ZONE, save.bestZone) - 1)], 3) * soulMul(save);
 
-  // Region 3
-  { id: 9, region: 3, name: 'Frostbitten Pass', blurb: 'Berserkers charge out of the blizzard.', waves: 7, scale: 1.6, rating: 810, boss: 'herodawn',
-    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('crossbow', 2), ...rep('cleric', 1), ...rep('flagellant', Math.floor(n / 3)), ...rep('bombard', n === 5 ? 1 : 0)] },
-  { id: 10, region: 3, name: "Wizard's Tower", blurb: 'Archmages rain ruin from the battlements.', waves: 7, scale: 1.55, rating: 1000, boss: 'supreme',
-    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 4 ? Math.floor(n / 4) : 0), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('bombard', n === 5 || n === 7 ? 1 : 0)] },
-  { id: 11, region: 3, name: "Dragon's Rest", blurb: 'Assassins slip through the dark, and sentinels bar the way.', waves: 8, scale: 1.45, rating: 1100, boss: 'slayer',
-    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1), ...rep('flagellant', Math.floor(n / 4)), ...rep('bombard', n === 6 || n === 8 ? 1 : 0)] },
-  { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.45, rating: 1350, boss: 'herokind',
-    compose: (n) => [...rep('frostwyrm', n === 5 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('bombard', n >= 5 && n % 2 === 1 ? 1 : 0)] },
-
-  // The Endless Crypt: waves never stop and get steadily worse. Unlocks after zone 12. No boss; fail is the only ending.
-  { id: 13, region: 4, name: 'The Endless Crypt', blurb: 'The living pour in forever. How long can you hold?', waves: Infinity, scale: 1.1, rating: 0, boss: null, endless: true,
-    compose: (n) => [...rep('wyvern', Math.floor(n / 7)), ...rep('griffin', n >= 4 ? Math.floor(n / 5) : 0), ...rep('assassin', 1 + Math.floor(n / 5)), ...rep('sentinel', Math.floor(n / 6)), ...rep('berserker', 1 + Math.floor(n / 5)), ...rep('archmage', 1 + Math.floor(n / 5)), ...rep('cleric', 1 + Math.floor(n / 8)), ...rep('crusader', Math.min(8, 2 + Math.floor(n / 4))), ...rep('bombard', Math.floor(n / 8)), ...rep('flagellant', Math.floor(n / 6))] },
-];
-
-// Regions group zones on the map and set the look of the battlefield (see THEMES in render.js).
-export const REGIONS = [
-  { id: 1, name: 'The Greenmarch', theme: 'graveyard', zones: [1, 2, 3, 4] },
-  { id: 2, name: 'The Crusader Reach', theme: 'holy', zones: [5, 6, 7, 8] },
-  { id: 3, name: "The Heroes' Reach", theme: 'frost', zones: [9, 10, 11, 12] },
-  { id: 4, name: 'The Endless Crypt', theme: 'graveyard', zones: [13] },
-];
+// ---- The army ----
+// Each wave starts with the army you have set. Bigger summons take more space.
+export const ARMY_SLOTS = {
+  zombie: 1, skeleton: 2, archer: 2, hound: 1, mage: 3, ghost: 2, abomination: 6, deathknight: 4, plaguebearer: 3, gravepriest: 3, gargoyle: 4, bat: 1, drake: 7,
+  wight: 3, mummy: 3, spider: 2, banshee: 4, bonegolem: 8, reaper: 7,
+};
+export const MUSTER_MAX = 24;
+export const musterCap = (save) => Math.min(MUSTER_MAX, 4 + 2 * (save.rebirths || 0));
+export const musterCost = (save) => Math.ceil(45 * Math.pow(1.3, save.nodes.muster || 0) * costMul(save));
+export const armyCap = (save) => TUNING.startArmy + (save.nodes.muster || 0) + 2 * perk(save, 'horde') + Math.floor((save.rebirths || 0) / 2);
+export const armyUsed = (save) => Object.entries(save.army || {}).reduce((a, [t, n]) => a + n * ARMY_SLOTS[t], 0);
+// Drop anything no longer owned and trim to the space there is. An empty army is filled with zombies.
+export function tidyArmy(save) {
+  const a = (save.army = save.army || {});
+  for (const t of Object.keys(a)) if (!ARMY_SLOTS[t] || !owned(save, t) || a[t] <= 0) delete a[t];
+  const keys = Object.keys(a).sort((x, y) => ARMY_SLOTS[y] - ARMY_SLOTS[x]);
+  let over = armyUsed(save) - armyCap(save);
+  for (const t of keys) while (over > 0 && a[t] > 0) { a[t]--; over -= ARMY_SLOTS[t]; if (!a[t]) delete a[t]; }
+  if (!Object.keys(a).length) a.zombie = armyCap(save);
+  return a;
+}
+// Put any spare space into zombies.
+export function fillArmy(save) {
+  const a = tidyArmy(save);
+  const spare = armyCap(save) - armyUsed(save);
+  if (spare > 0) a.zombie = (a.zombie || 0) + spare;
+  return a;
+}
+// What actually takes the field: a learned Legion stands in for every ten of its summon.
+export function armyRoster(save) {
+  const out = {};
+  for (const [t, n] of Object.entries(tidyArmy(save))) {
+    const legions = legionOwned(save, t) ? Math.floor(n / 10) : 0;
+    if (legions) out['legion_' + t] = legions;
+    if (n - legions * 10 > 0) out[t] = n - legions * 10;
+  }
+  return out;
+}
 
 // ---- Skill tree ----
 // Each unit line has: an unlock node (champion souls) and three stat nodes (souls).
@@ -196,6 +240,12 @@ export const TIER_NAMES = {
               hpLook: ['Bare bone', 'Ribbed', 'Gilded', 'Armoured'],            dmgLook: ['Smoking', 'Burning', 'Roaring', 'Dragonfire'] },
   gargoyle: { hp: ['Hardened Stone', 'Granite Plating', 'Obsidian Heart'],      dmg: ['Sharp Talons', 'Stone Fists', 'Obsidian Claws'],
               hpLook: ['Cracked', 'Hardened', 'Plated', 'Obsidian'],           dmgLook: ['Dull claws', 'Talons', 'Fists', 'Obsidian claws'] },
+  wight:     { hp: ['Barrow Mail', 'Grave Helm', 'Kingly Plate'],       dmg: ['Barrow Blade', 'Cold Iron', 'Soul Edge'],        hpLook: ['Rotted', 'Mailed', 'Helmed', 'Kingly'], dmgLook: ['Old blade', 'Barrow blade', 'Cold iron', 'Soul edge'] },
+  mummy:     { hp: ['Fresh Wrappings', 'Funeral Mask', 'Golden Collar'], dmg: ['Heavy Hands', 'Cursed Rings', 'Scarab Fists'],     hpLook: ['Tattered', 'Wrapped', 'Masked', 'Royal'], dmgLook: ['Bare hands', 'Heavy', 'Cursed', 'Scarab'] },
+  spider:    { hp: ['Hard Shell', 'Bone Spines', 'Grave Carapace'],       dmg: ['Sharp Fangs', 'Venom Sacs', 'Death Fangs'],       hpLook: ['Soft', 'Shelled', 'Spined', 'Armoured'], dmgLook: ['Biting', 'Fanged', 'Venomous', 'Deadly'] },
+  banshee:   { hp: ['Pale Veil', 'Mourning Crown', 'Spectral Chains'],    dmg: ['Keening', 'Shrill Wail', 'Death Cry'],            hpLook: ['Faint', 'Veiled', 'Crowned', 'Chained'], dmgLook: ['Sighing', 'Keening', 'Wailing', 'Screaming'] },
+  bonegolem: { hp: ['Rib Plating', 'Skull Pauldrons', 'Ossuary Heart'],   dmg: ['Femur Clubs', 'Spiked Fists', 'Titan Fists'],     hpLook: ['Loose', 'Plated', 'Skulled', 'Hearted'], dmgLook: ['Fists', 'Clubbed', 'Spiked', 'Titan'] },
+  reaper:    { hp: ['Deeper Hood', 'Bone Mantle', "Death's Crown"],       dmg: ['Whetted Scythe', 'Soul Scythe', 'World Scythe'],  hpLook: ['Hooded', 'Shadowed', 'Mantled', 'Crowned'], dmgLook: ['Scythe', 'Whetted', 'Soul', 'World'] },
   abomination: { hp: ['Heavy Stitching', 'Bone Plates', 'Iron Spikes'], dmg: ['Meaty Fists', 'Bone Knuckles', 'Wrecking Fists'],
               hpLook: ['Patchwork', 'Stitched', 'Plated', 'Spiked'],         dmgLook: ['Fists', 'Heavy fists', 'Knuckled', 'Wrecking'] },
 };
@@ -228,6 +278,12 @@ export const SPECIALS = {
             desc: 'Heals the bat for half the damage it deals, on top of its own life steal.' },
   inferno:{ unit: 'drake',    name: 'Inferno',      icon: 'fire',   cost: 600, needs: { stat: 'dmg', tiers: 1 },
             desc: 'Bone fire sets enemies alight, burning them over time.' },
+  chill:    { unit: 'wight',     effect: 'frost',   name: 'Barrow Chill', icon: 'frost',  cost: 600, needs: { stat: 'dmg', tiers: 1 }, desc: 'Its blade chills enemies, slowing them.' },
+  rot:      { unit: 'mummy',     effect: 'regen',   name: 'Ancient Curse', icon: 'regen', cost: 600, needs: { stat: 'hp', tiers: 1 },  desc: 'The curse knits it back together: 3% of its max HP every second.' },
+  venom:    { unit: 'spider',    effect: 'poison',  name: 'Venom', icon: 'poison',        cost: 550, needs: { stat: 'dmg', tiers: 1 }, desc: 'Bites poison enemies, dealing damage over time.' },
+  keen:     { unit: 'banshee',   effect: 'frost',   name: 'Chilling Wail', icon: 'frost', cost: 700, needs: { stat: 'dmg', tiers: 1 }, desc: 'The wail slows everything it strikes.' },
+  marrow:   { unit: 'bonegolem', effect: 'shield',  name: 'Packed Bone', icon: 'shield',  cost: 800, needs: { stat: 'hp', tiers: 1 },  desc: 'Takes 25% less damage from every hit.' },
+  harvest:  { unit: 'reaper',    effect: 'drain',   name: 'Soul Harvest', icon: 'drain',  cost: 900, needs: { stat: 'dmg', tiers: 1 }, desc: 'Heals the Reaper for half the damage it deals.' },
   pack:   { unit: 'hound',    name: 'Pack Hunter',  icon: 'pack',   cost: 350, needs: { stat: 'dmg', tiers: 1 },
             desc: 'Each other living hound adds 10% damage (up to 5).' },
 };
@@ -274,17 +330,16 @@ export const LEGION_KEYS = PLAYER_UNITS.map((u) => 'legion_' + u);
 export function hazardsFor(zone, wave) {
   const id = zone.id;
   if (zone.endless) {
-    return { mines: Math.min(12, 3 + Math.floor(wave / 4)), mineFlat: 10 + wave * 2, minePct: 0.2, banners: wave % 2 === 0 ? Math.min(3, 1 + Math.floor(wave / 12)) : 0 };
+    return { mines: Math.min(10, 3 + Math.floor(wave / 4)), mineK: waveCurve(zone, wave), minePct: 0.2, banners: wave % 2 === 0 ? Math.min(3, 1 + Math.floor(wave / 12)) : 0 };
   }
-  const mines = id < 2 ? 0 : wave < 2 ? 0 : Math.min(9, 1 + Math.floor((id - 1) / 1.5) + (wave > 4 ? 1 : 0));
-  const banners = id < 3 || wave < 3 || wave % 3 !== 0 ? 0 : 1 + (id >= 7 ? 1 : 0) + (id >= 11 ? 1 : 0);
-  return { mines, mineFlat: 4 + 3 * id, minePct: Math.min(0.3, 0.1 + 0.015 * id), banners };
+  const mines = id < 3 || wave < 2 ? 0 : Math.min(7, 1 + Math.floor(id / 8) + (wave >= 4 ? 1 : 0));
+  const banners = id < 4 || ![3, 5, BOSS_WAVE].includes(wave) ? 0 : 1 + (id >= 17 && wave === 5 ? 1 : 0) + (id >= 33 && wave === 5 ? 1 : 0);
+  return { mines, mineK: waveCurve(zone, wave), minePct: Math.min(0.28, 0.08 + 0.006 * id), banners };
 }
 export function hazardText(zone) {
   const parts = [];
-  const h = hazardsFor(zone, 8);
-  if (h.mines) parts.push('Traps');
-  if (zone.endless || zone.id >= 3) parts.push('War banners');
+  if (zone.endless || zone.id >= 3) parts.push('Traps');
+  if (zone.endless || zone.id >= 4) parts.push('War banners');
   return parts;
 }
 
@@ -309,12 +364,13 @@ export function statCost(stat, unit, lvl, save) {
 
 // ---- The long game: what each rebirth opens up ----
 // Zones, summons and upgrade tiers are gated behind how many times you have been reborn, so a single run only goes so far.
-export const zoneRebirth = (id) => (id <= 4 ? 0 : id === 13 ? 6 : Math.floor((id - 3) / 2));
-export const UNIT_REBIRTH = { zombie: 0, skeleton: 0, hound: 0, archer: 0, plaguebearer: 1, deathknight: 1, mage: 2, abomination: 2, ghost: 3, gravepriest: 4, gargoyle: 5, bat: 2, drake: 6 };
-export const TIER_REBIRTH = [0, 1, 3];                 // the second and third tier of HP and damage upgrades
+export const zoneRebirth = (id) => (id === ENDLESS_ID ? 8 : Math.max(0, id - 3));      // roughly one new zone each rebirth
+export const UNIT_REBIRTH = { zombie: 0, skeleton: 0, archer: 0, hound: 1, bat: 2, plaguebearer: 3, deathknight: 4, mage: 5, wight: 6, abomination: 7, ghost: 8, spider: 9,
+  gravepriest: 11, mummy: 13, gargoyle: 15, banshee: 18, drake: 21, bonegolem: 25, reaper: 30 };
+export const TIER_REBIRTH = [0, 3, 9];                 // the second and third tier of HP and damage upgrades
 // Rebirths needed before the next level of this stat can be bought (0 = no lock).
 export function statNeeds(stat, lvl) {
-  if (stat === 'rise') return lvl >= 6 ? 3 : lvl >= 4 ? 1 : 0;
+  if (stat === 'rise') return lvl >= 6 ? 8 : lvl >= 4 ? 3 : 0;
   return TIER_REBIRTH[Math.floor(lvl / TIER.levels)] || 0;
 }
 export const rebirthsOf = (save) => (save && save.rebirths) || 0;
@@ -323,10 +379,11 @@ export function unitRebirthOk(save, unit) { return rebirthsOf(save) >= (UNIT_REB
 export function milestones() {
   const out = {};
   const add = (r, t) => { (out[r] = out[r] || []).push(t); };
-  for (let id = 5; id <= 13; id++) { const z = ZONES.find((q) => q.id === id); if (z) add(zoneRebirth(id), 'Zone: ' + z.name); }
+  for (const z of ZONES) if (zoneRebirth(z.id) > 0) add(zoneRebirth(z.id), 'Zone: ' + z.name);
   for (const u of Object.keys(UNIT_REBIRTH)) if (UNIT_REBIRTH[u] > 0) add(UNIT_REBIRTH[u], 'Summon: ' + UNITS[u].name);
-  add(1, 'Second tier of HP and damage upgrades, Rise Faster past level 4');
-  add(3, 'Third tier of HP and damage upgrades, Rise Faster past level 6');
+  add(3, 'Second tier of HP and damage upgrades, Rise Faster past level 4');
+  add(8, 'Rise Faster past level 6');
+  add(9, 'Third tier of HP and damage upgrades');
   return out;
 }
 
@@ -343,7 +400,7 @@ export function specialReady(save, key) {
 }
 
 // Rebirths make your whole horde a little tougher for good (5% each), and the Might perk adds more.
-export function mightMul(save) { return 1 + 0.05 * (save.rebirths || 0) + 0.04 * perk(save, 'might'); }
+export function mightMul(save) { return Math.pow(TUNING.mightPerRebirth, save.rebirths || 0) * (1 + 0.05 * perk(save, 'might')); }
 export function statMods(save, unit) {
   return {
     hp: (1 + statBonus(level(save, 'hp', unit))) * mightMul(save),
@@ -365,14 +422,26 @@ export function totalLevels(save) {
   return n;
 }
 
-// A rough comparable "power rating", shown against each zone's rating.
+// Power: your army measured the same way as the enemy waves are, so the two can be compared.
 export function playerRating(save) {
-  const units = PLAYER_UNITS.filter((u) => owned(save, u)).length;
-  const specials = SPECIAL_KEYS.filter((k) => hasSpecial(save, k)).length;
   const gm = gearMods(save);
-  const gear = (gm.dmg + gm.hp) * 50 + (gm.rise + gm.souls + gm.crit + gm.lifesteal + gm.thorns + gm.spell) * 30 + Object.keys(gm.fx).length * 10;
-  const legions = PLAYER_UNITS.filter((u) => legionOwned(save, u)).length;
-  return Math.round((10 + totalLevels(save) * 4 + (units - 1) * 10 + specials * 15 + legions * 60 + gear) * mightMul(save));
+  const specials = {};
+  for (const k of SPECIAL_KEYS) if (hasSpecial(save, k)) specials[SPECIALS[k].unit] = 1;
+  let p = 0;
+  for (const [t, n] of Object.entries(armyRoster(save))) {
+    const base = UNITS[t].legion || t, m = statMods(save, base);
+    p += n * threat(UNITS[t]) * Math.sqrt(m.hp * (1 + gm.hp) * m.dmg * (1 + gm.dmg)) * (specials[base] ? 1.15 : 1);
+  }
+  return Math.round(p * (1 + gm.crit + gm.lifesteal));
+}
+// The power that usually beats a zone, as measured with tools/pacing.mjs. Shown beside your own power.
+const RATING_ANCHORS = [[1, 110], [3, 330], [4, 560], [5, 850], [6, 1650], [8, 3500], [10, 5400], [13, 15000], [18, 48000], [24, 90000], [30, 155000], [40, 420000]];
+export function waveRating(zone, wave) {
+  const A = RATING_ANCHORS, id = zone.endless ? 24 : zone.id;
+  let i = 0;
+  while (i < A.length - 2 && id > A[i + 1][0]) i++;
+  const [z0, s0] = A[i], [z1, s1] = A[i + 1];
+  return Math.round(s0 * Math.pow(s1 / s0, (id - z0) / (z1 - z0)) * (0.7 + 0.06 * Math.min(6, wave)));
 }
 
 // The necromancer's rank and look come from the gear he wears (see gearScore).
@@ -395,23 +464,23 @@ export function zoneById(id) { return ZONES.find((z) => z.id === id); }
 // ---- Rebirth ----
 // Ascending wipes the run (souls, upgrades, cleared zones) and pays out Essence, spent on permanent perks
 // that change how every future run starts.
-export const REBIRTH_MIN_ZONE = 3;       // best zone you must have cleared this run
+export const REBIRTH_MIN_ZONE = 2;       // best zone you must have cleared this run
 export const PERKS = {
-  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 6,  growth: 1.5, max: 6, needs: {},  effect: (l) => 'Start with ' + (TUNING.startZombies + l) + ' zombies' },
-  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.55, max: 8, needs: {}, effect: (l) => '+' + l * 15 + '% souls from kills' },
+  horde:    { name: 'Larger Vanguard', icon: 'zombie', base: 5,  growth: 1.45, max: 10, needs: {},  effect: (l) => '+' + 2 * l + ' army space' },
+  souls:    { name: 'Soul Siphon',     icon: 'icon_poison', base: 8, growth: 1.45, max: 15, needs: {}, effect: (l) => '+' + l * 15 + '% souls from kills' },
   quick:    { name: 'Quickening',      icon: 'icon_raise', base: 10, growth: 1.6, max: 8, needs: { horde: 2 }, effect: (l) => '-' + l * 4 + '% raise cooldowns' },
   head:     { name: 'Prepared Dead',   icon: 'icon_hp',  base: 12, growth: 1.8, max: 5, needs: { horde: 3 },  effect: (l) => 'Units start with +' + l + ' level of HP and damage' },
   pact:     { name: 'Eternal Pact',    icon: 'skeleton', base: 15, growth: 1.9, max: 6, needs: { head: 2 },  effect: (l) => 'Keep ' + l + ' unit unlock' + (l === 1 ? '' : 's') },
-  conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 2.0, max: 7, needs: { pact: 2, souls: 3 }, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
+  conquest: { name: 'Conquered Lands', icon: 'icon_shield', base: 20, growth: 1.35, max: 25, needs: { pact: 2, souls: 3 }, effect: (l) => l ? 'Zones 1-' + l + ' start conquered' : 'No zones conquered' },
   restless: { name: 'Restless Dead',   icon: 'icon_pack', base: 12, growth: 1.7, max: 4, needs: { thrift: 2 },  effect: (l) => 'Offline cap ' + (TUNING.offlineCapHours + 4 * l) + 'h, +' + l * 25 + '% offline souls' },
   echo:     { name: "Champion's Echo", icon: 'icon_fire', base: 15, growth: 1.7, max: 5, needs: { ritual: 1 },  effect: (l) => '+' + l * 10 + '% champion soul chance on replays' },
   thrift:   { name: 'Thrift',          icon: 'icon_shield', base: 8, growth: 1.6, max: 8, needs: { souls: 2 }, effect: (l) => '-' + l * 4 + '% upgrade costs' },
-  might:    { name: 'Necrotic Might',  icon: 'icon_fire', base: 14, growth: 1.7, max: 8, needs: { head: 1 }, effect: (l) => '+' + l * 4 + '% health and damage' },
+  might:    { name: 'Necrotic Might',  icon: 'icon_fire', base: 14, growth: 1.7, max: 30, needs: { head: 1 }, effect: (l) => '+' + l * 5 + '% health and damage' },
   ritual:   { name: 'Dark Ritual',     icon: 'icon_burst', base: 10, growth: 1.6, max: 6, needs: { quick: 2 }, effect: (l) => 'Raise Dead brings ' + (3 + l) + ' minions, ' + Math.round(45 * Math.pow(0.9, l)) + 's cooldown' },
 };
 export const PERK_KEYS = Object.keys(PERKS);
 // Unit unlocks that Eternal Pact keeps, in the order they are kept.
-export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'mage', 'ghost', 'abomination', 'deathknight', 'plaguebearer', 'gravepriest', 'gargoyle', 'bat', 'drake'];
+export const PACT_ORDER = ['archer', 'skeleton', 'hound', 'bat', 'plaguebearer', 'deathknight', 'mage', 'wight', 'abomination', 'ghost', 'spider', 'gravepriest', 'mummy', 'gargoyle', 'banshee', 'drake', 'bonegolem', 'reaper'];
 
 export function perk(save, key) { return (save.perks && save.perks[key]) || 0; }
 export function perkCost(key, lvl) { return Math.ceil(PERKS[key].base * Math.pow(PERKS[key].growth, lvl)); }
@@ -434,7 +503,7 @@ export function syncBestiary(save) {
   for (const u of PLAYER_UNITS) if (owned(save, u)) (save.seen[u] || (save.seen[u] = {})).owned = true;
   for (const z of ZONES) {
     if (z.endless || !save.cleared[z.id]) continue;
-    for (let n = 1; n <= z.waves; n++) for (const t of z.compose(n)) mark(t);
+    for (let n = 1; n <= z.waves; n++) for (const t of composeWave(z, n)) mark(t);
     mark(z.boss);
   }
 }
@@ -450,9 +519,9 @@ export function firstZoneOf(type) {
   for (const z of ZONES) {
     if (z.endless) continue;
     if (z.boss === type) return z.id;
-    for (let n = 1; n <= z.waves; n++) if (z.compose(n).includes(type)) return z.id;
+    for (let n = 1; n <= z.waves; n++) if (composeWave(z, n).includes(type)) return z.id;
   }
-  return 13;
+  return ENDLESS_ID;
 }
 
 export function soulMul(save) { return TUNING.soulScale * (1 + 0.15 * perk(save, 'souls')) * (1 + 0.1 * (save.rebirths || 0)) * (1 + gearMods(save).souls) * (1 + bestiaryBonus(save).souls); }
@@ -467,15 +536,14 @@ export function spellCountFor(save, type) { return UNITS[type].legion ? 1 : UNIT
 // Essence you would earn by rebirthing now.
 export function essenceGain(save) {
   let e = 0;
-  for (const id of Object.keys(save.cleared)) if (save.cleared[id]) e += 3 * Math.pow(Number(id), 1.35);
-  return Math.floor((Math.floor(e) + Math.floor(totalLevels(save) / 12)) * (1 + 0.2 * (save.rebirths || 0)));
+  for (const [id, w] of Object.entries(save.progress || {})) if (Number(id) > (save.skipped || 0)) e += w * (0.8 + 0.22 * Number(id));
+  return Math.floor((e + totalLevels(save) / 20) * (1 + 0.06 * (save.rebirths || 0)));
 }
 export function canRebirth(save) { return save.bestZone >= REBIRTH_MIN_ZONE; }
 
 // Each rebirth makes the world fight back harder, so a stronger necromancer still has a challenge.
-export function worldMul(save) {
-  const r = save.rebirths || 0;
-  return { hp: Math.pow(1.5, r), dmg: Math.pow(1.2, r), rating: Math.pow(1.35, r) };
+export function worldMul() {      // the world no longer toughens with rebirths: each zone has its own strength
+  return { hp: 1, dmg: 1, rating: 1 };
 }
 
 // ---- Unit tree ----
@@ -489,6 +557,12 @@ export const UNIT_TREE = {
   abomination:  { parent: 'hound',        pos: [-640, -830], gate: { units: ['zombie', 'hound'], levels: 30 } },
   bat:          { parent: 'hound',        pos: [-1000, -500], gate: { units: ['zombie', 'hound'], levels: 24 } },
   drake:        { parent: 'gravepriest',  pos: [1000, -1160], gate: { units: ['mage', 'ghost', 'gravepriest'], levels: 60 } },
+  wight:        { parent: 'deathknight',  pos: [0, 0], gate: { units: ['skeleton', 'deathknight'], levels: 30 } },
+  mummy:        { parent: 'plaguebearer', pos: [0, 0], gate: { units: ['zombie', 'plaguebearer'], levels: 35 } },
+  spider:       { parent: 'bat',          pos: [0, 0], gate: { units: ['hound', 'bat'], levels: 30 } },
+  banshee:      { parent: 'wight',        pos: [0, 0], gate: { units: ['deathknight', 'wight'], levels: 40 } },
+  bonegolem:    { parent: 'mummy',        pos: [0, 0], gate: { units: ['plaguebearer', 'mummy'], levels: 40 } },
+  reaper:       { parent: 'banshee',      pos: [0, 0], gate: { units: ['wight', 'banshee'], levels: 45 } },
   gargoyle:     { parent: 'abomination',  pos: [-220, -830], gate: { units: ['zombie', 'hound', 'abomination'], levels: 55 } },
   archer:       { parent: 'skeleton',     pos: [640, -500],  gate: { units: ['skeleton'], levels: 8 } },
   deathknight:  { parent: 'skeleton',     pos: [220, -500],  gate: { units: ['skeleton'], levels: 20 } },
