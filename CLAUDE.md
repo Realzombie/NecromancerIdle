@@ -269,3 +269,13 @@ Everything below is pushed to `main` and live on GitHub Pages (service worker `C
 - **Attempt log:** `save.log` holds the last 250 attempts (zone, result, wave, seconds, power, kills, souls, peak horde, summons lost, `danger` = how close the enemy got, 100 = the gate), `save.rlog` one row per rebirth, `save.stats.playTime` total battle seconds. Export save carries all of it; Will can paste the code for a balance review.
 - **Champion souls** do not persist through rebirth (kept unlocks come from Eternal Pact). Their sources are not time-gated; summons are gated by rebirth count and upgrade levels.
 - **Proposed, not built (waiting on Will and real save data):** pick a starting wave (up to the best reached), clear the horde between waves, 5 double-length waves plus a boss wave per zone, with a full balance pass.
+
+## The long game rebuild (branch `big-update`, started Nov 27)
+Will's goal: "something I can play for months and slowly progress". The old build was too easy up to a sudden wall, and flooded the screen. Decisions Will made (all in one release, built on a branch so the live game does not change until it works; save reset is fine):
+- **Waves are separate fights.** Each zone is 5 waves (each about twice as long as the old ones) plus a boss wave. The field is cleared between waves.
+- **Stop and choose:** each wave ends on a result screen (upgrade, change army, replay or go on). You may start any wave up to the first unbeaten one.
+- **Army slots:** each wave starts with your army. Army space grows with upgrades and rebirths, and you choose which summons fill it (bigger ones take more). The necromancer slowly replaces the fallen but never goes above the army you set. A learned Legion stands in for every 10 of its summon.
+- **Replays pay about half**; the first win on a wave pays a bonus.
+- **Rebirth:** waves and zones lock again, perks can skip early ones. Aim: a rebirth every 2-3 days (a few 5-10 minute sessions a day), months for the whole game.
+- **Go big:** about 40 zones in 10 regions, many more enemies, bosses and summons, with slower unlocks.
+- Champion souls from bounties are cut right back (they were paying about as many as bosses did).
