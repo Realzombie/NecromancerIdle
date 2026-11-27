@@ -289,3 +289,9 @@ Will's goal: "something I can play for months and slowly progress". The old buil
 - **Champion souls:** first boss kill per run, 7% on repeats, every 25th bounty.
 - **Tools:** `wavetest.mjs` (rules), `geartest.mjs`, `pacing.mjs` (balance), preview sheets. The old simtest, rebirthsim, rebirthtest, endlesstest and unitbench were removed.
 - **Not yet done or checked:** real-phone play; new zones reuse the first twelve music themes and recombine skylines and map buildings; summon-by-summon balance of the six new ones; 2x and 4x speed shorten the real time a lot.
+
+## Nov 27 (later): balance pass and new music
+- **4x speed stays** (Will: if it gets beaten quickly, add more levels).
+- **Summons** retuned with `node tools/summonbench.mjs` (half of a 32-space army is the summon, half zombies; score 1.00 = plain zombies). Targets rise with unlock order, about 1.05 for the first ones to 1.45 for the Reaper; all within about 0.1.
+- **Pacing bot fixed:** it had only ever fielded zombies, so the first curve and its numbers were wrong. Difficulty anchors and the power guide were refitted with mixed armies, steeper from zone 18 on. Now: about one new zone per rebirth with setbacks in nearly every run, rebirths about 50-110 minutes, zone 40 at about rebirth 38 after about 46 hours of fighting at 1x (no offline souls or Raise Dead taps). Supersedes the 31 hour figure above.
+- **Music:** zones 13-40 have their own themes in `js/music_regions.js` (a tune with an answering phrase, plus region instruments: frogs and bubbles, hand drums and reed pipe, anvils, harp and birds, snare and brass, toms and fire, choir and bells). The Endless Crypt theme is now keyed `crypt`. `tools/renderaudio.html?all=1&s=60` exports WAVs through a small local receiver on port 9911 into `exports/`.

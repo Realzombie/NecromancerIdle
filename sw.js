@@ -1,7 +1,7 @@
 // Service worker: network-first so updates arrive on the next load, cache fallback so it works offline.
-const CACHE = 'necro-v101';
+const CACHE = 'necro-v102';
 const SHELL = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
-  'js/main.js', 'js/data.js', 'js/sim.js', 'js/render.js', 'js/save.js', 'js/audio.js', 'js/music.js', 'js/web.js', 'js/looks.js', 'js/art.js', 'js/enemyart.js', 'js/iconart.js', 'js/necro.js', 'js/zones.js', 'js/army.js', 'js/foeart.js', 'js/gear.js', 'js/armoury.js', 'js/records.js', 'js/worldmap.js'];
+  'js/main.js', 'js/data.js', 'js/sim.js', 'js/render.js', 'js/save.js', 'js/audio.js', 'js/music.js', 'js/music_regions.js', 'js/web.js', 'js/looks.js', 'js/art.js', 'js/enemyart.js', 'js/iconart.js', 'js/necro.js', 'js/zones.js', 'js/army.js', 'js/foeart.js', 'js/gear.js', 'js/armoury.js', 'js/records.js', 'js/worldmap.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

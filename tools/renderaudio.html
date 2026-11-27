@@ -35,7 +35,7 @@ async function renderTheme(key, seed) {
 
 const keys = q.get('all') ? Object.keys(THEMES) : [q.get('theme') || 'home'];
 for (const key of keys) {
-  const n = key === 'home' ? '00' : key.slice(1).padStart(2, '0');
+  const n = key === 'home' ? '00' : key === 'crypt' ? '41' : key.slice(1).padStart(2, '0');
   const name = (key === 'home' ? '00-home-and-graveyard-original' : n + '-' + THEME_NAMES[key].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '.wav';
   const body = await renderTheme(key, 7 + keys.indexOf(key) * 13);
   const res = await fetch('http://localhost:9911/' + encodeURIComponent(name), { method: 'POST', body });

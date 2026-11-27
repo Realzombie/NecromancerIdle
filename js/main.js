@@ -50,13 +50,9 @@ function show(id) {
   if (worldMap && id !== 'screen-map') worldMap.stop();
   for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
   $('hud').classList.toggle('hidden', id !== null);
-  setMusicTheme(id === null && battle ? 'z' + musicZone(battle.zone) : 'home');   // each zone has its own music
+  setMusicTheme(id === null && battle ? (battle.zone.endless ? 'crypt' : 'z' + battle.zone.id) : 'home');   // each zone has its own music
   spellBar.classList.toggle('hidden', id !== null || !spellBtns.length);
 }
-
-// The first twelve zones and the Crypt have their own themes; later zones borrow one that suits their region.
-const REGION_MUSIC = { 4: [1, 9, 3, 11], 5: [2, 7, 5, 8], 6: [4, 11, 12, 9], 7: [1, 3, 6, 7], 8: [5, 8, 4, 12], 9: [2, 11, 10, 12], 10: [6, 7, 8, 12] };
-function musicZone(z) { if (z.endless) return 13; if (z.id <= 12) return z.id; return REGION_MUSIC[z.region][(z.id - 1) % 4]; }
 
 // ---- Offline souls: based on the highest zone cleared, capped. Never advances zones. ----
 function claimOffline() {

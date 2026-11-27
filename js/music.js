@@ -4,6 +4,7 @@
 // Pure Web Audio with no assets, written so it can run on the live AudioContext or an OfflineAudioContext (see
 // tools/renderaudio.html, which renders each theme to a WAV for listening).
 
+import { REGION_THEMES, REGION_THEME_NAMES, noteAt } from './music_regions.js';
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 const pick = (rnd, a) => a[Math.floor(rnd() * a.length)];
 
@@ -71,6 +72,45 @@ function heartbeat(ctx, dest, t, vol) {
   }
 }
 
+// A melody note: a soft attack, a held middle with gentle vibrato, and a short tail.
+function leadNote(ctx, dest, kind, freq, t, dur, vol) {
+  if (kind === 'choir') { choirNote(ctx, dest, freq, t, dur + 0.5, vol); return; }
+  const tones = kind === 'flute' ? [['sine', 1, 1], ['triangle', 2, 0.12]] : kind === 'reed' ? [['sawtooth', 1, 1], ['square', 1.005, 0.35]] : [['sawtooth', 1, 1], ['sawtooth', 1.006, 0.8]];
+  for (const [type, mul, amp] of tones) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = type; o.frequency.value = freq * mul;
+    f.type = kind === 'reed' ? 'bandpass' : 'lowpass'; f.Q.value = kind === 'reed' ? 1.6 : 0.6;
+    f.frequency.value = kind === 'reed' ? Math.min(3200, freq * 3) : kind === 'horn' ? Math.min(2600, freq * 3.5) : 3500;
+    const rise = kind === 'horn' ? 0.12 : kind === 'flute' ? 0.09 : 0.05;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol * amp, t + Math.min(rise, dur * 0.4));
+    g.gain.linearRampToValueAtTime(vol * amp * 0.75, t + dur * 0.8);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.18);
+    const l = ctx.createOscillator(), lg = ctx.createGain();
+    l.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(kind === 'horn' ? 7 : 14, t + dur);
+    l.connect(lg); lg.connect(o.detune);
+    o.connect(f); f.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + dur + 0.25); l.start(t); l.stop(t + dur + 0.25);
+  }
+}
+function blip(ctx, dest, t, f0, f1, dur, vol, type = 'sine') {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+}
+function handDrum(ctx, dest, nb, t, kind, vol) {
+  if (kind === 'd') blip(ctx, dest, t, 150, 70, 0.22, vol);
+  else { blip(ctx, dest, t, 420, 300, 0.07, vol * 0.45, 'triangle'); hiss(ctx, dest, nb, { t, dur: 0.05, vol: vol * 0.5, f0: 2800, q: 2 }); }
+}
+function anvil(ctx, dest, nb, t, vol) {
+  for (const [f, a, d] of [[820, 1, 0.5], [1237, 0.7, 0.4], [2210, 0.45, 0.25]]) bell(ctx, dest, f, t, { vol: vol * a, decay: d });
+  hiss(ctx, dest, nb, { t, dur: 0.04, vol: vol * 0.8, f0: 4000, kind: 'highpass' });
+}
+function toll(ctx, dest, freq, t, vol) {
+  for (const [h, a] of [[1, 1], [2.0, 0.5], [2.76, 0.35], [5.4, 0.12]]) bell(ctx, dest, freq * h, t, { vol: vol * a, decay: 4.2 / Math.sqrt(h) });
+}
+
 // ---- themes (chords are MIDI note numbers) ----
 const CH = (...rows) => rows;
 export const THEMES = {
@@ -114,12 +154,13 @@ export const THEMES = {
   z12: { dur: 4.5, chords: CH([38, 45, 50, 53], [34, 46, 50, 53], [41, 48, 53, 57], [36, 48, 52, 55]),
     pad: { type: 'sawtooth', filt: 1000, vol: 0.045 }, bells: { scale: [74, 77, 81, 86], p: 0.5, vol: 0.03, decay: 1.8, n: 2, spacing: 1.6 }, extras: ['timp'], timp: [0, 0.25, 0.5, 0.75], timpVol: 0.11 },
   // The Endless Crypt: dread, dissonance and a slow heartbeat.
-  z13: { dur: 8, chords: CH([33, 39, 45], [34, 40, 46], [33, 39, 45], [32, 38, 44]),
+  crypt: { dur: 8, chords: CH([33, 39, 45], [34, 40, 46], [33, 39, 45], [32, 38, 44]),
     pad: { type: 'sawtooth', filt: 380, vol: 0.026, det: 12 }, bells: { scale: [60, 66, 67, 73], p: 0.4, vol: 0.02, decay: 3.4, n: 2, spacing: 3 }, extras: ['drone', 'heart', 'wind'], droneVol: 0.06, heartVol: 0.08, windVol: 0.012 },
+  ...REGION_THEMES,
 };
 export const THEME_NAMES = {
   home: 'Home', z1: 'Graveyard Fields', z2: 'Burned Farmstead', z3: 'Chapel Hill', z4: 'Castle Gatehouse', z5: 'Pilgrim Road', z6: 'Cathedral Steps',
-  z7: 'Hallowed Ground', z8: 'The Holy Citadel', z9: 'Frostbitten Pass', z10: "Wizard's Tower", z11: "Dragon's Rest", z12: "The Hero's Throne", z13: 'The Endless Crypt',
+  z7: 'Hallowed Ground', z8: 'The Holy Citadel', z9: 'Frostbitten Pass', z10: "Wizard's Tower", z11: "Dragon's Rest", z12: "The Hero's Throne", crypt: 'The Endless Crypt', ...REGION_THEME_NAMES,
 };
 
 // Schedule one chord block of a theme starting at time t. Returns the block length in seconds.
@@ -137,6 +178,23 @@ export function scheduleBlock(ctx, dest, th, t, rnd, nb, idx) {
   if (ex.includes('arp')) { const a = th.arp, step = dur / a.n; for (let i = 0; i < a.n; i++) { const m = chord[i % chord.length] + a.oct; if (a.wave === 'sine') bell(ctx, dest, mtof(m), t + i * step, { vol: a.vol, decay: 0.9 }); else pluck(ctx, dest, mtof(m), t + i * step, a.vol); } }
   if (ex.includes('heart')) for (let k = 0; k * 1.9 < dur; k++) heartbeat(ctx, dest, t + k * 1.9, th.heartVol || 0.09);
   if (ex.includes('sparkle')) for (let i = 0; i < 9; i++) bell(ctx, dest, mtof(pick(rnd, th.bells.scale) + 12), t + rnd() * dur, { vol: 0.012, decay: 0.7 });
+  if (ex.includes('hand')) for (const [fr, k] of th.hand) handDrum(ctx, dest, nb, t + fr * dur, k, th.handVol || 0.07);
+  if (ex.includes('anvil')) for (const fr of th.anvil) anvil(ctx, dest, nb, t + fr * dur, th.anvilVol || 0.025);
+  if (ex.includes('snare')) for (const fr of th.snare) hiss(ctx, dest, nb, { t: t + fr * dur, dur: 0.11, vol: th.snareVol || 0.03, f0: 1900, q: 0.9 });
+  if (ex.includes('toms')) th.toms.forEach((fr, i) => blip(ctx, dest, t + fr * dur, i % 3 === 2 ? 190 : 130, i % 3 === 2 ? 100 : 62, 0.3, th.tomVol || 0.07));
+  if (ex.includes('toll')) toll(ctx, dest, mtof(chord[0] + 24), t + 0.05, th.tollVol || 0.035);
+  if (ex.includes('lowchoir')) for (const m of chord.slice(0, 3)) choirNote(ctx, dest, mtof(m), t, dur + 1.5, th.choirVol || 0.018);
+  if (ex.includes('harp')) { const up = [0, 1, 2, 3, 2, 1]; up.forEach((k, i) => pluck(ctx, dest, mtof(chord[k] + 24), t + i * 0.16, th.harpVol || 0.025)); up.slice(0, 4).forEach((k, i) => pluck(ctx, dest, mtof(chord[k] + 24), t + dur * 0.55 + i * 0.2, (th.harpVol || 0.025) * 0.8)); }
+  if (ex.includes('bubbles')) for (let i = 0; i < 7; i++) { const f = 260 + rnd() * 520; blip(ctx, dest, t + rnd() * dur, f, f * (1.5 + rnd()), 0.09, 0.012 + rnd() * 0.012); }
+  if (ex.includes('croak') && rnd() < 0.7) { const at = t + rnd() * (dur - 1), f = 95 + rnd() * 50; for (let k = 0; k < 5; k++) blip(ctx, dest, at + k * 0.055, f * 1.25, f, 0.04, 0.022, 'square'); }
+  if (ex.includes('birds')) for (let n = 0; n < 2; n++) if (rnd() < 0.7) { const at = t + rnd() * (dur - 1), f = 2300 + rnd() * 1500; for (let k = 0; k < 2 + Math.floor(rnd() * 3); k++) blip(ctx, dest, at + k * 0.11, f * (1 + 0.06 * k), f * (1.28 + 0.06 * k), 0.07, 0.009); }
+  // the tune: stated on one chord, answered on the next, with a rest every fourth time so it can breathe
+  if (th.lead && idx % 8 !== 7) {
+    const L = th.lead, root = L.roots[idx % L.roots.length], phrase = idx % 2 ? L.answer : L.tune, eighth = dur / 8;
+    // keep the tune in range when the chord root is high
+    const shift = root > 3 ? root - 7 : root;
+    for (const [step, start, len] of phrase) leadNote(ctx, dest, L.voice, mtof(noteAt(L.key, L.mode, shift + step - 7)), t + start * eighth, len * eighth * 0.95, L.vol);
+  }
   const b = th.bells;
   for (let i = 0; i < b.n; i++) if (rnd() < b.p) {
     const f = mtof(pick(rnd, b.scale)), bt = t + 0.5 + i * b.spacing + rnd() * 0.5;
