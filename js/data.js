@@ -42,6 +42,11 @@ export const UNITS = {
   priest:   { name: 'Mad Priest',         hp: 1400,dmg: 20, atk: 1.1, speed: 28, range: 32,  radius: 16, drop: 260, sprite: 'priest',   team: 'enemy', boss: true, abil: ['smite'], summon: { type: 'peasant', n: 3, every: 14 } },
   commander:{ name: 'Knight Commander',   hp: 2600,dmg: 30, atk: 1.1, speed: 28, range: 34,  radius: 18, drop: 420, sprite: 'commander',team: 'enemy', boss: true, abil: ['guard','slam'] },
 
+  // Area attackers. shot picks the look of their splash; noBackfill keeps them undiscovered in older saves.
+  firebrand: { name: 'Firebrand',         hp: 24,  dmg: 6,  atk: 2.4, speed: 31, range: 140, radius: 9,  drop: 8,   sprite: 'firebrand', team: 'enemy', splash: 40, shot: 'fire', noBackfill: true },
+  flagellant:{ name: 'Flagellant',        hp: 130, dmg: 11, atk: 1.7, speed: 34, range: 28,  radius: 11, drop: 24,  sprite: 'flagellant', team: 'enemy', cleave: 44, noBackfill: true },
+  bombard:   { name: 'Bombard Crew',      hp: 230, dmg: 30, atk: 3.4, speed: 20, range: 235, radius: 15, drop: 60,  sprite: 'bombard',   team: 'enemy', splash: 66, shot: 'bomb', heavy: true, noBackfill: true },
+
   // Region 2: the Crusader Reach.
   griffin:  { name: 'Griffin',            hp: 115, dmg: 14, atk: 1.1, speed: 62, range: 26,  radius: 12, drop: 28,  sprite: 'griffin',  team: 'enemy', fly: true, alt: [95, 135] },
   gryphonlord: { name: 'Gryphon Lord',     hp: 650, dmg: 30, atk: 1.1, speed: 55, range: 30,  radius: 17, drop: 150, sprite: 'gryphonlord', team: 'enemy', fly: true, alt: [105, 135] },
@@ -109,35 +114,35 @@ export const ZONES = [
   { id: 1, region: 1, name: 'Graveyard Fields', blurb: 'Peasants stumble in from the village.', waves: 8, scale: 1.06, rating: 38, boss: 'champion',
     compose: (n) => rep('peasant', 2 + n) },
   { id: 2, region: 1, name: 'Burned Farmstead', blurb: 'The militia has taken up spears.', waves: 8, scale: 1.13, rating: 105, boss: 'captain',
-    compose: (n) => [...rep('peasant', 3 + n), ...rep('militia', 2 + Math.floor(n / 2))] },
+    compose: (n) => [...rep('peasant', 3 + n), ...rep('militia', 2 + Math.floor(n / 2)), ...rep('firebrand', n >= 4 ? Math.floor(n / 4) : 0)] },
   { id: 3, region: 1, name: 'Chapel Hill', blurb: 'Slingers pelt your horde from the pews.', waves: 10, scale: 1.15, rating: 200, boss: 'priest',
-    compose: (n) => [...rep('peasant', 2 + Math.floor(n / 2)), ...rep('militia', 2 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 3))] },
+    compose: (n) => [...rep('peasant', 2 + Math.floor(n / 2)), ...rep('militia', 2 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 3)), ...rep('firebrand', Math.floor(n / 3))] },
   { id: 4, region: 1, name: 'Castle Gatehouse', blurb: 'Armoured knights hold the gate.', waves: 10, scale: 1.15, rating: 340, boss: 'commander',
-    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 2)), ...rep('knight', 1 + Math.floor(n / 3))] },
+    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('slinger', 2 + Math.floor(n / 2)), ...rep('knight', 1 + Math.floor(n / 3)), ...rep('firebrand', Math.floor(n / 4)), ...rep('flagellant', Math.floor(n / 5))] },
 
   // Region 2
   { id: 5, region: 2, name: 'Pilgrim Road', blurb: 'Crusaders and crossbowmen march to purge you.', waves: 8, scale: 1.26, rating: 370, boss: 'inquisitor',
-    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('crusader', 1 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3))] },
+    compose: (n) => [...rep('militia', 3 + Math.floor(n / 2)), ...rep('crusader', 1 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('flagellant', Math.floor(n / 3)), ...rep('firebrand', Math.floor(n / 4))] },
   { id: 6, region: 2, name: 'Cathedral Steps', blurb: 'Clerics mend the wounded faster than you can cut them down.', waves: 8, scale: 1.33, rating: 470, boss: 'templar',
-    compose: (n) => [...rep('gryphonlord', n === 5 ? 1 : 0), ...rep('griffin', n >= 5 ? 1 : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2)] },
+    compose: (n) => [...rep('gryphonlord', n === 5 ? 1 : 0), ...rep('griffin', n >= 5 ? 1 : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('militia', 2), ...rep('flagellant', Math.floor(n / 3))] },
   { id: 7, region: 2, name: 'Hallowed Ground', blurb: 'Paladins in blessed plate hold the line.', waves: 10, scale: 1.25, rating: 580, boss: 'archbishop',
-    compose: (n) => [...rep('gryphonlord', n === 6 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5))] },
+    compose: (n) => [...rep('gryphonlord', n === 6 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 2 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 4)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('paladin', Math.floor(n / 5)), ...rep('flagellant', Math.floor(n / 4)), ...rep('bombard', n === 5 || n === 8 ? 1 : 0)] },
   { id: 8, region: 2, name: 'The Holy Citadel', blurb: 'The last bastion of the faithful.', waves: 10, scale: 1.3, rating: 770, boss: 'avenger',
-    compose: (n) => [...rep('gryphonlord', n === 7 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3))] },
+    compose: (n) => [...rep('gryphonlord', n === 7 ? 1 : 0), ...rep('griffin', n >= 4 ? 1 + Math.floor(n / 8) : 0), ...rep('crusader', 3 + Math.floor(n / 3)), ...rep('crossbow', 2 + Math.floor(n / 3)), ...rep('cleric', 2 + Math.floor(n / 4)), ...rep('paladin', 1 + Math.floor(n / 3)), ...rep('flagellant', Math.floor(n / 4)), ...rep('bombard', n >= 5 && n % 2 === 1 ? 1 : 0)] },
 
   // Region 3
   { id: 9, region: 3, name: 'Frostbitten Pass', blurb: 'Berserkers charge out of the blizzard.', waves: 7, scale: 1.6, rating: 810, boss: 'herodawn',
-    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('crossbow', 2), ...rep('cleric', 1)] },
+    compose: (n) => [...rep('crusader', 2 + Math.floor(n / 3)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('crossbow', 2), ...rep('cleric', 1), ...rep('flagellant', Math.floor(n / 3)), ...rep('bombard', n === 5 ? 1 : 0)] },
   { id: 10, region: 3, name: "Wizard's Tower", blurb: 'Archmages rain ruin from the battlements.', waves: 7, scale: 1.55, rating: 1000, boss: 'supreme',
-    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 4 ? Math.floor(n / 4) : 0), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4))] },
+    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 4 ? Math.floor(n / 4) : 0), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('crusader', 2), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('bombard', n === 5 || n === 7 ? 1 : 0)] },
   { id: 11, region: 3, name: "Dragon's Rest", blurb: 'Assassins slip through the dark, and sentinels bar the way.', waves: 8, scale: 1.45, rating: 1100, boss: 'slayer',
-    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1)] },
+    compose: (n) => [...rep('frostwyrm', n === 4 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', Math.floor(n / 5)), ...rep('berserker', 1 + Math.floor(n / 4)), ...rep('archmage', 1 + Math.floor(n / 4)), ...rep('cleric', 1), ...rep('flagellant', Math.floor(n / 4)), ...rep('bombard', n === 6 || n === 8 ? 1 : 0)] },
   { id: 12, region: 3, name: "The Hero's Throne", blurb: 'Every hero in the land has gathered to end you.', waves: 8, scale: 1.45, rating: 1350, boss: 'herokind',
-    compose: (n) => [...rep('frostwyrm', n === 5 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4))] },
+    compose: (n) => [...rep('frostwyrm', n === 5 ? 1 : 0), ...rep('wyvern', n >= 3 ? Math.floor(n / 3) : 0), ...rep('assassin', 1 + Math.floor(n / 3)), ...rep('sentinel', 1 + Math.floor(n / 4)), ...rep('berserker', 1 + Math.floor(n / 3)), ...rep('archmage', 1 + Math.floor(n / 3)), ...rep('cleric', 1 + Math.floor(n / 4)), ...rep('bombard', n >= 5 && n % 2 === 1 ? 1 : 0)] },
 
   // The Endless Crypt: waves never stop and get steadily worse. Unlocks after zone 12. No boss; fail is the only ending.
   { id: 13, region: 4, name: 'The Endless Crypt', blurb: 'The living pour in forever. How long can you hold?', waves: Infinity, scale: 1.1, rating: 0, boss: null, endless: true,
-    compose: (n) => [...rep('wyvern', Math.floor(n / 7)), ...rep('griffin', n >= 4 ? Math.floor(n / 5) : 0), ...rep('assassin', 1 + Math.floor(n / 5)), ...rep('sentinel', Math.floor(n / 6)), ...rep('berserker', 1 + Math.floor(n / 5)), ...rep('archmage', 1 + Math.floor(n / 5)), ...rep('cleric', 1 + Math.floor(n / 8)), ...rep('crusader', Math.min(8, 2 + Math.floor(n / 4)))] },
+    compose: (n) => [...rep('wyvern', Math.floor(n / 7)), ...rep('griffin', n >= 4 ? Math.floor(n / 5) : 0), ...rep('assassin', 1 + Math.floor(n / 5)), ...rep('sentinel', Math.floor(n / 6)), ...rep('berserker', 1 + Math.floor(n / 5)), ...rep('archmage', 1 + Math.floor(n / 5)), ...rep('cleric', 1 + Math.floor(n / 8)), ...rep('crusader', Math.min(8, 2 + Math.floor(n / 4))), ...rep('bombard', Math.floor(n / 8)), ...rep('flagellant', Math.floor(n / 6))] },
 ];
 
 // Regions group zones on the map and set the look of the battlefield (see THEMES in render.js).
@@ -245,10 +250,10 @@ export const PLAYER_UNITS = Object.keys(UNITS).filter((k) => UNITS[k].team === '
 
 // ---- Legions ----
 // Once a summon is fully upgraded you can pay a huge sum to teach the necromancer to raise its Legion: one big unit
-// with its own look that is worth about ten of them, raised on a much longer cooldown. Legions share the upgrades of
+// with its own look that is worth about eleven of them, raised in the time eight would take, and raised INSTEAD of the single summon. Legions share the upgrades of
 // the summon they come from. They are generated from the base definitions so every summon gets one.
-export const LEGION_MULT = 10;      // health and damage compared with a single summon
-export const LEGION_RAISE = 7;      // raise cooldown compared with a single summon
+export const LEGION_MULT = 11;      // health and damage compared with a single summon
+export const LEGION_RAISE = 8;      // raise cooldown compared with a single summon
 for (const u of PLAYER_UNITS) {
   const d = UNITS[u];
   UNITS['legion_' + u] = {
@@ -257,9 +262,8 @@ for (const u of PLAYER_UNITS) {
     range: d.range > 40 ? d.range * 1.15 : d.range + 14, unlockCost: 0,
     ...(d.heal ? { heal: { ...d.heal, amt: d.heal.amt * LEGION_MULT * 0.6 } } : {}),
     ...(d.aura ? { aura: { r: d.aura.r * 1.6, dps: d.aura.dps * 6 } } : {}),
-    ...(d.splash ? { splash: d.splash * 1.4 } : {}),
-    ...(d.cleave ? { cleave: d.cleave * 1.4 } : {}),
-    blurb: 'A whole horde of them fused into one terrifying unit. Worth about ten.',
+    ...(d.range > 40 ? { splash: d.splash ? d.splash * 1.4 : 36 } : { cleave: d.cleave ? d.cleave * 1.4 : 34 }),   // a crowd hits several at once
+    blurb: 'A whole horde of them fighting as one. Worth about eleven.',
   };
 }
 export const LEGION_KEYS = PLAYER_UNITS.map((u) => 'legion_' + u);
@@ -426,7 +430,7 @@ export const BESTIARY_ENEMY = 0.0015, BESTIARY_BOSS = 0.004, BESTIARY_ALLY = 0.0
 // Make sure everything you already own or cleared is recorded (covers older saves too).
 export function syncBestiary(save) {
   save.seen = save.seen || {};
-  const mark = (t) => { const e = save.seen[t] || (save.seen[t] = {}); e.seen = true; e.kills = e.kills || 1; };
+  const mark = (t) => { if (UNITS[t].noBackfill) return; const e = save.seen[t] || (save.seen[t] = {}); e.seen = true; e.kills = e.kills || 1; };
   for (const u of PLAYER_UNITS) if (owned(save, u)) (save.seen[u] || (save.seen[u] = {})).owned = true;
   for (const z of ZONES) {
     if (z.endless || !save.cleared[z.id]) continue;

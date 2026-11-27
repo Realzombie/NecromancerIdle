@@ -164,6 +164,21 @@ const SPRITES = {
     palette: { K: '#e8c8a0', H: '#f0e8d0', T: '#f0e8d8', P: '#c8b890', E: '#202020', O: '#f0d060' },
     grid: ['..HHHH.O', '.HHHHHHO', '..KKKK.O', '.KEKKEK.', '..KKKK..', '.TTTTTT.', 'KTTTTTT.', '.TTTTTT.', '.TTTTTT.', '.PP..PP.'],
   },
+  firebrand: {
+    scale: 4,
+    palette: { K: '#e0b890', H: '#a82820', T: '#6a4030', P: '#3a2a28', E: '#202020', Y: '#ffe070', O: '#ff7a20', C: '#4a4250' },
+    grid: ['..HHHH....', '.HHHHHH.Y.', '..KKKK..YO', '.KEKKEK.OO', '..KKKK..C.', '.TTTTTTKCC', 'KTTTTTT.CC', '.TTTTTT...', '.PP..PP...', '.PP..PP...'],
+  },
+  flagellant: {
+    scale: 5,
+    palette: { K: '#d8a880', H: '#5a3a28', T: '#7a1e1e', P: '#3a2a1a', E: '#202020', R: '#c03030', C: '#8a8a98', M: '#d0d0d8' },
+    grid: ['..HHHH.....', '.HHHHHH..M.', '..KKKK..MCM', '.KEKKEK..M.', '..KKKK..C..', '.KRKKRK.C..', 'KKKRRKKKK..', '.KRKKRK....', '.TTTTTT....', '.PP..PP....', '.PP..PP....'],
+  },
+  bombard: {
+    scale: 5,
+    palette: { K: '#e0b890', H: '#6a6a78', T: '#5a4a6a', P: '#3a2a28', E: '#202020', M: '#4a4a58', m: '#7a7a8a', W: '#8a5a2a', w: '#5a3a1a', F: '#ffb040' },
+    grid: ['..HHH..........', '.HHHHH.........', '.KEKE..mmmmmm..', '.KKKK.MMMMMMMmF', 'TTTTTKMMMMMMMmF', 'TTTTT..MMMMMM..', '.TTTT..wWWWw...', '.PP.P.wWwWwWw..', '.PP.PPwWWwWWw..', '.PP.PP.wWWWw...'],
+  },
   militia: {
     scale: 4,
     palette: { K: '#e0b890', A: '#8a8a98', T: '#6a7a4a', P: '#4a3a3a', E: '#202020', W: '#8a5a2a', Y: '#d8d8e8' },
@@ -1069,7 +1084,7 @@ function drawProjectiles(g, battle, t) {
   for (const p of battle.projectiles) {
     const a = p.angle || 0, ca = Math.cos(a), sa = Math.sin(a);
     if (p.magic) {
-      const col = p.src && p.src.sp && p.src.sp.frost ? '#9fd8ff' : p.src && p.src.team === 'enemy' ? '#ff7a60' : '#c080e0';
+      const col = p.shot === 'fire' ? '#ff9a30' : p.shot === 'bomb' ? '#ffd060' : p.src && p.src.sp && p.src.sp.frost ? '#9fd8ff' : p.src && p.src.team === 'enemy' ? '#ff7a60' : '#c080e0';
       g.save(); g.globalCompositeOperation = 'lighter';
       for (let i = 5; i >= 1; i--) {
         g.globalAlpha = 0.14 * (6 - i); g.fillStyle = col;
@@ -1204,7 +1219,7 @@ function drawScene(g, battle, tier = 0) {
     g.fillText(f.text, f.x, f.y - f.t * 24);
   }
   g.globalAlpha = 1;
-  if (battle.spawnQueue.length === 0 && battle.alive('enemy') === 0 && !battle.result) {
+  if (battle.spawnQueue.length === 0 && battle.alive('enemy') === 0 && !battle.result && !battle.bossSpawned) {   // nothing more is coming once the boss is out
     g.font = 'bold 28px system-ui, sans-serif'; g.fillStyle = '#e8e0f0';
     g.fillText(battle.wave >= battle.totalWaves && !battle.bossSpawned ? UNITS[battle.zone.boss].name + ' approaches!' : battle.zone.endless ? 'Wave ' + (battle.wave + 1) + ' incoming...' : 'Next wave incoming...', FIELD_W / 2, 200);
   }

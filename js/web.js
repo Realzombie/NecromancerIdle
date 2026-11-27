@@ -125,7 +125,7 @@ export function createWeb({ save, play, onChange }) {
       return {
         icon: lookCanvas('legion_' + n.unit, lookOf(save, n.unit)), label: def.name, badge: have ? 'owned' : '☠ ' + cost.toLocaleString(),
         state: have ? 'maxed' : can ? 'avail' : 'ready',
-        title: def.name, lines: [`One huge unit worth about ${LEGION_MULT} ${UNITS[n.unit].name}s, with all your upgrades. It is raised on a much longer cooldown (${Math.round(def.raise)}s) and gets its own Raise Dead button.`, have ? 'Unlocked.' : 'The reward for fully upgrading this summon.'],
+        title: def.name, lines: [`One unit worth about ${LEGION_MULT} ${UNITS[n.unit].name}s that hits several enemies at once. It is raised INSTEAD of the single summon (every ${Math.round(def.raise)}s before upgrades), and takes over its Raise Dead button.`, have ? 'Unlocked.' : 'The reward for fully upgrading this summon.'],
         buy: have ? null : { label: `Raise the Legion ☠ ${cost.toLocaleString()}`, enabled: can, fn: () => buyLegion(save, n.unit) },
       };
     }

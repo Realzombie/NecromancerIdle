@@ -150,6 +150,7 @@ function renderRebirth() {
   go.classList.toggle('armed', !!rebirthArmed);
   go.textContent = rebirthArmed ? 'Tap again to rebirth' : 'Rebirth';
   const box = $('perks');
+  const scrolled = box.scrollTop;   // buying a perk redraws the list: keep the place
   box.innerHTML = '';
   for (const key of PERK_KEYS) {
     const P = PERKS[key];
@@ -169,6 +170,7 @@ function renderRebirth() {
     el.onclick = () => { if (buyPerk(save, key)) { play('buy'); writeSave(save); renderRebirth(); } };
     box.appendChild(el);
   }
+  box.scrollTop = scrolled;
 }
 $('btn-rebirth-go').onclick = () => {
   if (!canRebirth(save)) return;

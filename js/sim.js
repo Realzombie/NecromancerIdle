@@ -2,7 +2,7 @@
 import {
   UNITS, TUNING, GATE_X, NECRO_X, FIELD_W, LANE_TOP, LANE_BOTTOM, LANE_MIN_Y, LANE_MAX_Y,
   PLAYER_UNITS, legionOwned, legionReady, legionCost, STATS, SPECIALS, SPECIAL_KEYS, TIER, owned, level, statCost, statMods, hasSpecial, specialReady, lookOf, zoneById,
-  PERKS, PACT_ORDER, worldMul, zoneRebirth, unitRebirthOk, statNeeds, perkLock, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
+  LEGION_MULT, playerRating, PERKS, PACT_ORDER, worldMul, zoneRebirth, unitRebirthOk, statNeeds, perkLock, perk, perkCost, soulMul, raiseMul, spellCooldownFor, spellCountFor, spellUnlocked, essenceGain, canRebirth,
   gateMet, bestiaryBonus, BOSS_ABILITIES, hazardsFor,
 } from './data.js';
 import { gearMods, rollDrops, equipIfBetter } from './gear.js';
@@ -45,6 +45,9 @@ export class Battle {
     this.timers = [];          // delayed effects such as boss attack wind-ups
     this.corpses = [];         // dying units, kept briefly so the renderer can show them fall
     this.shake = 0;            // screen shake strength (visual only)
+    this.deepest = FIELD_W;    // how far left any enemy got (for the attempt log)
+    this.peakHorde = 0;
+    this.lost = 0;             // summons that died
     const startZombies = TUNING.startZombies + perk(save, 'horde');
     for (let i = 0; i < startZombies; i++) this.spawn('zombie', 260 + (i % 8) * 36);
     for (const t of this.raiseTypes()) { this.raiseTimers[t] = this.raiseInterval(t) * 0.5; this.spellCds[t] = 10; }
@@ -239,10 +242,17 @@ export class Battle {
     return n;
   }
 
+  // What the necromancer raises: once a Legion is learned it is raised INSTEAD of the single summon, to keep the field clear.
+  // (The free starting zombies, and any raised by gear, are always ordinary ones.)
   raiseTypes() {
-    const out = PLAYER_UNITS.filter((t) => owned(this.save, t));
-    for (const t of PLAYER_UNITS) if (owned(this.save, t) && legionOwned(this.save, t)) out.push('legion_' + t);
-    return out;
+    return PLAYER_UNITS.filter((t) => owned(this.save, t)).map((t) => (legionOwned(this.save, t) ? 'legion_' + t : t));
+  }
+
+  // How many hounds hunt together (a hound Legion is a whole pack).
+  packSize() {
+    let n = 0;
+    for (const u of this.units) if (u.team === 'player' && (u.def.legion || u.type) === 'hound') n += u.def.legion ? LEGION_MULT : 1;
+    return n;
   }
 
   raiseInterval(type) { return UNITS[type].raise * statMods(this.save, UNITS[type].legion || type).cooldown * raiseMul(this.save); }
@@ -305,7 +315,7 @@ export class Battle {
           this.emit('boss');
           this.spawn(this.zone.boss, FIELD_W - 30);
           this.layMines();
-          this.pause = TUNING.wavePause;
+          this.pause = 0.8;     // the beat between the last death and the victory screen
           return;
         }
         this.wave++;
@@ -335,7 +345,9 @@ export class Battle {
       if (d <= step) {
         this.hit(p.target, p.dmg, p.src);
         if (p.splash) {
-          this.fx.push({ k: 'ring', x: p.target.x, y: p.target.y - 10, t: 0, life: 0.3, color: '#c080e0' });
+          this.fx.push({ k: 'ring', x: p.target.x, y: p.target.y - 10, t: 0, life: 0.3, color: p.shot === 'fire' ? '#ff9030' : p.shot === 'bomb' ? '#ffd060' : '#c080e0' });
+          if (p.shot) { for (let i = 0; i < 8; i++) this.spark(p.target.x, p.target.y - 10, i % 2 ? '#ffb040' : '#ff6030'); }
+          if (p.shot === 'bomb') { this.shake = Math.max(this.shake, 0.35); this.emit('trap'); }
           for (const o of this.units) {
             if (o.team === p.target.team && o !== p.target && o.hp > 0 && Math.hypot(o.x - p.target.x, (o.y - p.target.y) * 1.5) <= p.splash) this.hit(o, p.dmg * 0.6, p.src, true);
           }
@@ -361,9 +373,18 @@ export class Battle {
 
     this.updateHazards(dt);
 
+    // For the attempt log: the biggest the horde got and how close the enemy came.
+    let horde = 0;
+    for (const u of this.units) {
+      if (u.def.static) continue;
+      if (u.team === 'player') horde++; else if (u.x < this.deepest) this.deepest = u.x;
+    }
+    if (horde > this.peakHorde) this.peakHorde = horde;
+
     // Deaths
     for (const u of this.units) {
       if (u.hp > 0) continue;
+      if (u.team === 'player' && !u.def.static) this.lost++;
       for (let i = 0; i < 6; i++) this.spark(u.x, u.y - 14, u.team === 'player' ? '#8fd16a' : '#d6596b');
       this.emit('die', u.team);
       if (this.corpses.length < 50) this.corpses.push({ u, x: u.x, y: u.y, t: 0, alt: u.altNow || 0 });
@@ -461,7 +482,7 @@ export class Battle {
         u.swing = null;
         if (t.hp > 0) {
           if (u.def.range > 40) {
-            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16 - (u.altNow || 0), target: t, dmg: u.dmg, speed: u.def.splash ? 260 : 340, src: u, splash: u.def.splash || 0, magic: !!u.def.splash });
+            this.projectiles.push({ x: u.x + u.facing * 10, y: u.y - 16 - (u.altNow || 0), target: t, dmg: u.dmg, speed: u.def.splash ? 260 : 340, src: u, splash: u.def.splash || 0, magic: !!u.def.splash, shot: u.def.shot });
           } else if (Math.hypot(t.x - u.x, (t.y - u.y) * 1.5) <= (u.def.range + t.def.radius) * 1.4) {
             this.fx.push({ k: 'slash', x: u.x + u.facing * 16, y: u.y - 18, dir: u.facing, t: 0, life: 0.2, color: u.team === 'player' ? '#d8f0c0' : '#f0d0c0' });
             this.hit(t, u.dmg, u);
@@ -601,6 +622,21 @@ export class Battle {
     for (let i = 0; i < Math.min(3, this.eliteKills || 0); i++) if (this.rng() < 0.12) bonus.push(...rollDrops(s, this.rng, this.zoneId, { cleared: false, count: 1 }));
     this.drops.push(...bonus);
     for (const it of this.drops) equipIfBetter(s, it);
+    this.logAttempt(result);
+  }
+
+  // A short history of recent attempts, carried in the save, so balance can be judged from real play.
+  logAttempt(result) {
+    const s = this.save;
+    s.stats.playTime = Math.round((s.stats.playTime || 0) + this.time);
+    const log = (s.log = s.log || []);
+    log.push({
+      at: Math.round(Date.now() / 1000), zone: this.zoneId, rebirths: s.rebirths || 0, won: result === 'clear' ? 1 : 0,
+      wave: this.wave, boss: this.bossSpawned ? 1 : 0, secs: Math.round(this.time), power: playerRating(s),
+      kills: this.kills, souls: this.payout, peak: this.peakHorde, lost: this.lost,
+      danger: Math.round(100 * clamp((FIELD_W - this.deepest) / (FIELD_W - GATE_X), 0, 1)),   // 100 = they reached the gate
+    });
+    if (log.length > 250) log.splice(0, log.length - 250);
   }
 
   // Dying zombies with Spore Burst hurt nearby enemies.
@@ -650,7 +686,7 @@ export class Battle {
     }
     if (src && src.sp) {
       if (src.sp.charge && src.fresh) { dmg *= 2.5; src.fresh = false; this.fx.push({ k: 'ring', x: target.x, y: target.y - 8, t: 0, life: 0.3, color: '#ff8040' }); }
-      if (src.sp.pack) dmg *= 1 + 0.1 * Math.min(5, this.alive('player', 'hound') - 1);
+      if (src.sp.pack) dmg *= 1 + 0.1 * Math.max(0, Math.min(5, this.packSize() - 1));
       if (src.sp.poison) target.status.poison = { t: 4, dps: 0.35 * src.dmg };
       if (src.sp.fire) target.status.burn = { t: 3, dps: 0.4 * src.dmg };
       if (src.sp.inferno) target.status.burn = { t: 4, dps: 0.55 * src.dmg };
@@ -730,6 +766,8 @@ export function buyPerk(save, key) {
 export function rebirth(save) {
   if (!canRebirth(save)) return 0;
   const gain = essenceGain(save);
+  const rlog = (save.rlog = save.rlog || []);
+  rlog.push({ at: Math.round(Date.now() / 1000), rebirth: (save.rebirths || 0) + 1, bestZone: save.bestZone, essence: gain, power: playerRating(save), attempts: (save.stats && save.stats.attempts) || 0, playTime: (save.stats && save.stats.playTime) || 0 });
   const kept = PACT_ORDER.slice(0, perk(save, 'pact')).filter((u) => (save.nodes['unit_' + u] || 0) > 0);
   save.essence += gain;
   save.rebirths = (save.rebirths || 0) + 1;

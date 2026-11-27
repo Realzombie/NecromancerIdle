@@ -45,6 +45,8 @@ const WEAP = {
   sling: (p, hx, hy) => { p.L(hx, hy, hx + 3, hy - 6, '#c8b890', true); p.E(hx + 4, hy - 8, 1.2, 1.2, '#9a9aa0', true); p.px(hx - 1, hy - 9, '#c8b890', true); p.px(hx + 7, hy - 7, '#c8b890', true); },
   dagger2: (p, hx, hy) => { p.R(hx, hy - 4, 1, 5, '#e0e4f0', true); p.R(hx - 1, hy + 1, 3, 1, '#4a3a2a', true); p.R(hx + 3, hy - 3, 1, 4, '#e0e4f0', true); },
   torch: (p, hx, hy) => { p.R(hx, hy - 4, 2, 8, '#5a3a20'); p.P([[hx - 2, hy - 4], [hx + 1, hy - 11], [hx + 4, hy - 4]], '#ff7a20', true); p.P([[hx - 1, hy - 4], [hx + 1, hy - 9], [hx + 3, hy - 4]], '#ffd060', true); },
+  firepot: (p, hx, hy) => { p.E(hx + 2, hy - 3, 3, 3, '#3a3038'); p.P([[hx, hy - 5], [hx + 2, hy - 11], [hx + 5, hy - 5]], '#ff7a20', true); p.P([[hx + 1, hy - 5], [hx + 2, hy - 9], [hx + 4, hy - 5]], '#ffe070', true); },
+  cannon: (p, hx, hy) => { p.R(hx - 6, hy - 3, 13, 5, '#4a4a58'); p.R(hx - 6, hy - 3, 13, 1, '#8a8a9a', true); p.R(hx + 6, hy - 4, 2, 7, '#2a2a34'); p.px(hx + 8, hy - 1, '#ffb040', true); p.E(hx - 1, hy + 5, 4, 4, '#8a5a2a'); p.E(hx - 1, hy + 5, 1.4, 1.4, '#3a2410', true); p.R(hx - 1, hy + 2, 1, 7, '#5a3a1a', true); p.R(hx - 4, hy + 5, 7, 1, '#5a3a1a', true); },
   scourge: (p, hx, hy) => { p.R(hx, hy - 3, 2, 6, '#3a2a20'); p.L(hx + 1, hy - 3, hx + 6, hy - 9, '#9a9aa8', true); p.L(hx + 6, hy - 9, hx + 9, hy - 5, '#9a9aa8', true); p.px(hx + 9, hy - 4, '#d8d8e8', true); },
   holysword: (p, hx, hy) => { p.R(hx - 1, hy - 13, 4, 14, '#ffb050', true); p.R(hx, hy - 13, 2, 13, '#fff0a0', true); p.P([[hx - 1, hy - 12], [hx - 2, hy - 15], [hx + 1, hy - 21], [hx + 4, hy - 15], [hx + 3, hy - 12]], '#ff8a30', true); p.P([[hx, hy - 12], [hx + 1, hy - 18], [hx + 2, hy - 12]], '#ffe070', true); p.R(hx - 3, hy, 8, 1, GOLD, true); p.R(hx, hy + 1, 2, 3, '#7a5a20', true); },
 };
@@ -152,6 +154,9 @@ export const ENEMY = {
   priest:   () => person({ bulk: 2, robe: true, head: 'hair', hc: '#f0f0f8', cloth: '#e8e0d0', trim: GOLD, weapon: 'staff', orb: '#ff5a5a', eye: '#ff3030', angry: true, skin: '#e8c8a0' }),
   commander:() => person({ bulk: 2, head: 'greathelm', hc: '#50505f', eye: '#ff3030', crest: '#a02828', cloth: '#2a2a3a', armor: 'plate', legs: '#1a1a24', cape: '#6a1a1a', weapon: 'greatsword', pauldrons: '#6a6a7a', trim: '#8a8a9a' }),
 
+  firebrand: () => person({ head: 'hood', hc: '#a82820', cloth: '#6a4030', legs: '#3a2a28', weapon: 'firepot', angry: true }),
+  flagellant: () => person({ bulk: 1, head: 'hair', hc: '#5a3a28', chestBare: true, cloth: '#7a1e1e', legs: '#3a2a1a', skin: '#d8a880', sleeve: '#d8a880', weapon: 'scourge', weapon2: 'scourge', angry: true }),
+  bombard: () => person({ bulk: 2, head: 'cap', hc: '#6a6a78', cloth: '#5a4a6a', legs: '#3a2a28', weapon: 'cannon', beard: '#6a4a30' }),
   crusader: () => person({ bulk: 1, head: 'helm', hc: '#c8c8d8', cloth: '#ece6e6', cross: RED, legs: '#6a2a2a', weapon: 'sword', shield: 'kite', sh: '#ece6e6', shTrim: RED, pauldrons: '#c8c8d8' }),
   crossbow: () => person({ head: 'cap', hc: '#6a6a78', cloth: '#4a5a7a', legs: '#3a3a48', weapon: 'crossbow' }),
   cleric:   () => person({ robe: true, head: 'hood', hc: '#f0e8d0', cloth: '#f0e8d8', trim: GOLD, weapon: 'staff', orb: '#ffe880', skin: '#e8c8a0' }),
