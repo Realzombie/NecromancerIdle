@@ -279,3 +279,13 @@ Will's goal: "something I can play for months and slowly progress". The old buil
 - **Rebirth:** waves and zones lock again, perks can skip early ones. Aim: a rebirth every 2-3 days (a few 5-10 minute sessions a day), months for the whole game.
 - **Go big:** about 40 zones in 10 regions, many more enemies, bosses and summons, with slower unlocks.
 - Champion souls from bounties are cut right back (they were paying about as many as bosses did).
+
+## Where the long game stands (Nov 27, published). THIS SUPERSEDES the older sections above on waves, raising, zones, balance and tools.
+- **Waves:** `new Battle(save, zoneId, wave)` is one fight (wave 1-5, 6 = boss), enemies arriving in surges. `save.progress[zone]` is the highest wave beaten. Replays pay 50%, a first win +60%, a defeat 50% of what was collected.
+- **Army:** `save.army` {type: count}, space = 8 + muster upgrades (cap grows with rebirths, max 24) + 2 x Larger Vanguard + half a point per rebirth. `ARMY_SLOTS` is each summon's size. The necromancer replaces one loss at a time and never exceeds the army. Every 10 of a summon with a Legion march as one.
+- **World:** 40 zones in 10 regions plus the Endless Crypt (id 41), all in `js/zones.js` with the newer enemies (one `art` description drives both `enemyart.js` HD and `foeart.js` Normal). 19 summons.
+- **Balance:** `waveCurve` (zone strength anchors in `CURVE`) scales every enemy in a wave; an enemy's own numbers only set its shape. Zones need roughly one rebirth each (`zoneRebirth`), summons unlock between rebirth 1 and 30, upgrade tiers at 3 and 9. The world no longer scales with rebirths. Measured with `node tools/pacing.mjs 40` (bot, 1x speed, no Raise Dead taps, no offline souls): rebirths take about 25-110 minutes of fighting; zone 40 falls around rebirth 38 after about 31 hours. Rebirths 16-31 are the smoothest stretch (few setbacks).
+- **Save:** key `necro_save_v2`, so everyone started afresh. `save.log` and `save.rlog` record attempts and rebirths.
+- **Champion souls:** first boss kill per run, 7% on repeats, every 25th bounty.
+- **Tools:** `wavetest.mjs` (rules), `geartest.mjs`, `pacing.mjs` (balance), preview sheets. The old simtest, rebirthsim, rebirthtest, endlesstest and unitbench were removed.
+- **Not yet done or checked:** real-phone play; new zones reuse the first twelve music themes and recombine skylines and map buildings; summon-by-summon balance of the six new ones; 2x and 4x speed shorten the real time a lot.

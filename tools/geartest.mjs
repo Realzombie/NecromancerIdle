@@ -13,7 +13,7 @@ let seed = 7; const rng = () => (seed = (seed * 16807) % 2147483647) / 214748364
 // Pity: never more than PITY_AT failed-attempt drops in a row without a Rare.
 let sinceRare = 0, worst = 0;
 for (let i = 0; i < 400; i++) {
-  for (const it of rollDrops(save, rng, 8, { cleared: false, count: 1 })) {
+  for (const it of rollDrops(save, rng, 24, { cleared: false, count: 1 })) {
     if (RARITIES.findIndex((r) => r.id === it.rarity) >= 3) sinceRare = 0; else worst = Math.max(worst, ++sinceRare);
   }
 }
@@ -27,9 +27,9 @@ ok(save.gear.length <= MAX_ITEMS, 'the bag never exceeds its limit');
 
 // First clear of a boss drops a Rare or better.
 const fresh = defaultSave();
-const drops = rollDrops(fresh, rng, 6, { cleared: true, first: true });
-ok(drops.some((d) => d.rarity === 'rare'), 'first clear of zone 6 drops a Rare');
-ok(rollDrops(defaultSave(), rng, 12, { cleared: true, first: true }).some((d) => d.rarity === 'legendary'), 'first clear of zone 12 drops a Legendary');
+const drops = rollDrops(fresh, rng, 12, { cleared: true, first: true });
+ok(drops.some((d) => d.rarity === 'rare'), 'first clear of zone 12 drops a Rare');
+ok(rollDrops(defaultSave(), rng, 36, { cleared: true, first: true }).some((d) => d.rarity === 'legendary'), 'first clear of zone 36 drops a Legendary');
 
 // Equip, mods, salvage, upgrade.
 const s2 = defaultSave();

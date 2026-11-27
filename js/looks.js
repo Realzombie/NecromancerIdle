@@ -181,6 +181,114 @@ export const LOOKS = {
     flags: {},
   },
 
+  wight: {
+    scale: 4, pad: 3,
+    grid: [
+      '..BBBB.....', '.BBBBBB..S.', '.BEBBEB..S.', '..BbbB...S.', '.CCCCCC..S.', 'CCCCCCCBGGG', 'C.CCCC..B..', 'C.CCCC.....', '..C..C.....', '..B..B.....',
+    ],
+    palette: { B: '#b8c8c0', b: '#7a8a84', E: '#60ffd0', C: '#2a3a44', S: '#9aa0a8', G: '#8a7a40' },
+    hp: [
+      { palette: { C: '#3a5060' }, rects: [] },
+      { rects: [[2, 0, '#8a9098', 4], [1, 1, '#8a9098'], [6, 1, '#8a9098']] },
+      { palette: { C: '#4a4a70' }, rects: [[2, 0, '#d8b050', 4], [2, -1, '#d8b050'], [5, -1, '#d8b050'], [1, 4, '#d8b050', 2]] },
+    ],
+    dmg: [
+      { palette: { S: '#d0d8e0' }, rects: [] },
+      { palette: { S: '#80d0ff' }, rects: [[9, 0, '#80d0ff']] },
+      { palette: { S: '#80ffd0' }, rects: [[9, 0, '#c0fff0'], [10, 2, '#60ffd0'], [10, 4, '#60ffd0']] },
+    ],
+    flags: {},
+  },
+  mummy: {
+    scale: 4, pad: 3,
+    grid: [
+      '..WWWW..', '.WwwWWW.', '.WEWWEW.', '..WWWW..', '.wWWwwW.', 'WWwwWWWW', 'W.WWwW.W', '..wWWW..', '..W..w..', '..W..W..',
+    ],
+    palette: { W: '#d8d0a8', w: '#a89c70', E: '#ffb020' },
+    hp: [
+      { palette: { W: '#e8e0b8' }, rects: [[2, 5, '#a89c70', 4]] },
+      { rects: [[2, 0, '#d8b050', 4], [1, 1, '#d8b050'], [6, 1, '#d8b050'], [1, 2, '#2060a0'], [6, 2, '#2060a0']] },
+      { rects: [[1, 4, '#d8b050', 6], [3, 5, '#2060a0', 2]] },
+    ],
+    dmg: [
+      { rects: [[0, 6, '#8a7c50'], [7, 6, '#8a7c50']] },
+      { rects: [[0, 6, '#80ff90'], [7, 6, '#80ff90']] },
+      { rects: [[0, 6, '#2060a0', 1, 2], [7, 6, '#2060a0', 1, 2], [-1, 7, '#60c0ff'], [8, 7, '#60c0ff']] },
+    ],
+    flags: {},
+  },
+  spider: {
+    scale: 4, pad: 3,
+    grid: [
+      '....PPPP.....', '..PPPPPPPP...', '.PPPPPPPPPPP.', '.PPPPPPPPEPE.', '..PPPPPPPPPP.', '.L.LPPPL.LPF.', 'L..L...L..L.F', 'L.L.....L..L.',
+    ],
+    palette: { P: '#4a3a5a', E: '#ff3a3a', L: '#2e2438', F: '#e8e0c8' },
+    hp: [
+      { palette: { P: '#5a4668' }, rects: [[4, 1, '#7a6290', 3]] },
+      { rects: [[3, 0, '#e8e0c8'], [5, -1, '#e8e0c8'], [7, 0, '#e8e0c8']] },
+      { rects: [[2, 2, '#c8c0a8', 5], [3, 4, '#c8c0a8', 3]] },
+    ],
+    dmg: [
+      { rects: [[11, 6, '#ffffff']] },
+      { rects: [[1, 1, '#8aff60', 3, 2], [11, 6, '#8aff60'], [12, 7, '#8aff60']] },
+      { rects: [[11, 6, '#ff5030', 1, 2], [12, 7, '#ff5030']] },
+    ],
+    flags: {},
+  },
+  banshee: {
+    scale: 4, pad: 3,
+    grid: [
+      '..HHHH...', '.HHHHHH..', '.HWEWEWH.', 'HHWWWWWH.', 'H.WMMWW.W', 'H.GGGGGGW', '..GGGGG..', '..gGGGg..', '...gGg...', '....g....',
+    ],
+    palette: { H: '#c8e0f0', W: '#e8f4ff', E: '#2a3a6a', M: '#1a2040', G: '#8ab8d8', g: '#5a88b0' },
+    hp: [
+      { rects: [[2, 0, '#e8f8ff', 4]] },
+      { rects: [[2, -1, '#c0a0ff'], [4, -1, '#c0a0ff'], [2, 0, '#c0a0ff', 4]] },
+      { rects: [[2, 6, '#7a7a98', 5], [1, 7, '#7a7a98'], [7, 7, '#7a7a98']] },
+    ],
+    dmg: [
+      { rects: [[10, 4, '#e8f8ff']] },
+      { rects: [[10, 3, '#a0e0ff'], [11, 4, '#a0e0ff'], [10, 5, '#a0e0ff']] },
+      { palette: { E: '#ff4060', M: '#601030' }, rects: [[11, 2, '#c0a0ff'], [12, 4, '#c0a0ff'], [11, 6, '#c0a0ff']] },
+    ],
+    flags: {},
+  },
+  bonegolem: {
+    scale: 4, pad: 3,
+    grid: [
+      '....BBBB....', '...BEBBEB...', '...BBBBBB...', '.BBBbbbbBBB.', 'BBBBBBBBBBBB', 'BB.BbBBbB.BB', 'BB.BBBBBB.BB', 'bb.BbBBbB.bb', '...BBBBBB...', '...BB..BB...', '...BB..BB...', '..BBB..BBB..',
+    ],
+    palette: { B: '#e8e0c8', b: '#a89c7c', E: '#8aff70' },
+    hp: [
+      { rects: [[4, 5, '#c8b890', 4], [4, 7, '#c8b890', 4]] },
+      { rects: [[0, 3, '#fff8e0', 2, 2], [10, 3, '#fff8e0', 2, 2], [0, 4, '#2a2030'], [11, 4, '#2a2030']] },
+      { rects: [[5, 5, '#60ff80', 2, 2]] },
+    ],
+    dmg: [
+      { rects: [[0, 7, '#c8b890', 2, 2], [10, 7, '#c8b890', 2, 2]] },
+      { rects: [[-1, 8, '#9a9aa8'], [12, 8, '#9a9aa8'], [0, 9, '#9a9aa8'], [11, 9, '#9a9aa8']] },
+      { rects: [[-1, 6, '#c8b890', 3, 3], [10, 6, '#c8b890', 3, 3], [-1, 6, '#ff9040'], [12, 6, '#ff9040']] },
+    ],
+    flags: {},
+  },
+  reaper: {
+    scale: 4, pad: 3,
+    grid: [
+      '..KKKK..SSSS.', '.KKKKKKSS..S.', '.KDDDDKK...S.', '.KDEDEDKT....', '.KKDDDKKT....', '..KKKKKBT....', '.KKKKKKBT....', '.KKKKKK.T....', 'KKKKKKKKT....', 'KKKKKKKKT....', 'K.KK.KK.T....',
+    ],
+    palette: { K: '#1c1a26', D: '#05040a', E: '#8aff90', B: '#e8e0c8', T: '#6a4a28', S: '#b8c0cc' },
+    hp: [
+      { palette: { K: '#26243a' }, rects: [] },
+      { rects: [[1, 5, '#e8e0c8', 2], [5, 5, '#e8e0c8', 2], [1, 6, '#a89c7c']] },
+      { rects: [[2, -1, '#d8b050'], [4, -1, '#d8b050'], [2, 0, '#d8b050', 4]] },
+    ],
+    dmg: [
+      { palette: { S: '#e8f0ff' }, rects: [] },
+      { palette: { S: '#90ffb0' }, rects: [] },
+      { palette: { S: '#d0a0ff' }, rects: [[12, 3, '#ffffff'], [7, 0, '#d0a0ff']] },
+    ],
+    flags: {},
+  },
   hound: {
     scale: 4, pad: 1,
     grid: [

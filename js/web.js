@@ -48,6 +48,8 @@ export function createWeb({ save, play, onChange }) {
     gargoyle: { from: 'abomination', x: -1400, y: -330, up: true }, ghost: { from: 'mage', x: 1400, y: -330, up: true },
     gravepriest: { from: 'ghost', x: 1930, y: -330, up: true },
     bat: { from: 'hound', x: -1400, y: 0 }, drake: { from: 'gravepriest', x: 2460, y: -330, up: true },
+    wight: { from: 'deathknight', x: 340, y: 1250, up: false }, banshee: { from: 'wight', x: 870, y: 1250 }, reaper: { from: 'banshee', x: 1400, y: 1250 },
+    mummy: { from: 'plaguebearer', x: -340, y: 1250 }, bonegolem: { from: 'mummy', x: -870, y: 1250 }, spider: { from: 'bat', x: -1400, y: 1250 },
   };
   function build() {
     const nodes = [], links = [];
@@ -125,7 +127,7 @@ export function createWeb({ save, play, onChange }) {
       return {
         icon: lookCanvas('legion_' + n.unit, lookOf(save, n.unit)), label: def.name, badge: have ? 'owned' : '☠ ' + cost.toLocaleString(),
         state: have ? 'maxed' : can ? 'avail' : 'ready',
-        title: def.name, lines: [`One unit worth about ${LEGION_MULT} ${UNITS[n.unit].name}s that hits several enemies at once. It is raised INSTEAD of the single summon (every ${Math.round(def.raise)}s before upgrades), and takes over its Raise Dead button.`, have ? 'Unlocked.' : 'The reward for fully upgrading this summon.'],
+        title: def.name, lines: [`In your army, every 10 ${UNITS[n.unit].name}s march as one Legion instead: worth about ${LEGION_MULT}, hitting several enemies at once. A fallen Legion takes as long to raise as 8 of them.`, have ? 'Unlocked.' : 'The reward for fully upgrading this summon.'],
         buy: have ? null : { label: `Raise the Legion ☠ ${cost.toLocaleString()}`, enabled: can, fn: () => buyLegion(save, n.unit) },
       };
     }

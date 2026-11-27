@@ -1,9 +1,11 @@
 import {
   UNITS, STATS, SPECIALS, SPECIAL_KEYS, ZONES, TUNING, NECRO_TIERS, PLAYER_UNITS, necroTier, owned, level, statCost,
   playerRating, zoneById, hasSpecial, specialReady, REGIONS,
-  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, worldMul, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldownFor, spellUnlocked, lookOf, rebirthsOf, statNeeds, perkLock, milestones, zoneRebirth,
+  bossAbilityNames, syncBestiary, PERKS, PERK_KEYS, perk, perkCost, essenceGain, canRebirth, REBIRTH_MIN_ZONE, offlineCapHours, spellCooldownFor, spellUnlocked, lookOf, rebirthsOf, statNeeds, perkLock, milestones,
+  BOSS_WAVE, WAVES, offlineRate, tidyArmy,
 } from './data.js';
-import { Battle, zoneUnlocked, buyPerk, rebirth } from './sim.js';
+import { Battle, zoneUnlocked, nextWave, buyPerk, rebirth } from './sim.js';
+import { createArmy } from './army.js';
 import { createWeb } from './web.js';
 import { createWorldMap } from './worldmap.js';
 import { draw, drawIdle, drawVictory, iconCanvas, lookCanvas, FIELD_H, artStyleOn, setArtStyle } from './render.js';
@@ -29,8 +31,9 @@ const spellBar = $('spell-bar');
 let spellBtns = [];
 let idleTime = 0;
 let homeNote = '';
-let lastFirstClear = false;
 let lastZone = 1;
+let lastWave = 1;
+let armyFrom = 'home';     // where the Army screen goes back to
 let autoOn = false;
 let autoTimer = null;
 let paused = false;
@@ -41,15 +44,19 @@ function fitUi() { app.style.setProperty('--u', app.clientHeight / 540 + 'px'); 
 window.addEventListener('resize', fitUi);
 fitUi();
 
-const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-armoury', 'screen-rebirth', 'screen-result'];
+const SCREENS = ['screen-home', 'screen-map', 'screen-tree', 'screen-army', 'screen-armoury', 'screen-rebirth', 'screen-result'];
 let worldMap = null;
 function show(id) {
   if (worldMap && id !== 'screen-map') worldMap.stop();
   for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
   $('hud').classList.toggle('hidden', id !== null);
-  setMusicTheme(id === null && battle ? 'z' + battle.zone.id : 'home');   // each zone has its own music
+  setMusicTheme(id === null && battle ? 'z' + musicZone(battle.zone) : 'home');   // each zone has its own music
   spellBar.classList.toggle('hidden', id !== null || !spellBtns.length);
 }
+
+// The first twelve zones and the Crypt have their own themes; later zones borrow one that suits their region.
+const REGION_MUSIC = { 4: [1, 9, 3, 11], 5: [2, 7, 5, 8], 6: [4, 11, 12, 9], 7: [1, 3, 6, 7], 8: [5, 8, 4, 12], 9: [2, 11, 10, 12], 10: [6, 7, 8, 12] };
+function musicZone(z) { if (z.endless) return 13; if (z.id <= 12) return z.id; return REGION_MUSIC[z.region][(z.id - 1) % 4]; }
 
 // ---- Offline souls: based on the highest zone cleared, capped. Never advances zones. ----
 function claimOffline() {
@@ -57,7 +64,7 @@ function claimOffline() {
   const away = (Date.now() - save.lastSeen) / 1000, capS = offlineCapHours(save) * 3600;
   const secs = Math.min(away, capS);
   if (secs < TUNING.offlineMinSeconds) return;
-  const gained = Math.floor((secs / 60) * TUNING.offlineSoulsPerMin * Math.pow(save.bestZone, TUNING.offlineExp) * (1 + 0.25 * perk(save, 'restless')));
+  const gained = Math.floor((secs / 60) * offlineRate(save) * (1 + 0.25 * perk(save, 'restless')));
   save.souls += gained;
   writeSave(save);
   const fmt = (s) => { const h = Math.floor(s / 3600), mnt = Math.floor((s % 3600) / 60); return (h ? h + 'h ' : '') + mnt + 'm'; };
@@ -116,7 +123,8 @@ function renderHome() {
   $('arm-badge').textContent = fresh;
   $('arm-badge').classList.toggle('hidden', fresh === 0);
   const next = ZONES.find((z) => !save.cleared[z.id] && !z.endless);
-  $('home-hint').textContent = next ? `Next target: ${next.name}` : `Every zone is yours. Push your record in the Endless Crypt (best wave ${save.bestEndless || 0}) or rebirth to grow stronger.`;
+  const shut = next && !zoneUnlocked(save, next.id);
+  $('home-hint').textContent = next ? (shut ? `${next.name} opens after a rebirth.` : `Next target: ${next.name}, ${nextWave(save, next.id) >= BOSS_WAVE ? 'the boss' : 'wave ' + nextWave(save, next.id)}`) : `Every zone is yours. Push your record in the Endless Crypt (best wave ${save.bestEndless || 0}) or rebirth to grow stronger.`;
 }
 
 function goHome() {
@@ -190,34 +198,47 @@ function setPaused(p) {
   $('btn-pause').textContent = p ? 'Resume' : 'Pause';
   $('btn-pause').classList.toggle('on', p);
 }
-function startBattle(zoneId) {
+function startBattle(zoneId, wave = nextWave(save, zoneId)) {
   setPaused(false);
   clearTimeout(autoTimer);
   lastZone = zoneId;
+  lastWave = wave;
   victory = null;
-  battle = new Battle(save, zoneId);
-  lastFirstClear = false;
+  tidyArmy(save);
+  battle = new Battle(save, zoneId, wave);
+  clearWait = 0;
   $('btn-speed').textContent = speed + 'x';
   $('hud-zone').textContent = zoneById(zoneId).name;
   buildSpellBar();
   show(null);
 }
 
-let liveFresh = [], liveTimer = 0;
+let liveFresh = [], liveTimer = 0, clearWait = 0;
 function endBattle() {
   const fresh = checkAchievements(save);
   const bounties = reportBattle(save, battle);
   writeSave(save);
   const won = battle.result === 'clear';
   const E = battle.endless;
-  $('result-title').textContent = E ? 'The Crypt claims you' : won ? 'Zone Cleared!' : 'Your horde has fallen';
+  const waveName = battle.bossWave ? 'Boss' : 'Wave ' + battle.startWave;
+  $('result-title').textContent = E ? 'The Crypt claims you' : won ? (battle.zoneTaken ? 'Zone Conquered!' : waveName + ' beaten!') : 'Your army has fallen';
   let text;
+  const souls = battle.payout.toLocaleString();
   if (won) {
-    text = `${UNITS[battle.zone.boss].name} is dead and ${battle.zone.name} is yours. ${Math.floor(battle.earned)} souls collected, all banked.`;
-    if (battle.champDrop) text += ' The boss dropped a champion soul. Spend it in the skill tree!';
+    text = battle.zoneTaken ? `${UNITS[battle.zone.boss].name} is dead and ${battle.zone.name} is yours.` : `${battle.zone.name}, ${waveName.toLowerCase()} of ${WAVES}.`;
+    text += battle.firstWin ? ` +${souls} souls, with the first-win bonus.` : ` +${souls} souls (a replay pays about half).`;
+    if (battle.champDrop) text += ' The boss dropped a champion soul!';
+    if (battle.zoneTaken && !zoneUnlocked(save, battle.zoneId + 1) && battle.zoneId < 40) text += ' The next zone opens after a rebirth.';
   } else {
-    text = `The living chased you off. ${Math.floor(battle.earned)} souls collected from ${battle.kills} kills, but only half (${battle.payout}) are banked on a defeat.`;
+    text = `${battle.zone.name}, ${waveName.toLowerCase()}. The living broke through after ${battle.kills} kills. +${souls} souls salvaged.`;
   }
+  // Next goes to the following wave, or the first wave of the next zone after a boss.
+  let nz = battle.zoneId, nw = battle.startWave + 1;
+  if (battle.bossWave) { nz = battle.zoneId + 1; nw = 1; }
+  const canNext = won && !E && nz <= 40 && zoneUnlocked(save, nz);
+  $('btn-next').classList.toggle('hidden', !canNext);
+  if (canNext) { nw = Math.min(nw, nextWave(save, nz)); $('btn-next').textContent = nz !== battle.zoneId ? 'Next Zone' : nw >= BOSS_WAVE ? 'Face the Boss' : 'Wave ' + nw; }
+  $('btn-next').onclick = () => { clearTimeout(autoTimer); startBattle(nz, nw); };
   if (E) {
     text = `You survived ${E.waves} wave${E.waves === 1 ? '' : 's'}` + (E.record ? ` (a new record, was ${E.prev})` : ` (best ${E.prev})`) + `. +${battle.payout} souls banked.`;
     if (E.essence) text += ` +${E.essence} essence.`;
@@ -245,8 +266,8 @@ function endBattle() {
   liveFresh = [];
   show('screen-result');
   if (autoOn) {
-    $('result-text').textContent += ' Fighting again in 3 seconds... (Return Home to stop)';
-    autoTimer = setTimeout(() => { if (autoOn && battle) startBattle(lastZone); }, 3000);
+    $('result-text').textContent += ' Fighting the same wave again in 3 seconds... (Home to stop)';
+    autoTimer = setTimeout(() => { if (autoOn && battle) startBattle(lastZone, lastWave); }, 3000);
   }
 }
 
@@ -331,14 +352,25 @@ resetBtn.onclick = () => {
 };
 
 const web = createWeb({ save, play, onChange: afterChange });
-worldMap = createWorldMap({ save, startBattle: (id) => startBattle(id), play });
+worldMap = createWorldMap({ save, startBattle: (id, wave) => startBattle(id, wave), play });
+const army = createArmy({ save, play, onChange: afterChange });
+function openArmy(from) { armyFrom = from; setBanks(); army.render(); show('screen-army'); }
+const openMap = () => { setBanks(); show('screen-map'); worldMap.show(); };
+const openTree = () => { setBanks(); show('screen-tree'); web.render(); };
 const armoury = createArmoury({ save, play, onChange: afterChange });
 
 // ---- Wiring ----
-$('btn-map').onclick = () => { setBanks(); show('screen-map'); worldMap.show(); };
-$('btn-tree').onclick = () => { setBanks(); show('screen-tree'); web.render(); };
+// Leaving a result screen for another page ends that fight for good (and stops Auto).
+const leaveResult = (go) => () => { clearTimeout(autoTimer); setAuto(false); battle = null; renderHome(); go(); };
+$('btn-map').onclick = openMap;
+$('btn-tree').onclick = openTree;
+$('btn-army').onclick = () => openArmy('home');
+$('army-back').onclick = () => { if (armyFrom === 'map') openMap(); else goHome(); };
+$('btn-res-army').onclick = leaveResult(() => openArmy('home'));
+$('btn-res-tree').onclick = leaveResult(openTree);
+$('btn-res-map').onclick = leaveResult(openMap);
 $('btn-arm').onclick = () => { setBanks(); armoury.render(); show('screen-armoury'); };
-$('btn-retry').onclick = () => { clearTimeout(autoTimer); startBattle(lastZone); };
+$('btn-retry').onclick = () => { clearTimeout(autoTimer); startBattle(lastZone, lastWave); };
 $('btn-auto').onclick = () => setAuto(!autoOn);
 $('btn-pause').onclick = () => setPaused(!paused);
 // Export and import: a text code holding the whole save, so progress can be backed up or moved between devices.
@@ -417,12 +449,14 @@ function frame(now) {
       const steps = speed * 2;
       for (let i = 0; i < steps; i++) battle.update(dt / 2);
       drainSounds(battle);
-      if (battle.result === 'clear') {
+      if (battle.result === 'clear' && battle.zoneTaken) {
         victory = { t: 0, parts: [] };
         spellBar.classList.add('hidden');
-      } else if (battle.result) endBattle();
+      } else if (battle.result) { clearWait = 0.001; }
     }
     if (victory) battle.time += dt;
+    // a short beat on the field before an ordinary result screen
+    if (clearWait > 0 && !$('hud').classList.contains('hidden')) { clearWait += dt; battle.time += dt; if (clearWait > 0.9) { clearWait = 0; endBattle(); } }
     draw(g, battle, tier);
     if (victory) {
       // The horde cheers: everyone hops on the spot.
@@ -431,7 +465,7 @@ function frame(now) {
       if (victory.t > 4.2) { victory = null; endBattle(); }
     }
     $('hud-souls').textContent = Math.floor(battle.earned);
-    $('hud-wave').textContent = battle.bossSpawned ? 'BOSS' : battle.zone.endless ? `Wave ${battle.wave}` : `Wave ${battle.wave}/${battle.totalWaves}`;
+    $('hud-wave').textContent = battle.zone.endless ? `Wave ${battle.wave}` : battle.bossWave ? 'Boss wave' : `Wave ${battle.wave}/${battle.totalWaves}`;
     $('hud-horde').textContent = `Horde ${battle.alive('player')}`;
     paintSpells();
   } else {

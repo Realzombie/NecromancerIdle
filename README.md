@@ -25,8 +25,8 @@ node tools/serve.mjs
 Balance checks (headless):
 
 ```
-node tools/simtest.mjs        # a bot plays zone by zone
-node tools/rebirthsim.mjs 4   # a bot plays several rebirth cycles
+node tools/wavetest.mjs       # checks the wave, army, replay and rebirth rules
+node tools/pacing.mjs 40      # a bot plays the long game, one line per rebirth
 node tools/rebirthtest.mjs    # checks the rebirth rules
 node tools/endlesstest.mjs   # how far a maxed horde gets in the Endless Crypt
 node tools/unitbench.mjs      # compares the summons head to head

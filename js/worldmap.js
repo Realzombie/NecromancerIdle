@@ -1,26 +1,34 @@
-// The world map: a scrolling painted map of all four regions. The ground is generated from layered noise (hills,
+// The world map: a scrolling painted map of every region. The ground is generated from layered noise (hills,
 // meadows, snow, ash), with rivers, bridges, forests, mountain ranges and landmarks on top. Zones you have conquered
 // burn and fall to ruin under an undead banner with glowing cracks, crows and marching dead; the next zone pulses and
 // unreached lands lie under drifting fog. Tap a zone for details and to fight.
-import { ZONES, REGIONS, UNITS, worldMul, playerRating, bossAbilityNames, hazardText, zoneRebirth } from './data.js';
-import { zoneUnlocked } from './sim.js';
+import { ZONES, REGIONS, UNITS, playerRating, bossAbilityNames, hazardText, zoneRebirth, waveRating, BOSS_WAVE, ENDLESS_ID, LAST_ZONE } from './data.js';
+import { zoneUnlocked, nextWave } from './sim.js';
 import { iconCanvas } from './render.js';
 
-const H = 360, WW = 3400;                 // logical map size (the view shows a window of it)
-const NODES = {
-  1: [140, 250], 2: [390, 160], 3: [650, 255], 4: [900, 160], 5: [1150, 255], 6: [1400, 160], 7: [1660, 255], 8: [1910, 160],
-  9: [2160, 255], 10: [2410, 160], 11: [2670, 255], 12: [2920, 160], 13: [3220, 230],
-};
+const H = 360, STEP = 255, WW = 140 + STEP * LAST_ZONE + 480;     // logical map size (the view shows a window of it)
+const NODES = {};
+for (let id = 1; id <= LAST_ZONE; id++) NODES[id] = [140 + STEP * (id - 1), id % 2 ? 250 : 160];
+NODES[ENDLESS_ID] = [140 + STEP * LAST_ZONE + 90, 230];
 for (const id of Object.keys(NODES)) NODES[id][1] -= 34;   // leave room for the info panel at the bottom
 const IDS = Object.keys(NODES).map(Number);
-const REGION_X = [0, 1030, 2040, 3040, WW];
+const NREG = 11;
+const REGION_X = [0, ...Array.from({ length: NREG - 1 }, (_, i) => 140 + STEP * 4 * (i + 1) - STEP / 2), WW];
+const pal = (lo, hi, wall, wall2, house, roof, road, peak, water, banner, tree, snow) => ({ lo, hi, wall, wall2, house, roof, road, peak, water, banner, tree, snow });
 const THEME = [
-  { lo: '#2b4a2a', hi: '#5a8442', wall: '#8a7a68', wall2: '#6e604e', house: '#7a5a3a', roof: '#a04838', road: '#9a7a4c', peak: '#4a5c58', water: '#2a5a7a' },
-  { lo: '#7a6a30', hi: '#b2a050', wall: '#d8d0c0', wall2: '#b0a898', house: '#a08a60', roof: '#4a6aa8', road: '#b8a068', peak: "#8a7a78", water: '#3a6a8c' },
-  { lo: '#a4b8d0', hi: '#eef4fb', wall: '#8890a0', wall2: '#6a7288', house: '#6a5a50', roof: '#e8f0f8', road: '#a8aeba', peak: '#8aa0c0', water: '#7fb4d8' },
-  { lo: '#1a1226', hi: '#3a2a58', wall: '#4a4058', wall2: '#383044', house: '#3a3048', roof: '#2a2038', road: '#5a4a6a', peak: '#241a38', water: '#3a1a5a' },
+  pal('#2b4a2a', '#5a8442', '#8a7a68', '#6e604e', '#7a5a3a', '#a04838', '#9a7a4c', '#4a5c58', '#2a5a7a', '#2e5a34', 'oak', false),
+  pal('#7a6a30', '#b2a050', '#d8d0c0', '#b0a898', '#a08a60', '#4a6aa8', '#b8a068', '#8a7a78', '#3a6a8c', '#8a6a1c', 'orchard', false),
+  pal('#a4b8d0', '#eef4fb', '#8890a0', '#6a7288', '#6a5a50', '#e8f0f8', '#a8aeba', '#8aa0c0', '#7fb4d8', '#2a4a78', 'pine', true),
+  pal('#1e3226', '#3e5e3a', '#6a7058', '#505640', '#5a4a30', '#3a5a3a', '#6a6040', '#28403a', '#2a4a3a', '#1e4a38', 'dead', false),
+  pal('#a87a38', '#e0bc70', '#e8d0a0', '#c8ac7c', '#b89060', '#c86a30', '#e8cc90', '#a86c48', '#3a8a9a', '#a8581c', 'dead', false),
+  pal('#2e2628', '#5c4c48', '#7a7078', '#5a5058', '#6a4a38', '#8a4a28', '#7a6458', '#322426', '#5a2a20', '#6a3020', 'dead', false),
+  pal('#1e4a28', '#4e8a44', '#c8d8b0', '#9cb088', '#8a6a44', '#3a8a5a', '#a89060', '#2a5a48', '#2a7a8a', '#1c6a3a', 'oak', false),
+  pal('#4a3a34', '#8a7260', '#b8a898', '#948476', '#8a6a50', '#a02828', '#a89484', '#4a3444', '#3a4a6a', '#7a1c28', 'dead', false),
+  pal('#2a120c', '#6a2c18', '#7a5448', '#5a3c34', '#5a3424', '#c04818', '#8a5030', '#3a140e', '#b04010', '#9a3410', 'dead', false),
+  pal('#b8b8d8', '#fff6dc', '#fffaf0', '#dcd4c0', '#e0d4a8', '#e0b030', '#f0e0a8', '#a8a8d8', '#a8d0ff', '#8a78c8', 'pine', true),
+  pal('#1a1226', '#3a2a58', '#4a4058', '#383044', '#3a3048', '#2a2038', '#5a4a6a', '#241a38', '#3a1a5a', '#4a2a78', 'dead', false),
 ];
-const regionOf = (x) => { for (let i = 3; i >= 0; i--) if (x >= REGION_X[i]) return i; return 0; };
+const regionOf = (x) => { for (let i = NREG - 1; i >= 0; i--) if (x >= REGION_X[i]) return i; return 0; };
 
 // What each zone looks like: buildings as [dx, dy, width, height, options], standing at the zone's node.
 const ARCH = {
@@ -36,8 +44,9 @@ const ARCH = {
   10: [[0, 0, 22, 84, { top: 1, orb: 1 }], [-30, 8, 18, 14], [30, 10, 14, 12]],
   11: [[0, 0, 46, 28, { cave: 1 }]],
   12: [[0, 0, 72, 36, { roofH: 18, gate: 1 }], [-36, 0, 14, 60, { top: 1 }], [36, 0, 14, 60, { top: 1 }], [0, -30, 16, 44, { spire: 1 }]],
-  13: [[0, 0, 50, 36, { crypt: 1 }]],
+  [ENDLESS_ID]: [[0, 0, 50, 36, { crypt: 1 }]],
 };
+for (let id = 13; id <= LAST_ZONE; id++) ARCH[id] = ARCH[((id - 1 + Math.floor((id - 1) / 12) * 5) % 12) + 1];
 
 // ---- Small helpers ----
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -65,8 +74,9 @@ const PAL = THEME.map((t) => ({ lo: hexRgb(t.lo), hi: hexRgb(t.hi) }));
 const RIVERS = [
   { pts: [[500, 88], [480, 128], [535, 175], [495, 235], [540, 295], [515, 372]], r: 0 },
   { pts: [[1300, 88], [1270, 128], [1315, 185], [1275, 250], [1310, 372]], r: 1 },
+  ...[3, 4, 6, 8, 9].map((r) => { const x = REGION_X[r] + 640; return { pts: [[x, 88], [x - 34, 128], [x + 18, 185], [x - 24, 250], [x + 10, 372]], r }; }),
 ];
-const LAKES = [{ x: 2330, y: 238, rx: 74, ry: 26, kind: 'ice' }, { x: 3110, y: 240, rx: 60, ry: 22, kind: 'ichor' }];
+const LAKES = [{ x: 2330, y: 238, rx: 74, ry: 26, kind: 'ice' }, { x: NODES[ENDLESS_ID][0] - 110, y: 240, rx: 60, ry: 22, kind: 'ichor' }, { x: REGION_X[3] + 330, y: 244, rx: 80, ry: 24, kind: 'ichor' }, { x: REGION_X[4] + 370, y: 236, rx: 54, ry: 18, kind: 'ice' }];
 const ROADS = IDS.slice(1).map((id, i) => {
   const a = NODES[IDS[i]], b = NODES[id];
   return { to: id, ax: a[0], ay: a[1] + 8, bx: b[0], by: b[1] + 8, cx: (a[0] + b[0]) / 2, cy: (a[1] + b[1]) / 2 + 8 + ((i + 1) % 2 ? -26 : 26) };
@@ -108,7 +118,7 @@ function buildGround() {
       const x = cx * CS, y = cy * CS;
       const wx = x + (fbm(x * 0.004, y * 0.006, 11, 2) - 0.5) * 150;
       let r = PAL[0].lo, h2 = PAL[0].hi;
-      for (let i = 1; i < 4; i++) {
+      for (let i = 1; i < NREG; i++) {
         const t = smooth(REGION_X[i] - 100, REGION_X[i] + 100, wx);
         if (t > 0) { r = r.map((v, k) => lerp(v, PAL[i].lo[k], t)); h2 = h2.map((v, k) => lerp(v, PAL[i].hi[k], t)); }
       }
@@ -181,12 +191,12 @@ function peaks(g, r, R) {
       g.fillStyle = base; g.beginPath(); g.moveTo(x - w / 2, by); g.lineTo(x, by - h); g.lineTo(x + w / 2, by); g.fill();
       g.fillStyle = shade(th.peak, back ? 0.55 : 0.68); g.beginPath(); g.moveTo(x, by - h); g.lineTo(x + w / 2, by); g.lineTo(x + w * 0.1, by); g.lineTo(x - w * 0.02, by - h * 0.45); g.fill();
       g.fillStyle = shade(th.peak, back ? 1.2 : 1.35); g.beginPath(); g.moveTo(x, by - h); g.lineTo(x - w * 0.28, by - h * 0.42); g.lineTo(x - w * 0.08, by - h * 0.55); g.fill();
-      if (r === 2 || (r === 1 && h > 66) || (r === 0 && h > 78)) {   // snow caps
-        g.fillStyle = r === 3 ? '#8a60c0' : '#f4f8ff';
+      if (th.snow || (r === 1 && h > 66) || (r === 0 && h > 78)) {   // snow caps
+        g.fillStyle = '#f4f8ff';
         g.beginPath(); g.moveTo(x, by - h); g.lineTo(x - w * 0.2, by - h * 0.68); g.lineTo(x - w * 0.07, by - h * 0.74); g.lineTo(x + w * 0.04, by - h * 0.62); g.lineTo(x + w * 0.17, by - h * 0.7); g.fill();
       }
-      if (r === 3) {   // glowing fissures
-        g.strokeStyle = 'rgba(150,90,230,0.85)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x - 2, by - h * 0.55); g.lineTo(x + 3, by - h * 0.35); g.lineTo(x - 1, by - h * 0.18); g.stroke();
+      if (r === 10 || r === 8 || r === 5) {   // glowing fissures
+        g.strokeStyle = r === 10 ? 'rgba(150,90,230,0.85)' : 'rgba(255,130,40,0.85)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x - 2, by - h * 0.55); g.lineTo(x + 3, by - h * 0.35); g.lineTo(x - 1, by - h * 0.18); g.stroke();
       }
     }
   }
@@ -327,17 +337,18 @@ function buildTerrain(save) {
     if (R() < 0.45) gravestone(g, x, y, R);
   }
   drawRoads(g, save);
-  for (let r = 0; r < 4; r++) peaks(g, r, rng(30 + r));
+  for (let r = 0; r < NREG; r++) peaks(g, r, rng(30 + r));
   // Trees, drawn back to front so they overlap properly. Near a conquered zone they are dead.
   const list = [];
-  for (let i = 0; i < 1500; i++) {
+  for (let i = 0; i < Math.round(WW * 0.42); i++) {
     const x = R() * WW, y = 78 + R() * (H - 70), r = regionOf(x);
     const dens = fbm(x * 0.012, y * 0.02, 77, 3);
     if (dens < 0.5 && R() > 0.05) continue;
     if (nearPath(x, y) || nearRiver(x, y, 24) || inLake(x, y, 1.25) || nearLandmark(x, y, 46)) continue;
-    let dead = r === 3;
+    let dead = THEME[r].tree === 'dead';
+    if (dead && R() < 0.7) continue;          // bare lands have only a few trees
     for (const id of IDS) if (save.cleared[id] && Math.hypot(x - NODES[id][0], (y - NODES[id][1]) * 1.9) < 130) dead = true;
-    const kind = dead ? 'dead' : r === 0 ? 'oak' : r === 1 ? 'orchard' : 'pine';
+    const kind = dead ? 'dead' : THEME[r].tree;
     list.push({ x, y, kind, s: 0.8 + R() * 0.5 });
   }
   list.sort((a, b) => a.y - b.y);
@@ -351,7 +362,7 @@ function buildTerrain(save) {
     g.fillStyle = '#0a0710'; g.fillRect(x - w / 2 - 3, y - 10, 5, 36); g.fillRect(x + w / 2 - 2, y - 10, 5, 36);
     g.fillStyle = '#5a3c20'; g.fillRect(x - w / 2 - 2, y - 9, 3, 34); g.fillRect(x + w / 2 - 1, y - 9, 3, 34);
     g.fillStyle = '#0a0710'; g.beginPath(); g.moveTo(x - w / 2, y - 6); g.lineTo(x + w / 2, y - 6); g.lineTo(x + w / 2 - 8, y + 9); g.lineTo(x + w / 2, y + 24); g.lineTo(x - w / 2, y + 24); g.lineTo(x - w / 2 + 8, y + 9); g.fill();
-    g.fillStyle = ['#2e5a34', '#8a6a1c', '#2a4a78', '#4a2a78'][i]; g.beginPath(); g.moveTo(x - w / 2 + 2, y - 4); g.lineTo(x + w / 2 - 2, y - 4); g.lineTo(x + w / 2 - 9, y + 9); g.lineTo(x + w / 2 - 2, y + 22); g.lineTo(x - w / 2 + 2, y + 22); g.lineTo(x - w / 2 + 9, y + 9); g.fill();
+    g.fillStyle = THEME[i].banner; g.beginPath(); g.moveTo(x - w / 2 + 2, y - 4); g.lineTo(x + w / 2 - 2, y - 4); g.lineTo(x + w / 2 - 9, y + 9); g.lineTo(x + w / 2 - 2, y + 22); g.lineTo(x - w / 2 + 2, y + 22); g.lineTo(x - w / 2 + 9, y + 9); g.fill();
     g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x - w / 2 + 3, y - 4, w - 6, 3);
     g.fillStyle = '#0a0710'; g.fillText(reg.name, x + 1, y + 13); g.fillStyle = '#f6e6b8'; g.fillText(reg.name, x, y + 12);
   });
@@ -485,7 +496,7 @@ function drawNode(g, id, t, state, pal) {
   const ruin = state === 'cleared';
   const list = ARCH[id];
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(x, y + 8, 64, 22, 0, 0, Math.PI * 2); g.fill();
-  if (!ruin && id !== 13) {      // a small wall of palisade stakes around the living settlements
+  if (!ruin && id !== ENDLESS_ID) {      // a small wall of palisade stakes around the living settlements
     g.fillStyle = '#2a1c10';
     for (let a = 0.15; a < Math.PI - 0.15; a += 0.17) { const px = x + Math.cos(a) * 62, py = y + 10 + Math.sin(a) * 18; g.fillRect(px - 1, py - 5, 3, 6); }
   }
@@ -537,7 +548,7 @@ export function createWorldMap({ save, startBattle, play }) {
   const canvas = document.getElementById('map-canvas');
   const panel = document.getElementById('map-panel');
   const g = canvas.getContext('2d');
-  let W = 640, scrollX = 0, targetX = 0, selected = null, ripple = null;
+  let W = 640, scrollX = 0, targetX = 0, selected = null, ripple = null, pickedWave = 99;
   let terrain = null, terrainKey = '', vignette = null;
   let running = false, raf = 0, t0 = 0;
 
@@ -733,7 +744,9 @@ export function createWorldMap({ save, startBattle, play }) {
     if (selected === null) { panel.classList.add('hidden'); return; }
     const z = ZONES.find((q) => q.id === selected);
     const st = stateOf(z.id);
-    const wm = worldMul(save), mine = playerRating(save), need = Math.round(z.rating * wm.rating);
+    const open = z.endless ? 1 : nextWave(save, z.id);
+    if (pickedWave > open || pickedWave < 1) pickedWave = open;
+    const mine = playerRating(save), need = waveRating(z, z.endless ? 3 : pickedWave);
     const diff = mine >= need ? 'ok' : mine >= need * 0.7 ? 'hard' : 'wall';
     panel.classList.remove('hidden');
     const boss = z.boss && UNITS[z.boss];
@@ -742,17 +755,31 @@ export function createWorldMap({ save, startBattle, play }) {
     lines.push('<div class="wline">' + (st === 'locked' ? (rbShort ? 'Locked: you need ' + rbNeed + ' rebirth' + (rbNeed > 1 ? 's' : '') + ' (you have ' + (save.rebirths || 0) + '). Rebirth from the home screen.' : 'Locked: conquer the zone before it.') : z.blurb) + '</div>');
     if (z.endless) lines.push('<div class="wline">Best: wave ' + (save.bestEndless || 0) + '. No boss, no end. New record waves pay essence, gear and a champion soul every 10 waves.</div>');
     else {
-      if (st !== 'locked') lines.push('<div class="wline zrate ' + diff + '">Rating ' + need + ' (you ' + mine + ')</div>');
+      if (st !== 'locked') lines.push('<div class="wline zrate ' + diff + '">' + (pickedWave >= BOSS_WAVE ? 'The boss' : 'Wave ' + pickedWave) + ' usually needs ' + need.toLocaleString() + ' power (you ' + mine.toLocaleString() + ')</div>');
       lines.push('<div class="wline">Boss: <b>' + boss.name + '</b> <small class="zabil">' + bossAbilityNames(boss).join(' &middot; ') + '</small></div>');
     }
     const hz = st === 'locked' ? [] : hazardText(z);
     if (hz.length) lines.push('<div class="wline zhaz">Hazards: ' + hz.join(' &middot; ') + '</div>');
     panel.innerHTML = '<div class="wtext"><div class="wtitle">' + z.name + (st === 'cleared' ? ' (conquered, in ruins)' : '') + '</div>' + lines.join('') + '</div>';
+    if (!z.endless && st !== 'locked') {
+      const row = document.createElement('div');
+      row.className = 'waves';
+      const done = (save.progress || {})[z.id] || 0;
+      for (let w = 1; w <= BOSS_WAVE; w++) {
+        const c = document.createElement('button');
+        c.textContent = w === BOSS_WAVE ? 'Boss' : w;
+        c.disabled = w > open;
+        c.className = (w <= done ? 'done' : '') + (w === pickedWave ? ' sel' : '');
+        c.onclick = () => { pickedWave = w; play('click'); renderPanel(); };
+        row.appendChild(c);
+      }
+      panel.querySelector('.wtext').appendChild(row);
+    }
     const b = document.createElement('button');
     b.className = 'big wbuy';
-    b.textContent = z.endless ? 'Enter' : st === 'cleared' ? 'Replay' : 'Fight';
+    b.textContent = z.endless ? 'Enter' : 'Fight';
     b.disabled = st === 'locked';
-    b.onclick = () => startBattle(z.id);
+    b.onclick = () => startBattle(z.id, pickedWave);
     panel.appendChild(b);
   }
 
@@ -776,7 +803,7 @@ export function createWorldMap({ save, startBattle, play }) {
     if (!e.target.closest || !e.target.closest('#map-view') || e.target.closest('#map-panel')) return;
     let best = null, bd = 70;
     for (const z of ZONES) { const d = Math.hypot(wx - NODES[z.id][0], (wy - NODES[z.id][1]) * 1.2); if (d < bd) { bd = d; best = z.id; } }
-    if (best !== null) { play('click'); selected = best; ripple = { x: NODES[best][0], y: NODES[best][1] + 8, t: 0 }; renderPanel(); centerOn(best); }
+    if (best !== null) { play('click'); selected = best; pickedWave = 99; ripple = { x: NODES[best][0], y: NODES[best][1] + 8, t: 0 }; renderPanel(); centerOn(best); }
   });
   view.addEventListener('wheel', (e) => { e.preventDefault(); targetX += e.deltaY + e.deltaX; scrollX = targetX; clampScroll(); }, { passive: false });
   window.addEventListener('resize', size);
@@ -786,6 +813,7 @@ export function createWorldMap({ save, startBattle, play }) {
       running = true; t0 = performance.now(); terrain = null;
       size();
       selected = frontier();
+      pickedWave = 99;
       centerOn(selected, true);
       renderPanel();
       cancelAnimationFrame(raf);

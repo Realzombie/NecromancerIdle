@@ -42,6 +42,7 @@
       <div id="home-note" class="note"></div>
       <div class="home-buttons">
         <button id="btn-map" class="big">Conquer Zones</button>
+        <button id="btn-army" class="big alt3">Army</button>
         <button id="btn-tree" class="big alt">Skill Tree <span id="tree-badge" class="badge hidden"></span></button>
         <button id="btn-arm" class="big alt2">Armoury <span id="arm-badge" class="badge hidden"></span></button>
       </div>
@@ -80,6 +81,15 @@
   </div>
 
   <div id="spell-bar" class="spell-bar hidden"></div>
+
+  <div id="screen-army" class="screen page hidden">
+    <div class="page-top">
+      <button class="back" id="army-back"><i class="chev"></i><span>Back</span></button>
+      <h2>Army</h2>
+      <div class="banks"><div class="bank"><span class="ico">&#9760;</span> <b class="b-souls">0</b></div></div>
+    </div>
+    <div id="army-body" class="army-body"></div>
+  </div>
 
   <div id="screen-armoury" class="screen page hidden">
     <div class="page-top">
@@ -125,7 +135,16 @@
     <h2 id="result-title"></h2>
     <p id="result-text"></p>
     <div id="result-extra" class="result-extra"></div>
-    <div class="result-btns"><button id="btn-retry" class="big alt">Fight Again</button><button id="btn-home" class="big">Return Home</button></div>
+    <div class="result-btns">
+      <button id="btn-next" class="big">Next Wave</button>
+      <button id="btn-retry" class="big alt">Fight Again</button>
+    </div>
+    <div class="result-btns small">
+      <button id="btn-res-army" class="big alt3">Army</button>
+      <button id="btn-res-tree" class="big alt">Skill Tree</button>
+      <button id="btn-res-map" class="big alt2">Map</button>
+      <button id="btn-home" class="big grey">Home</button>
+    </div>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

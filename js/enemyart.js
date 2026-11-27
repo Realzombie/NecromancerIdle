@@ -2,6 +2,7 @@
 // parametric person: size (bulk), skin, cloth, headgear, weapon, shield and a few extras, so each looks different.
 // They are drawn facing right like everything else; the renderer flips enemies to face left.
 import { Pix, mix, BONE, DARK } from './art.js';
+import { NEW_ENEMIES } from './zones.js';
 
 const METAL = '#9aa0b0', IRON = '#7a8090', GOLD = '#d8b050', WOOD = '#8a5a2a', RED = '#c03030';
 
@@ -175,6 +176,9 @@ export const ENEMY = {
   slayer:   () => person({ bulk: 2, head: 'horns', hc: '#5a6a7a', cloth: '#4a5a6a', armor: 'chain', legs: '#2a3040', cape: '#1a2a3a', weapon: 'greatsword', blade: '#c8e0ff', pauldrons: '#6a7a8a', eye: '#ff6020', angry: true }),
   herokind: () => person({ bulk: 3, head: 'crown', cloth: '#d09020', armor: 'plate', legs: '#7a1020', cape: '#c02030', weapon: 'greatsword', blade: '#fff0c0', pauldrons: '#ffd040', trim: GOLD, eye: '#2040c0', angry: true }),
 };
+
+// the newer regions' enemies are described in zones.js
+for (const [k, d] of Object.entries(NEW_ENEMIES)) if (d.art) ENEMY[k] = () => person(d.art);
 
 export function enemyCanvas(name) {
   const f = ENEMY[name];

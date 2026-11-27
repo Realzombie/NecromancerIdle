@@ -1,5 +1,6 @@
 // Canvas drawing. Sprites are generated from pixel grids (see SPRITES) and cached.
 import { FIELD_W, FIELD_H, NECRO_X, GATE_X, REGIONS, UNITS } from './data.js';
+import { foeCanvas } from './foeart.js';
 import { artCanvas, necroCanvas, mix } from './art.js';
 import { necroGridCanvas } from './necro.js';
 import { ENEMY, enemyCanvas } from './enemyart.js';
@@ -354,6 +355,7 @@ function sprite(name) {
   if (!ART_ON && /^necro[0-4]$/.test(name)) { const nc = necroGridCanvas(Number(name.slice(5))); const sp = makeSprite(nc, nc.width / 2); sp.orb = nc.orb; return (cache[name] = sp); }
   if (ICON_ART[name] && ART_ON) { const ic = iconArtCanvas(name); return (cache[name] = makeSprite(ic, name === 'banner' ? 12 : ic.axPx)); }   // icons are always the new art; the banner follows the setting
   if (ART_ON && ENEMY[name]) { const ec = enemyCanvas(name); return (cache[name] = makeSprite(ec, ec.axPx)); }
+  if (!SPRITES[name] && UNITS[name] && UNITS[name].art) { const f = foeCanvas(UNITS[name].art, UNITS[name].size); return (cache[name] = makeSprite(f.img, f.ax)); }
   if (!SPRITES[name] && LOOKS[name]) return lookSprite(name, { hs: 0, ds: 0, flags: [] });
   const s = SPRITES[name];
   const sc = /^(icon_|gear_)/.test(name) ? s.scale : boosted(s.scale);
@@ -553,8 +555,22 @@ const SCENES = {
   10: { skyline: 'tower',     skyX: 660, props: 'snow', lamps: [380], trees: 'pine', orbX: 320 },
   11: { skyline: 'cave',      skyX: 560, props: 'rocks', lamps: [], trees: 'none', sky: ['#14122a', '#5a3050'], orbX: 860 },
   12: { skyline: 'keep',      skyX: 640, props: 'pillars', lamps: [300, 780], trees: 'pine', orbX: 440 },
-  13: { skyline: 'crypt',     skyX: 700, props: 'graves', lamps: [], trees: 'dead', sky: ['#0c0618', '#2c1048'], orbX: 300 },
+  41: { skyline: 'crypt',     skyX: 700, props: 'graves', lamps: [], trees: 'dead', sky: ['#0c0618', '#2c1048'], orbX: 300 },
 };
+// Regions 4-10: each zone picks its own skyline; the props, trees and lamps suit the region.
+const REGION_SCENES = {
+  4: { skylines: ['village', 'ruins', 'cave', 'tower'], props: 'graves', trees: 'dead' },
+  5: { skylines: ['ruins', 'village', 'cathedral', 'keep'], props: 'rocks', trees: 'none' },
+  6: { skylines: ['cave', 'gate', 'keep', 'pass'], props: 'rocks', trees: 'none' },
+  7: { skylines: ['village', 'pass', 'ruins', 'tower'], props: 'graves', trees: 'pine' },
+  8: { skylines: ['gate', 'burnt', 'castle', 'keep'], props: 'tents', trees: 'dead' },
+  9: { skylines: ['burnt', 'tower', 'cave', 'castle'], props: 'craters', trees: 'none' },
+  10: { skylines: ['cathedral', 'chapel', 'tower', 'keep'], props: 'pillars', trees: 'none' },
+};
+for (let id = 13; id <= 40; id++) {
+  const reg = Math.floor((id - 1) / 4) + 1, k = (id - 1) % 4, R = REGION_SCENES[reg];
+  SCENES[id] = { skyline: R.skylines[k], skyX: [760, 600, 800, 660][k], props: R.props, trees: R.trees, lamps: k % 2 ? [300, 780] : [300, 540, 780], orbX: [360, 800, 280, 480][k] };
+}
 const DEFAULT_SCENE = { skyline: 'castle', skyX: 830, props: 'graves', lamps: [300, 540, 780], trees: 'dead', orbX: 640 };
 let SC = DEFAULT_SCENE;
 const scaledScenes = {};
@@ -707,6 +723,27 @@ const THEMES = {
   holy: { skyTop: '#27367a', skyBot: '#f3b07c', stars: false, orb: '#fff0b0', orbCut: null, hills: '#6a5a8a', castle: '#3a3052', windows: '#fff0a0', tree: '#2a3020',
     groundA: '#5a7248', groundB: '#4a6238', groundC: '#52693f', path: 'rgba(210,200,176,0.4)', tuft: '#7a9c5a', fog: 'rgba(255,232,205,0.08)', bats: false,
     peaks: '#5a4a7a', cloud: 'rgba(255,225,200,0.5)', weather: 'motes', mote: '#ffe890', lamp: '#ffe090', halo: 'rgba(255,240,180,0.0)' },
+  mire: { skyTop: '#0e1c1c', skyBot: '#4a6a4a', stars: true, orb: '#c8e0a0', orbCut: '#1c3430', hills: '#182a20', castle: '#0c1812', windows: '#c0ff70', tree: '#0e1a10',
+    groundA: '#2a3822', groundB: '#1e2c1a', groundC: '#25321e', path: 'rgba(60,70,40,0.4)', tuft: '#4a6a34', fog: 'rgba(160,210,150,0.09)', bats: true,
+    peaks: '#14241e', cloud: 'rgba(100,150,110,0.3)', weather: 'wisps', mote: '#c0ff60', lamp: '#a0e060', halo: 'rgba(200,224,160,0.18)' },
+  desert: { skyTop: '#3a5aa8', skyBot: '#f8c870', stars: false, orb: '#fff0c0', orbCut: null, hills: '#c88a50', castle: '#7a4a2a', windows: '#ffe090', tree: '#4a3a1a',
+    groundA: '#d0a860', groundB: '#bc9450', groundC: '#c69e58', path: 'rgba(240,215,160,0.4)', tuft: '#a88c40', fog: 'rgba(255,220,160,0.07)', bats: false,
+    peaks: '#a86a48', cloud: 'rgba(255,230,200,0.3)', weather: 'motes', mote: '#ffe0a0', lamp: '#ffb040', halo: 'rgba(255,240,190,0)' },
+  deep: { skyTop: '#120c0c', skyBot: '#5a3020', stars: false, orb: '#ff9040', orbCut: null, hills: '#2a1c1a', castle: '#161012', windows: '#ff9030', tree: '#1a1210',
+    groundA: '#4a4040', groundB: '#3a3234', groundC: '#423a3a', path: 'rgba(110,90,76,0.4)', tuft: '#5a4c44', fog: 'rgba(255,140,70,0.06)', bats: true,
+    peaks: '#1c1214', cloud: 'rgba(120,80,70,0.3)', weather: 'motes', mote: '#ff9040', lamp: '#ff8020', halo: 'rgba(255,144,64,0)' },
+  forest: { skyTop: '#16304a', skyBot: '#8ac8a0', stars: false, orb: '#f0ffe0', orbCut: null, hills: '#2a5a40', castle: '#14301e', windows: '#d0ff90', tree: '#103018',
+    groundA: '#3a6a34', groundB: '#2e5a2a', groundC: '#346230', path: 'rgba(150,130,90,0.35)', tuft: '#64a048', fog: 'rgba(210,255,210,0.07)', bats: false,
+    peaks: '#24503c', cloud: 'rgba(220,255,230,0.3)', weather: 'motes', mote: '#d0ff90', lamp: '#c0ff80', halo: 'rgba(240,255,224,0)' },
+  empire: { skyTop: '#241a30', skyBot: '#b86a50', stars: false, orb: '#ffd0a0', orbCut: null, hills: '#4a3040', castle: '#1e1420', windows: '#ffb050', tree: '#241820',
+    groundA: '#6a5a4a', groundB: '#58493c', groundC: '#615244', path: 'rgba(180,160,140,0.4)', tuft: '#7a6a48', fog: 'rgba(255,180,140,0.06)', bats: false,
+    peaks: '#3a2636', cloud: 'rgba(120,90,100,0.45)', weather: 'motes', mote: '#ffb070', lamp: '#ff9040', halo: 'rgba(255,208,160,0)' },
+  ember: { skyTop: '#1c0808', skyBot: '#c04818', stars: true, orb: '#ffb060', orbCut: null, hills: '#3a140c', castle: '#1a0a08', windows: '#ffd040', tree: '#180a06',
+    groundA: '#3a241c', groundB: '#2c1a14', groundC: '#331f18', path: 'rgba(120,70,40,0.4)', tuft: '#6a3a1c', fog: 'rgba(255,110,40,0.07)', bats: true,
+    peaks: '#2a0e0a', cloud: 'rgba(150,70,40,0.35)', weather: 'motes', mote: '#ffa030', lamp: '#ff7020', lightning: true, halo: 'rgba(255,176,96,0)' },
+  heaven: { skyTop: '#4a6ac8', skyBot: '#fff0d0', stars: false, orb: '#ffffff', orbCut: null, hills: '#b8b0d8', castle: '#8a80b0', windows: '#fff8c0', tree: '#6a70a0',
+    groundA: '#d8d4c0', groundB: '#c6c0ac', groundC: '#d0cab6', path: 'rgba(255,240,190,0.5)', tuft: '#f0e8c0', fog: 'rgba(255,250,230,0.12)', bats: false,
+    peaks: '#9a98d0', cloud: 'rgba(255,255,255,0.65)', weather: 'motes', mote: '#fff8b0', lamp: '#fff0a0', halo: 'rgba(255,255,255,0.25)' },
 };
 let TH = THEMES.graveyard;
 
@@ -1219,9 +1256,9 @@ function drawScene(g, battle, tier = 0) {
     g.fillText(f.text, f.x, f.y - f.t * 24);
   }
   g.globalAlpha = 1;
-  if (battle.spawnQueue.length === 0 && battle.alive('enemy') === 0 && !battle.result && !battle.bossSpawned) {   // nothing more is coming once the boss is out
+  if (battle.spawnQueue.length === 0 && battle.alive('enemy') === 0 && !battle.result && !battle.bossSpawned && (battle.surge < battle.surges.length || battle.bossWave)) {   // only while more is coming
     g.font = 'bold 28px system-ui, sans-serif'; g.fillStyle = '#e8e0f0';
-    g.fillText(battle.wave >= battle.totalWaves && !battle.bossSpawned ? UNITS[battle.zone.boss].name + ' approaches!' : battle.zone.endless ? 'Wave ' + (battle.wave + 1) + ' incoming...' : 'Next wave incoming...', FIELD_W / 2, 200);
+    g.fillText(battle.surge >= battle.surges.length ? UNITS[battle.zone.boss].name + ' approaches!' : battle.surge === 0 ? (battle.bossWave ? 'The boss wave' : 'Wave ' + battle.wave) : 'More are coming...', FIELD_W / 2, 200);
   }
 }
 

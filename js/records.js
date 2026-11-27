@@ -9,8 +9,8 @@ export const ACHIEVEMENTS = [
   { id: 'dead100',  name: 'Gravedigger',      desc: 'Kill 100 enemies',               prog: (s) => [st(s, 'kills'), 100],      reward: { dust: 15 } },
   { id: 'dead1k',   name: 'Massacre',         desc: 'Kill 1,000 enemies',             prog: (s) => [st(s, 'kills'), 1000],     reward: { champ: 1 } },
   { id: 'dead10k',  name: 'Plague of Death',  desc: 'Kill 10,000 enemies',            prog: (s) => [st(s, 'kills'), 10000],    reward: { essence: 5 } },
-  { id: 'win1',     name: 'First Victory',    desc: 'Clear a zone',                   prog: (s) => [st(s, 'clears'), 1],       reward: { dust: 5 } },
-  { id: 'win25',    name: 'Relentless',       desc: 'Clear zones 25 times',           prog: (s) => [st(s, 'clears'), 25],      reward: { dust: 30 } },
+  { id: 'win1',     name: 'First Victory',    desc: 'Win a wave',                     prog: (s) => [st(s, 'clears'), 1],       reward: { dust: 5 } },
+  { id: 'win25',    name: 'Relentless',       desc: 'Win 25 waves',                   prog: (s) => [st(s, 'clears'), 25],      reward: { dust: 30 } },
   { id: 'try25',    name: 'Never Give Up',    desc: 'Make 25 attempts',               prog: (s) => [st(s, 'attempts'), 25],    reward: { dust: 20 } },
   { id: 'try100',   name: 'Stubborn Dead',    desc: 'Make 100 attempts',              prog: (s) => [st(s, 'attempts'), 100],   reward: { champ: 1 } },
   { id: 'zone4',    name: 'Gatekeeper',       desc: 'Conquer the Greenmarch (zone 4)', prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 4],  reward: { dust: 25 } },
@@ -24,6 +24,9 @@ export const ACHIEVEMENTS = [
   { id: 'roster',   name: 'Full Roster',      desc: 'Own every summon',          prog: (s) => [PLAYER_UNITS.filter((u) => owned(s, u)).length, PLAYER_UNITS.length], reward: { champ: 1 } },
   { id: 'nat10',    name: 'Naturalist',       desc: 'Defeat 10 kinds of enemy',       prog: (s) => [Object.values(s.seen || {}).filter((e) => e.kills > 0).length, 10], reward: { dust: 25 } },
   { id: 'natall',   name: 'Zoologist',        desc: 'Defeat every kind of enemy',     prog: (s) => [Object.values(s.seen || {}).filter((e) => e.kills > 0).length, ENEMY_KEYS.length], reward: { champ: 1 } },
+  { id: 'zone20',   name: 'Sand and Mire',    desc: 'Conquer zone 20',                prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 20], reward: { essence: 20 } },
+  { id: 'zone32',   name: 'Empire Breaker',   desc: 'Conquer zone 32',                prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 32], reward: { essence: 40 } },
+  { id: 'zone40',   name: 'Nothing Left',     desc: 'Conquer the Celestial Gate (zone 40)', prog: (s) => [Math.max(s.bestZone, s.bestEver || 0), 40], reward: { essence: 100 } },
   { id: 'reborn1',  name: 'Born Again',       desc: 'Rebirth once',                   prog: (s) => [s.rebirths || 0, 1],       reward: { champ: 1 } },
   { id: 'reborn5',  name: 'Cycle of Death',   desc: 'Rebirth five times',             prog: (s) => [s.rebirths || 0, 5],       reward: { essence: 15 } },
   { id: 'rich',     name: 'Soul Merchant',    desc: 'Bank 10,000 souls in total',     prog: (s) => [st(s, 'soulsEarned'), 10000], reward: { dust: 40 } },
@@ -60,15 +63,16 @@ export function checkAchievements(save, live) {
 
 // ---- Bounties: three short goals that refill as you finish them. They only move when you play. ----
 const BOUNTY_TYPES = {
-  kills:   { text: (n) => `Kill ${n} enemies`,                       goal: (z) => 40 + z * 15, gain: (r) => r.kills },
-  battles: { text: (n) => `Fight ${n} battles`,                      goal: () => 4,             gain: () => 1 },
-  wins:    { text: (n) => `Clear a zone ${n} times`,                 goal: () => 2,             gain: (r) => (r.won ? 1 : 0) },
-  elites:  { text: (n) => `Slay ${n} elite enemies`,                 goal: () => 3,             gain: (r) => r.elites },
+  kills:   { text: (n) => `Kill ${n} enemies`,                       goal: (z) => 250 + z * 20, gain: (r) => r.kills },
+  battles: { text: (n) => `Fight ${n} waves`,                        goal: () => 15,             gain: () => 1 },
+  wins:    { text: (n) => `Win ${n} waves`,                          goal: () => 10,             gain: (r) => (r.won ? 1 : 0) },
+  elites:  { text: (n) => `Slay ${n} elite enemies`,                 goal: () => 12,             gain: (r) => r.elites },
   gear:    { text: (n) => `Find ${n} pieces of gear`,                goal: () => 2,             gain: (r) => r.gear },
   endless: { text: (n) => `Survive ${n} Endless Crypt waves`,        goal: () => 15,            gain: (r) => r.endlessWaves, needs: (s) => s.cleared && s.cleared[12] },
 };
 export const bountyText = (b) => BOUNTY_TYPES[b.type].text(b.goal);
-export const nextBountyChamp = (save) => (save.bountyDone || 0) % 5 === 4;
+export const BOUNTY_CHAMP_EVERY = 25;     // champion souls should come from bosses, not chores
+export const nextBountyChamp = (save) => (save.bountyDone || 0) % BOUNTY_CHAMP_EVERY === BOUNTY_CHAMP_EVERY - 1;
 
 export function ensureBounties(save) {
   save.bounties = save.bounties || [];
@@ -92,7 +96,7 @@ export function reportBattle(save, battle) {
   }
   for (const b of done) {
     save.bountyDone = (save.bountyDone || 0) + 1;
-    b.champ = save.bountyDone % 5 === 0 ? 1 : 0;
+    b.champ = save.bountyDone % BOUNTY_CHAMP_EVERY === 0 ? 1 : 0;
     save.dust = (save.dust || 0) + b.dust;
     save.champSouls += b.champ;
   }

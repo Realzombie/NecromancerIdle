@@ -131,7 +131,7 @@ export function createArmoury({ save, play, onChange }) {
     const top = document.createElement('div');
     top.className = 'rec-stats';
     const n = (v) => Math.floor(v || 0).toLocaleString();
-    top.innerHTML = [['Kills', n(s.kills)], ['Attempts', n(s.attempts)], ['Zones cleared', n(s.clears)], ['Defeats', n(s.fails)], ['Gear found', n(s.gearFound)], ['Rebirths', n(save.rebirths)]]
+    top.innerHTML = [['Kills', n(s.kills)], ['Attempts', n(s.attempts)], ['Waves won', n(s.clears)], ['Defeats', n(s.fails)], ['Gear found', n(s.gearFound)], ['Rebirths', n(save.rebirths)]]
       .map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
     root.appendChild(top);
     ensureBounties(save);
