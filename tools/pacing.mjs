@@ -19,16 +19,16 @@ function buildArmy() {
   const worth = (u) => { const m = D.statMods(save, u); return (D.threat(D.UNITS[u]) * Math.sqrt(m.hp * m.dmg)) / D.ARMY_SLOTS[u]; };
   const front = own.filter((u) => D.UNITS[u].range <= 40).sort((a, b) => worth(b) - worth(a));
   const back = own.filter((u) => D.UNITS[u].range > 40 && !D.UNITS[u].heal).sort((a, b) => worth(b) - worth(a));
-  save.army = {};
-  const cap = D.armyCap(save);
-  const add = (t, share) => { let n = Math.floor((cap * share) / D.ARMY_SLOTS[t]); while (n-- > 0) if (!addToArmy(save, t, 1)) break; };
+  // build the army in one go (adding to an empty army would just refill it with zombies)
+  const cap = D.armyCap(save), army = {};
+  let used = 0;
+  const add = (t, share) => { const n = Math.min(Math.floor((cap * share) / D.ARMY_SLOTS[t]), Math.floor((cap - used) / D.ARMY_SLOTS[t])); if (n > 0) { army[t] = (army[t] || 0) + n; used += n * D.ARMY_SLOTS[t]; } };
   if (back.length) { add(back[0], 0.28); if (back[1]) add(back[1], 0.12); }
   if (own.includes('gravepriest') && cap >= 20) add('gravepriest', 0.08);
   if (front[0]) add(front[0], 0.3);
   if (front[1]) add(front[1], 0.15);
-  const filler = front[0] || 'zombie';
-  while (addToArmy(save, filler, 1)) { /* fill */ }
-  while (addToArmy(save, 'zombie', 1)) { /* odd spaces */ }
+  if (cap > used) army.zombie = (army.zombie || 0) + (cap - used);
+  save.army = army;
 }
 
 // Spend souls: always the cheapest sensible thing next.
@@ -96,6 +96,7 @@ for (let run = 0; run < RUNS; run++) {
     if (fz >= 1) for (let i = 0; i < 2 + stuck; i++) fight(fz, fw);
   }
   total += time;
+  if (process.env.ARMY) console.log('   army', JSON.stringify(save.log.at(-1).army));
   if (time >= 5 * 3600) { console.log(`run ${run + 1}: stalled at ${best} after ${(time / 3600).toFixed(1)}h`); break; }
   const info = `run ${run + 1} (rebirths ${save.rebirths || 0}): ${(time / 60).toFixed(0)} min, ${fights} fights, reached ${best}, army ${D.armyCap(save)}, power ${power}`;
   if (D.canRebirth(save)) {

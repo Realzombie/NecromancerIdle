@@ -18,25 +18,25 @@ export const LANE_MAX_Y = 474;
 // unlockCost = champion souls to unlock in the skill tree (0 = owned from the start).
 export const UNITS = {
   zombie:   { name: 'Zombie',          hp: 40, dmg: 5, atk: 1.0, speed: 40, range: 22,  radius: 10, raise: 12, rally: [400, 600], sprite: 'zombie',   team: 'player', unlockCost: 0, costMul: 1,   blurb: 'Slow, sturdy front line.' },
-  archer:   { name: 'Skeleton Archer', hp: 15, dmg: 6, atk: 1.2, speed: 35, range: 150, radius: 9,  raise: 18, rally: [260, 400], sprite: 'archer',   team: 'player', unlockCost: 1, costMul: 1.6, blurb: 'Shoots from behind the line.' },
-  skeleton: { name: 'Skeleton Warrior',hp: 60, dmg: 7, atk: 1.1, speed: 38, range: 24,  radius: 10, raise: 14, rally: [380, 570], sprite: 'skeleton', team: 'player', unlockCost: 1, costMul: 2,   blurb: 'Sword and shield. Tough and steady.' },
-  hound:    { name: 'Zombie Hound',    hp: 25, dmg: 4, atk: 0.6, speed: 85, range: 20,  radius: 8,  raise: 9,  rally: [420, 640], sprite: 'hound',    team: 'player', unlockCost: 1, costMul: 2.5, blurb: 'Fast and fierce, but fragile.' },
-  mage:     { name: 'Bone Mage',       hp: 14, dmg: 11, atk: 1.8, speed: 32, range: 170, radius: 9,  raise: 24, rally: [200, 340], sprite: 'mage',     team: 'player', unlockCost: 2, costMul: 2.2, splash: 45, blurb: 'Hurls bolts that burst on impact.' },
-  ghost:    { name: 'Ghost',           hp: 42, dmg: 8, atk: 0.9, speed: 60, range: 22,  radius: 9,  raise: 16, rally: [420, 640], sprite: 'ghost',    team: 'player', unlockCost: 2, costMul: 2.4, dodge: 0.3, ghostly: true, blurb: 'Drifts through blows. Dodges 30% of hits.' },
-  abomination: { name: 'Abomination',  hp: 260, dmg: 18, atk: 1.6, speed: 22, range: 30,  radius: 17, raise: 40, rally: [380, 520], sprite: 'abomination', team: 'player', unlockCost: 2, costMul: 3.5, heavy: true, cleave: 38, blurb: 'A towering stitched horror that hits everything near it.' },
-  deathknight:  { name: 'Death Knight',   hp: 110, dmg: 14, atk: 1.1, speed: 70, range: 26,  radius: 12, raise: 28, rally: [380, 560], sprite: 'deathknight', team: 'player', unlockCost: 3, costMul: 3,   blurb: 'A heavily armoured knight who charges into the enemy line.' },
-  plaguebearer: { name: 'Plague Bearer',  hp: 70,  dmg: 3,  atk: 1.2, speed: 30, range: 24,  radius: 11, raise: 26, rally: [400, 580], sprite: 'plaguebearer', team: 'player', unlockCost: 3, costMul: 2.6, aura: { r: 62, dps: 1.9 }, blurb: 'Wreathed in a toxic cloud that poisons every enemy nearby.' },
-  gravepriest:  { name: 'Grave Priest',   hp: 45,  dmg: 3,  atk: 1.4, speed: 32, range: 120, radius: 9,  raise: 30, rally: [220, 360], sprite: 'gravepriest', team: 'player', unlockCost: 3, costMul: 2.4, heal: { amt: 10, every: 3, range: 170 }, blurb: 'Mends the wounded among your horde.' },
-  bat:          { name: 'Vampire Bat',    hp: 20,  dmg: 5,  atk: 0.7, speed: 95, range: 22, radius: 8,  raise: 10, rally: [420, 660], sprite: 'bat', team: 'player', unlockCost: 2, costMul: 2.2, fly: true, alt: [100, 140], lifesteal: 0.3, blurb: 'Flies over the lines and bites from above. Ground melee cannot touch it, and every bite heals it.' },
-  drake:        { name: 'Bone Drake',     hp: 120, dmg: 18, atk: 1.6, speed: 42, range: 170, radius: 15, raise: 38, rally: [260, 420], sprite: 'drake', team: 'player', unlockCost: 5, costMul: 3.6, fly: true, alt: [120, 160], splash: 42, blurb: 'A skeletal dragon that circles overhead and burns the ranks below with bone fire.' },
-  gargoyle:     { name: 'Gargoyle',       hp: 150, dmg: 9,  atk: 1.3, speed: 34, range: 24,  radius: 12, raise: 34, rally: [420, 600], sprite: 'gargoyle', team: 'player', unlockCost: 4, costMul: 3.2, armor: 0.2, blurb: 'Living stone. Shrugs off a fifth of every blow.' },
+  archer:   { name: 'Skeleton Archer', hp: 36, dmg: 14, atk: 1.2, speed: 35, range: 150, radius: 9,  raise: 18, rally: [260, 400], sprite: 'archer',   team: 'player', unlockCost: 1, costMul: 1.6, blurb: 'Shoots from behind the line.' },
+  skeleton: { name: 'Skeleton Warrior',hp: 108, dmg: 13, atk: 1.1, speed: 38, range: 24,  radius: 10, raise: 14, rally: [380, 570], sprite: 'skeleton', team: 'player', unlockCost: 1, costMul: 2,   blurb: 'Sword and shield. Tough and steady.' },
+  hound:    { name: 'Zombie Hound',    hp: 36, dmg: 6, atk: 0.6, speed: 85, range: 20,  radius: 8,  raise: 9,  rally: [420, 640], sprite: 'hound',    team: 'player', unlockCost: 1, costMul: 2.5, blurb: 'Fast and fierce, but fragile.' },
+  mage:     { name: 'Bone Mage',       hp: 36, dmg: 29, atk: 1.8, speed: 32, range: 170, radius: 9,  raise: 24, rally: [200, 340], sprite: 'mage',     team: 'player', unlockCost: 2, costMul: 2.2, splash: 45, blurb: 'Hurls bolts that burst on impact.' },
+  ghost:    { name: 'Ghost',           hp: 57, dmg: 11, atk: 0.9, speed: 60, range: 22,  radius: 9,  raise: 16, rally: [420, 640], sprite: 'ghost',    team: 'player', unlockCost: 2, costMul: 2.4, dodge: 0.3, ghostly: true, blurb: 'Drifts through blows. Dodges 30% of hits.' },
+  abomination: { name: 'Abomination',  hp: 339, dmg: 23, atk: 1.6, speed: 22, range: 30,  radius: 17, raise: 40, rally: [380, 520], sprite: 'abomination', team: 'player', unlockCost: 2, costMul: 3.5, heavy: true, cleave: 38, blurb: 'A towering stitched horror that hits everything near it.' },
+  deathknight:  { name: 'Death Knight',   hp: 198, dmg: 25, atk: 1.1, speed: 70, range: 26,  radius: 12, raise: 28, rally: [380, 560], sprite: 'deathknight', team: 'player', unlockCost: 3, costMul: 3,   blurb: 'A heavily armoured knight who charges into the enemy line.' },
+  plaguebearer: { name: 'Plague Bearer',  hp: 89,  dmg: 4,  atk: 1.2, speed: 30, range: 24,  radius: 11, raise: 26, rally: [400, 580], sprite: 'plaguebearer', team: 'player', unlockCost: 3, costMul: 2.6, aura: { r: 62, dps: 1.9 }, blurb: 'Wreathed in a toxic cloud that poisons every enemy nearby.' },
+  gravepriest:  { name: 'Grave Priest',   hp: 78,  dmg: 5,  atk: 1.4, speed: 32, range: 120, radius: 9,  raise: 30, rally: [220, 360], sprite: 'gravepriest', team: 'player', unlockCost: 3, costMul: 2.4, heal: { amt: 17, every: 3, range: 170 }, blurb: 'Mends the wounded among your horde.' },
+  bat:          { name: 'Vampire Bat',    hp: 24,  dmg: 6,  atk: 0.7, speed: 95, range: 22, radius: 8,  raise: 10, rally: [420, 660], sprite: 'bat', team: 'player', unlockCost: 2, costMul: 2.2, fly: true, alt: [100, 140], lifesteal: 0.3, blurb: 'Flies over the lines and bites from above. Ground melee cannot touch it, and every bite heals it.' },
+  drake:        { name: 'Bone Drake',     hp: 179, dmg: 27, atk: 1.6, speed: 42, range: 170, radius: 15, raise: 38, rally: [260, 420], sprite: 'drake', team: 'player', unlockCost: 5, costMul: 3.6, fly: true, alt: [120, 160], splash: 42, blurb: 'A skeletal dragon that circles overhead and burns the ranks below with bone fire.' },
+  gargoyle:     { name: 'Gargoyle',       hp: 327, dmg: 20,  atk: 1.3, speed: 34, range: 24,  radius: 12, raise: 34, rally: [420, 600], sprite: 'gargoyle', team: 'player', unlockCost: 4, costMul: 3.2, armor: 0.2, blurb: 'Living stone. Shrugs off a fifth of every blow.' },
 
-  wight:        { name: 'Barrow Wight',   hp: 95,  dmg: 11, atk: 1.0, speed: 44, range: 26, radius: 11, raise: 24, rally: [400, 580], sprite: 'wight', team: 'player', unlockCost: 3, costMul: 2.8, lifesteal: 0.25, blurb: 'An ancient barrow lord who drinks the life from what it strikes.' },
-  mummy:        { name: 'Mummy',          hp: 200, dmg: 7,  atk: 1.4, speed: 26, range: 24, radius: 11, raise: 28, rally: [420, 600], sprite: 'mummy', team: 'player', unlockCost: 3, costMul: 2.8, armor: 0.1, blurb: 'Wrapped, dried and very hard to put down.' },
-  spider:       { name: 'Grave Spider',   hp: 40,  dmg: 7,  atk: 0.8, speed: 72, range: 22, radius: 10, raise: 14, rally: [420, 660], sprite: 'spider', team: 'player', unlockCost: 3, costMul: 2.5, blurb: 'Quick and venomous. Its webs can slow whatever it bites.' },
-  banshee:      { name: 'Banshee',        hp: 55,  dmg: 14, atk: 2.0, speed: 46, range: 150, radius: 9, raise: 30, rally: [240, 400], sprite: 'banshee', team: 'player', unlockCost: 4, costMul: 3, fly: true, alt: [105, 145], splash: 55, blurb: 'Floats above the fight and wails, hurting everything bunched together.' },
-  bonegolem:    { name: 'Bone Golem',     hp: 520, dmg: 24, atk: 2.1, speed: 20, range: 32, radius: 18, raise: 48, rally: [400, 540], sprite: 'bonegolem', team: 'player', unlockCost: 5, costMul: 4, armor: 0.25, heavy: true, cleave: 46, blurb: 'A walking ossuary. The finest wall the dead can build.' },
-  reaper:       { name: 'Soul Reaper',    hp: 190, dmg: 38, atk: 1.5, speed: 48, range: 34, radius: 13, raise: 44, rally: [380, 540], sprite: 'reaper', team: 'player', unlockCost: 6, costMul: 4.2, cleave: 48, ghostly: true, dodge: 0.2, blurb: 'Death itself, on loan. Its scythe sweeps through whole ranks.' },
+  wight:        { name: 'Barrow Wight',   hp: 145,  dmg: 17, atk: 1.0, speed: 44, range: 26, radius: 11, raise: 24, rally: [400, 580], sprite: 'wight', team: 'player', unlockCost: 3, costMul: 2.8, lifesteal: 0.25, blurb: 'An ancient barrow lord who drinks the life from what it strikes.' },
+  mummy:        { name: 'Mummy',          hp: 264, dmg: 9,  atk: 1.4, speed: 26, range: 24, radius: 11, raise: 28, rally: [420, 600], sprite: 'mummy', team: 'player', unlockCost: 3, costMul: 2.8, armor: 0.1, blurb: 'Wrapped, dried and very hard to put down.' },
+  spider:       { name: 'Grave Spider',   hp: 95,  dmg: 17,  atk: 0.8, speed: 72, range: 22, radius: 10, raise: 14, rally: [420, 660], sprite: 'spider', team: 'player', unlockCost: 3, costMul: 2.5, blurb: 'Quick and venomous. Its webs can slow whatever it bites.' },
+  banshee:      { name: 'Banshee',        hp: 106,  dmg: 27, atk: 2.0, speed: 46, range: 150, radius: 9, raise: 30, rally: [240, 400], sprite: 'banshee', team: 'player', unlockCost: 4, costMul: 3, fly: true, alt: [105, 145], splash: 55, blurb: 'Floats above the fight and wails, hurting everything bunched together.' },
+  bonegolem:    { name: 'Bone Golem',     hp: 707, dmg: 33, atk: 2.1, speed: 20, range: 32, radius: 18, raise: 48, rally: [400, 540], sprite: 'bonegolem', team: 'player', unlockCost: 5, costMul: 4, armor: 0.25, heavy: true, cleave: 46, blurb: 'A walking ossuary. The finest wall the dead can build.' },
+  reaper:       { name: 'Soul Reaper',    hp: 168, dmg: 34, atk: 1.5, speed: 48, range: 34, radius: 13, raise: 44, rally: [380, 540], sprite: 'reaper', team: 'player', unlockCost: 6, costMul: 4.2, cleave: 48, ghostly: true, dodge: 0.2, blurb: 'Death itself, on loan. Its scythe sweeps through whole ranks.' },
 
   // Enemies. How strong they are in a wave comes from the difficulty curve below.
   // The War Banner is a field hazard: a standing banner that buffs the enemies around it (see hazardsFor).
@@ -125,7 +125,7 @@ export const TUNING = {
 // shape (tough or sharp, near or far): the whole wave is scaled so its average member matches the curve.
 // The strength of each zone, fitted to how strong a player really is when they get there (measured with
 // tools/pacing.mjs). [zone, strength]; zones in between are filled in smoothly.
-export const CURVE = { anchors: [[1, 1], [3, 1.42], [4, 1.85], [5, 2.7], [6, 4.2], [8, 8.5], [10, 14], [13, 34], [18, 100], [24, 235], [32, 520], [40, 1050]], wave: 1.07, boss: 1.1, scale: 1 };
+export const CURVE = { anchors: [[1, 1], [3, 1.42], [4, 1.85], [5, 2.75], [6, 4.4], [8, 9.8], [10, 16], [13, 40], [16, 76], [18, 117], [24, 320], [28, 470], [32, 780], [40, 1700]], wave: 1.07, boss: 1.1, scale: 1 };
 export function zoneStrength(id) {
   const A = CURVE.anchors;
   let i = 0;
@@ -435,7 +435,7 @@ export function playerRating(save) {
   return Math.round(p * (1 + gm.crit + gm.lifesteal));
 }
 // The power that usually beats a zone, as measured with tools/pacing.mjs. Shown beside your own power.
-const RATING_ANCHORS = [[1, 110], [3, 330], [4, 560], [5, 850], [6, 1650], [8, 3500], [10, 5400], [13, 15000], [18, 48000], [24, 90000], [30, 155000], [40, 420000]];
+const RATING_ANCHORS = [[1, 110], [3, 300], [4, 500], [5, 780], [6, 1350], [8, 2700], [10, 4900], [13, 13000], [16, 22000], [18, 32000], [24, 82000], [30, 180000], [40, 540000]];
 export function waveRating(zone, wave) {
   const A = RATING_ANCHORS, id = zone.endless ? 24 : zone.id;
   let i = 0;
