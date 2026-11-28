@@ -34,7 +34,7 @@ let homeNote = '';
 let lastZone = 1;
 let lastWave = 1;
 let armyFrom = 'home';     // where the Army screen goes back to
-let autoOn = false;
+let autoMode = null;       // null, 'repeat' (the same wave) or 'progress' (on to the next wave after a win)
 let autoTimer = null;
 let paused = false;
 
@@ -125,7 +125,7 @@ function renderHome() {
 
 function goHome() {
   clearTimeout(autoTimer);
-  setAuto(false);
+  setAuto(null);
   battle = null;
   renderHome();
   show('screen-home');
@@ -261,9 +261,15 @@ function endBattle() {
   if (fresh.length || bounties.length || (battle.newFinds || []).length) setTimeout(() => play('ach'), 400);
   liveFresh = [];
   show('screen-result');
-  if (autoOn) {
-    $('result-text').textContent += ' Fighting the same wave again in 3 seconds... (Home to stop)';
-    autoTimer = setTimeout(() => { if (autoOn && battle) startBattle(lastZone, lastWave); }, 3000);
+  if (autoMode) {
+    // Progress moves on after a win. After a defeat, or when the way ahead is shut, it fights the same wave again.
+    const onward = autoMode === 'progress' && canNext;
+    let note = ' Fighting the same wave again in 3 seconds...';
+    if (onward) note = nz !== battle.zoneId ? ' Marching to the next zone in 3 seconds...' : nw >= BOSS_WAVE ? ' Facing the boss in 3 seconds...' : ` Wave ${nw} in 3 seconds...`;
+    else if (autoMode === 'progress' && won && !E) note = ' No way further yet, so fighting the same wave again in 3 seconds...';
+    $('result-text').textContent += note + ' (Home to stop)';
+    const zone = onward ? nz : lastZone, wave = onward ? nw : lastWave;
+    autoTimer = setTimeout(() => { if (autoMode && battle) startBattle(zone, wave); }, 3000);
   }
 }
 
@@ -291,10 +297,13 @@ function afterChange() {
   setBanks();
 }
 
-function setAuto(on) {
-  autoOn = on;
-  $('btn-auto').textContent = 'Auto: ' + (on ? 'on' : 'off');
-  $('btn-auto').classList.toggle('on', on);
+// Only one of the two can be on at a time.
+function setAuto(mode) {
+  autoMode = mode;
+  for (const [id, label, m] of [['btn-auto', 'Auto', 'repeat'], ['btn-progress', 'Progress', 'progress']]) {
+    $(id).textContent = label + ': ' + (mode === m ? 'on' : 'off');
+    $(id).classList.toggle('on', mode === m);
+  }
 }
 
 // ---- Sound ----
@@ -357,7 +366,7 @@ const armoury = createArmoury({ save, play, onChange: afterChange });
 
 // ---- Wiring ----
 // Leaving a result screen for another page ends that fight for good (and stops Auto).
-const leaveResult = (go) => () => { clearTimeout(autoTimer); setAuto(false); battle = null; renderHome(); go(); };
+const leaveResult = (go) => () => { clearTimeout(autoTimer); setAuto(null); battle = null; renderHome(); go(); };
 $('btn-map').onclick = openMap;
 $('btn-tree').onclick = openTree;
 $('btn-army').onclick = () => openArmy('home');
@@ -367,7 +376,8 @@ $('btn-res-tree').onclick = leaveResult(openTree);
 $('btn-res-map').onclick = leaveResult(openMap);
 $('btn-arm').onclick = () => { setBanks(); armoury.render(); show('screen-armoury'); };
 $('btn-retry').onclick = () => { clearTimeout(autoTimer); startBattle(lastZone, lastWave); };
-$('btn-auto').onclick = () => setAuto(!autoOn);
+$('btn-auto').onclick = () => setAuto(autoMode === 'repeat' ? null : 'repeat');
+$('btn-progress').onclick = () => setAuto(autoMode === 'progress' ? null : 'progress');
 $('btn-pause').onclick = () => setPaused(!paused);
 // Export and import: a text code holding the whole save, so progress can be backed up or moved between devices.
 $('btn-export').onclick = async () => {
